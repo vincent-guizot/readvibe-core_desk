@@ -1,0 +1,162 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* ========================================================
+   VIBEDESK DESIGN SYSTEM TOKENS
+   Karakter: Rapi, tenang, profesional, dan mudah dipindai
+   ======================================================== */
+:root {
+  /* Brand Palette */
+  --vd-desk-navy: #202B3C;
+  --vd-curator-teal: #3C8C84;
+  --vd-soft-sand: #F5F2EC;
+  --vd-cloud-white: #FFFFFF;
+  --vd-muted-gold: #D6A85F;
+  --vd-slate-gray: #667085;
+
+  /* Functional Tokens */
+  --vd-primary: var(--vd-curator-teal);
+  --vd-primary-rgb: 60, 140, 132;
+  --vd-secondary: var(--vd-desk-navy);
+  --vd-background: var(--vd-soft-sand);
+  --vd-surface: var(--vd-cloud-white);
+  --vd-sidebar-bg: var(--vd-cloud-white);
+  --vd-sidebar-text: var(--vd-desk-navy);
+  --vd-border: rgba(32, 43, 60, 0.12);
+  --vd-text-main: var(--vd-desk-navy);
+  --vd-text-muted: var(--vd-slate-gray);
+  --vd-accent: var(--vd-muted-gold);
+
+  /* Spacing: 4, 8, 16, 24, 32 px */
+  --vd-space-1: 4px;
+  --vd-space-2: 8px;
+  --vd-space-3: 16px;
+  --vd-space-4: 24px;
+  --vd-space-5: 32px;
+
+  /* Radius: 8, 12, 16 px */
+  --vd-radius-sm: 8px;
+  --vd-radius-md: 12px;
+  --vd-radius-lg: 16px;
+
+  /* Typography: Manrope */
+  --vd-font-sans: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Elevation */
+  --vd-shadow-card: 0 1px 4px rgba(32, 43, 60, 0.05), 0 6px 16px rgba(32, 43, 60, 0.04);
+  --vd-shadow-hover: 0 8px 24px rgba(32, 43, 60, 0.08);
+
+  /* Bootstrap 5.3 Overrides */
+  --bs-primary: var(--vd-curator-teal);
+  --bs-primary-rgb: var(--vd-primary-rgb);
+  --bs-body-bg: var(--vd-background);
+  --bs-body-color: var(--vd-text-main);
+  --bs-body-font-family: var(--vd-font-sans);
+  --bs-border-radius: var(--vd-radius-md);
+  --bs-border-color: var(--vd-border);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--vd-background);
+  font-family: var(--vd-font-sans);
+  color: var(--vd-text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Accessibility: Focus state */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--vd-curator-teal) !important;
+  outline-offset: 2px !important;
+}
+
+/* Sidebar: Putih dengan border pemisah halus */
+.vd-sidebar {
+  background-color: var(--vd-sidebar-bg);
+  color: var(--vd-sidebar-text);
+  border-right: 1px solid var(--vd-border);
+  min-height: 100vh;
+  transition: all 0.2s ease;
+}
+
+.vd-sidebar-link {
+  color: var(--vd-slate-gray);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: var(--vd-radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.15s ease-in-out;
+}
+
+.vd-sidebar-link:hover {
+  background-color: rgba(60, 140, 132, 0.08);
+  color: var(--vd-curator-teal);
+}
+
+.vd-sidebar-link.active {
+  background-color: var(--vd-curator-teal);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(60, 140, 132, 0.25);
+}
+
+/* Content Area Berlatar Soft Sand */
+.vd-main-content {
+  background-color: var(--vd-background);
+  min-height: 100vh;
+}
+
+/* Card Styling */
+.vd-card {
+  background: var(--vd-surface);
+  border: 1px solid var(--vd-border);
+  border-radius: var(--vd-radius-md);
+  box-shadow: var(--vd-shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.vd-card:hover {
+  box-shadow: var(--vd-shadow-hover);
+}
+
+/* Buttons */
+.btn-vd-primary {
+  background-color: var(--vd-curator-teal);
+  border-color: var(--vd-curator-teal);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: var(--vd-radius-md);
+  transition: all 0.15s ease;
+}
+
+.btn-vd-primary:hover {
+  background-color: #31756e;
+  border-color: #31756e;
+  color: #ffffff;
+}
+
+.btn-vd-secondary {
+  background-color: var(--vd-desk-navy);
+  border-color: var(--vd-desk-navy);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: var(--vd-radius-md);
+}
+
+.btn-vd-secondary:hover {
+  background-color: #161e2a;
+  border-color: #161e2a;
+  color: #ffffff;
+}
