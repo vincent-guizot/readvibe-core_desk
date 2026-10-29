@@ -1,80 +1,64 @@
-# Documentations
+# Dokumentasi Ekosistem ReadVibe, VibeDesk, dan VibeCore
 
-## Code untuk db diagram
+Selamat datang di pusat dokumentasi resmi ekosistem **ReadVibe**, **VibeDesk**, dan **VibeCore**.
 
-[ERD](https://dbdiagram.io/d/64bd12c402bd1c4a5e8a575d)
+---
 
-<details>
+## Daftar Isi Dokumentasi
+
+1. [Arsitektur Ekosistem & Matriks Port](arsitektur.md)
+   - Gambaran umum arsitektur proyek mandiri.
+   - Matriks port development dan origin CORS.
+   - Prinsip isolasi backend dan perlindungan data pribadi.
+
+2. [Daftar Fitur & Sitemap Lengkap](sitemap-dan-fitur.md)
+   - Fitur utama ReadVibe (AI Vibe Matcher, Vibe Card 9:16, Smart Wishlist, Digital Preview).
+   - Fitur utama VibeDesk (1-Click Google Books Import, Wishlist Intelligence, Kurasi, Moderasi).
+   - Struktur sitemap navigasi kedua aplikasi.
+
+3. [Alur Pengguna (User Flows)](alur-pengguna.md)
+   - Diagram urutan (*sequence diagrams*) untuk alur AI Vibe Matching.
+   - Alur pembuatan dan pengunduhan kartu Vibe 9:16.
+   - Alur 1-Click Import Google Books.
+   - Alur moderasi ulasan komunitas.
+
+4. [Model Data & Spesifikasi API VibeCore](spesifikasi-api-dan-data.md)
+   - Skema lengkap tabel database PostgreSQL (DBML ERD).
+   - Daftar endpoint REST API, parameter, dan respons.
+
+5. [Matriks Hak Akses & Peran (RBAC)](matriks-hak-akses.md)
+   - Pemetaan izin untuk peran `Member`, `Librarian`, dan `Admin`.
+
+6. [Design System & Panduan Visual](design-system.md)
+   - Identitas visual ReadVibe (Ink Plum, Vibe Coral, Cream Paper, DM Serif Display).
+   - Identitas visual VibeDesk (Desk Navy, Curator Teal, Soft Sand, Manrope).
+   - Aturan visual bersama (spacing, radius, focus states, logo).
+
+7. [Laporan Progres Implementasi & Konfigurasi](progres-implementasi.md)
+   - Rangkuman fitur selesai dan integrasi API eksternal.
+
+---
+
+## Petunjuk Menjalankan Proyek Secara Mandiri
+
+Buka tiga terminal terpisah:
 
 ```bash
-// Use DBML to define your database structure
-// Docs: https://dbml.dbdiagram.io/docs
+# Terminal 1: ReadVibe (Client Web App)
+cd readvibe
+npm install
+npm run dev
+# Akses: http://localhost:3350
 
-Table authors {
-  id integer [primary key]
-  pen_name varchar 
-  profileId integer
-  userId integer
-  createdAt timestamp
-  updatedAt timestamp 
-}
+# Terminal 2: VibeDesk (CMS & Backoffice)
+cd vibedesk
+npm install
+npm run dev
+# Akses: http://localhost:3355
 
-Table profiles {
-  id integer [primary key]
-  fullname varchar
-  image varchar
-  age varchar
-  nationality varchar
-  gender varchar
-  createdAt timestamp
-  updatedAt timestamp
-}
-
-Table users {
-  id integer [primary key]
-  username varchar
-  email varchar
-  password varchar
-  role varchar
-  profileId integer
-  createdAt timestamp
-  updatedAt timestamp
-}
-
-Table books{
-  id integer [primary key]
-  title varchar
-  description varchar
-  year integer
-  page integer
-  stock integer
-  image varchar
-  authorId integer
-  genreId integer
-  userId integer
-  status varchar
-  createdAt timestamp
-  updatedAt timestamp
-}
-
-Table genres {
-  id integer [primary key]
-  name varchar
-  userId integer
-  createdAt timestamp
-  updatedAt timestamp
-}
-
-Ref: authors.profileId - profiles.id // many-to-one
-Ref: users.profileId - profiles.id
-Ref: books.userId > users.id
-Ref: books.authorId > authors.id
-Ref: books.genreId > genres.id
-Ref: authors.userId > users.id
-Ref: genres.userId > users.id
-
-
+# Terminal 3: VibeCore (Backend REST API)
+cd vibecore
+npm install
+npm run dev
+# Akses: http://localhost:3360
 ```
-</details>
-
-swwn>
