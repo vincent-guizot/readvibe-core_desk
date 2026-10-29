@@ -1,0 +1,251 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* ========================================================
+   READVIBE DESIGN SYSTEM TOKENS
+   Karakter: Hangat, editorial, personal, dan nyaman untuk membaca
+   ======================================================== */
+:root {
+  /* Brand Palette */
+  --rv-ink-plum: #35233F;
+  --rv-vibe-coral: #EF786B;
+  --rv-cream-paper: #FFF8F0;
+  --rv-soft-lilac: #E9E1F1;
+  --rv-muted-sage: #91A99A;
+  --rv-warm-gray: #756F78;
+
+  /* Functional Tokens */
+  --rv-primary: var(--rv-ink-plum);
+  --rv-primary-rgb: 53, 35, 63;
+  --rv-secondary: var(--rv-vibe-coral);
+  --rv-secondary-rgb: 239, 120, 107;
+  --rv-background: var(--rv-cream-paper);
+  --rv-surface: #ffffff;
+  --rv-accent: var(--rv-soft-lilac);
+  --rv-border: rgba(53, 35, 63, 0.12);
+  --rv-text-main: var(--rv-ink-plum);
+  --rv-text-muted: var(--rv-warm-gray);
+
+  /* Spacing: 4, 8, 16, 24, 32 px */
+  --rv-space-1: 4px;
+  --rv-space-2: 8px;
+  --rv-space-3: 16px;
+  --rv-space-4: 24px;
+  --rv-space-5: 32px;
+
+  /* Radius: 8, 12, 16 px */
+  --rv-radius-sm: 8px;
+  --rv-radius-md: 12px;
+  --rv-radius-lg: 16px;
+
+  /* Typography */
+  --font-editorial: var(--font-dm-serif), 'DM Serif Display', Georgia, serif;
+  --font-ui: var(--font-manrope), 'Manrope', system-ui, -apple-system, sans-serif;
+
+  /* Shadows */
+  --rv-shadow-sm: 0 2px 8px rgba(53, 35, 63, 0.06);
+  --rv-shadow-md: 0 8px 24px rgba(53, 35, 63, 0.08);
+  --rv-shadow-lg: 0 16px 36px rgba(53, 35, 63, 0.12);
+
+  /* Bootstrap 5.3 Overrides */
+  --bs-primary: var(--rv-ink-plum);
+  --bs-primary-rgb: var(--rv-primary-rgb);
+  --bs-body-bg: var(--rv-background);
+  --bs-body-color: var(--rv-text-main);
+  --bs-border-radius: var(--rv-radius-md);
+  --bs-border-color: var(--rv-border);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--rv-background);
+  color: var(--rv-text-main);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .rv-editorial {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  color: var(--rv-ink-plum);
+  letter-spacing: -0.01em;
+}
+
+/* Accessibility: Focus states */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--rv-vibe-coral) !important;
+  outline-offset: 2px !important;
+}
+
+/* Navbar */
+.rv-navbar {
+  background: rgba(255, 248, 240, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rv-border);
+  transition: all 0.2s ease;
+}
+
+.rv-nav-link {
+  color: var(--rv-ink-plum);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: var(--rv-radius-sm);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.rv-nav-link:hover, .rv-nav-link.active {
+  color: var(--rv-vibe-coral);
+  background: var(--rv-soft-lilac);
+}
+
+/* Primary Coral Button */
+.btn-rv-coral {
+  background-color: var(--rv-vibe-coral);
+  border-color: var(--rv-vibe-coral);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--rv-radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-rv-coral:hover {
+  background-color: #e06456;
+  border-color: #e06456;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 120, 107, 0.35);
+}
+
+/* Primary Plum Button */
+.btn-rv-plum {
+  background-color: var(--rv-ink-plum);
+  border-color: var(--rv-ink-plum);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--rv-radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-rv-plum:hover {
+  background-color: #26172e;
+  border-color: #26172e;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Cards */
+.rv-card {
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-md);
+  box-shadow: var(--rv-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rv-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rv-shadow-md);
+}
+
+/* Mood Pills */
+.rv-mood-pill {
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: 50px;
+  border: 1px solid var(--rv-border);
+  background: white;
+  color: var(--rv-ink-plum);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.rv-mood-pill:hover {
+  background: var(--rv-soft-lilac);
+  border-color: var(--rv-ink-plum);
+  transform: scale(1.03);
+}
+
+.rv-mood-pill.active {
+  background: var(--rv-ink-plum);
+  color: white;
+  border-color: var(--rv-ink-plum);
+  box-shadow: 0 4px 12px rgba(53, 35, 63, 0.2);
+}
+
+/* 9:16 Aspect Ratio Vibe Card */
+.rv-vibe-card-9-16 {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 9 / 16;
+  background: linear-gradient(165deg, var(--rv-ink-plum) 0%, #201327 100%);
+  color: white;
+  border-radius: var(--rv-radius-lg);
+  padding: 32px 24px;
+  box-shadow: 0 20px 40px rgba(53, 35, 63, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.rv-vibe-card-9-16::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(239, 120, 107, 0.35) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Badges */
+.badge-priority-high {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+
+.badge-priority-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+
+.badge-priority-low {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+
+.badge-mood {
+  background-color: var(--rv-soft-lilac);
+  color: var(--rv-ink-plum);
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+/* Digital Preview Container */
+.rv-preview-container {
+  background: white;
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-md);
+  overflow: hidden;
+  min-height: 500px;
+}
