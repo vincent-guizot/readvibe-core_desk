@@ -1,176 +1,313 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AiFillStar, AiOutlineCheckCircle } from 'react-icons/ai';
+import { useRouter } from 'next/navigation';
+import {
+  AiFillStar,
+  AiOutlineStar,
+  AiOutlineClose,
+  AiOutlineCheck,
+  AiOutlineCalendar,
+  AiOutlineLock
+} from 'react-icons/ai';
+import { readVibeStore } from '../lib/store';
 
-export default function FinishBookModal({ isOpen, onClose, book, onSave }) {
-  const [rating, setRating] = useState(5);
-  const [quote, setQuote] = useState('');
-  const [privateNote, setPrivateNote] = useState('');
-  const [publicReview, setPublicReview] = useState('');
-  const [moodTag, setMoodTag] = useState('🧘 Calm & Mindful');
-  const [isSpoiler, setIsSpoiler] = useState(false);
-  const [loading, setLoading] = useState(false);
+export default function FinishBookModal({ book, isOpen, onClose, onFinished, onBookFinished }) {
+  const router = useRouter();
+  const [rating, setRating] = useState(4);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [finishedDate, setFinishedDate] = useState('2026-10-29');
+  const [selectedMoods, setSelectedMoods] = useState(['Reflective', 'Hopeful']);
+  const [favoriteQuote, setFavoriteQuote] = useState('');
+  const [personalNotes, setPersonalNotes] = useState('A thoughtful reminder to be gentler with the choices I have made.');
+  const [createVibeCard, setCreateVibeCard] = useState(true);
 
   if (!isOpen || !book) return null;
 
-  const moods = [
-    '🌧️ Melancholy',
-    '⚡ High Energy',
-    '🧘 Calm & Mindful',
-    '🍂 Cozy Autumn',
-    '🖤 Dark Academia',
-    '💡 Mind-Expanding',
+  const moodList = [
+    { label: 'Reflective', icon: '📖' },
+    { label: 'Hopeful', icon: '☀️' },
+    { label: 'Cozy', icon: '☕' },
+    { label: 'Mindful', icon: '🍃' },
+    { label: 'Bittersweet', icon: '🤍' }
   ];
 
-  const handleSubmit = async (e) => {
+  const toggleMood = (label) => {
+    if (selectedMoods.includes(label)) {
+      setSelectedMoods(selectedMoods.filter((m) => m !== label));
+    } else {
+      setSelectedMoods([...selectedMoods, label]);
+    }
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    await onSave({
+    readVibeStore.markBookAsFinished({
       bookId: book.id,
       rating,
-      quote,
-      privateNote,
-      publicReview,
-      moodTag,
-      isSpoiler,
+      dateFinished: finishedDate,
+      favoriteQuote,
+      moods: selectedMoods,
+      privateNotes: personalNotes
     });
-    setLoading(false);
+
+    if (onFinished) onFinished();
+    if (onBookFinished) onBookFinished();
+    onClose();
+
+    if (createVibeCard) {
+      router.push(`/vibe-card?bookId=${book.id}`);
+    }
   };
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }}>
-      <div className="modal-dialog modal-dialog-centered modal-lg">
-        <div className="modal-content shadow-lg border-0" style={{ borderRadius: 'var(--rv-radius-md)' }}>
-          <div className="modal-header border-bottom py-3">
-            <h5 className="modal-title fw-bold d-flex align-items-center gap-2" style={{ fontFamily: 'var(--font-editorial)' }}>
-              <AiOutlineCheckCircle className="text-success" />
-              <span>Tandai Selesai Dibaca & Buat Vibe Card</span>
-            </h5>
-            <button className="btn-close" onClick={onClose} aria-label="Tutup"></button>
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
+      style={{ backgroundColor: 'rgba(30, 20, 32, 0.65)', backdropFilter: 'blur(5px)', zIndex: 1060 }}
+    >
+      <div
+        className="bg-white rounded-4 shadow-lg overflow-hidden position-relative w-100 animate__animated animate__fadeInUp"
+        style={{ maxWidth: '580px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+      >
+        {/* Decorative corner leaves */}
+        <div
+          className="position-absolute top-0 start-0 p-3 opacity-50 pointer-events-none d-none d-sm-block"
+          style={{ fontSize: '2rem', userSelect: 'none' }}
+        >
+          🌿🌸
+        </div>
+        <div
+          className="position-absolute top-0 end-0 p-3 opacity-50 pointer-events-none d-none d-sm-block"
+          style={{ fontSize: '2rem', userSelect: 'none', marginRight: '40px' }}
+        >
+          🌸🌿
+        </div>
+
+        {/* Close button */}
+        <button
+          type="button"
+          className="btn btn-sm btn-light rounded-circle position-absolute top-0 end-0 m-3 p-2 text-muted border-0 shadow-none z-3"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <AiOutlineClose size={18} />
+        </button>
+
+        {/* Modal Header */}
+        <div className="text-center pt-4 pb-2 px-4 z-2 position-relative">
+          {/* Green checkmark circle */}
+          <div
+            className="d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
+            style={{ width: '42px', height: '42px', backgroundColor: '#7C9885', color: '#FFFFFF' }}
+          >
+            <AiOutlineCheck size={22} />
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="modal-body p-4">
-              <div className="row g-3">
-                <div className="col-md-4 text-center">
-                  <img
-                    src={book.image}
-                    alt={book.title}
-                    className="rounded-3 shadow mb-2"
-                    style={{ width: '130px', height: '190px', objectFit: 'cover' }}
-                  />
-                  <h6 className="fw-bold mb-0 text-truncate">{book.title}</h6>
-                  <small className="text-muted">{book.author?.pen_name}</small>
+          <h3
+            className="fw-bold mb-1"
+            style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', letterSpacing: '-0.02em' }}
+          >
+            One last page. So much to keep.
+          </h3>
+          <p className="text-muted small mb-3">
+            Mark this book as finished and save how it made you feel.
+          </p>
 
-                  {/* Rating Selector */}
-                  <div className="mt-3">
-                    <label className="form-label fw-bold small d-block mb-1">Rating Pribadi</label>
-                    <div className="d-flex justify-content-center text-warning gap-1 cursor-pointer">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          className="btn p-0 border-0 bg-transparent text-warning"
-                          onClick={() => setRating(star)}
-                        >
-                          <AiFillStar size={24} color={star <= rating ? '#ffc107' : '#e4e5e9'} />
-                        </button>
-                      ))}
-                    </div>
-                    <span className="small text-muted">{rating}.0 / 5.0</span>
-                  </div>
+          {/* Book Summary Card */}
+          <div
+            className="d-flex align-items-center gap-3 p-2.5 rounded-3 border text-start mx-auto"
+            style={{ maxWidth: '480px', backgroundColor: '#FCFAF7', borderColor: '#EAE2D8' }}
+          >
+            <img
+              src={book.coverUrl || '/assets/books/midnight-library.jpg'}
+              alt={book.title}
+              className="rounded shadow-sm flex-shrink-0"
+              style={{ width: '46px', height: '64px', objectFit: 'cover' }}
+              onError={(e) => {
+                e.currentTarget.src = '/assets/books/midnight-library.jpg';
+              }}
+            />
+            <div>
+              <h6 className="fw-bold mb-0" style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}>
+                {book.title}
+              </h6>
+              <div className="text-muted small">{book.author}</div>
+              <div className="text-muted" style={{ fontSize: '11px' }}>{book.pages || 304} pages</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="px-4 py-3 overflow-y-auto" style={{ flex: 1 }}>
+          <div className="mx-auto" style={{ maxWidth: '480px' }}>
+            {/* Rating and Date Finished Row */}
+            <div className="row g-3 mb-3">
+              <div className="col-sm-6">
+                <label className="form-label small fw-bold text-dark mb-1">Your rating</label>
+                <div className="d-flex align-items-center gap-1 mb-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className="btn btn-link p-0 text-decoration-none border-0 shadow-none"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                      style={{ color: '#D96B50', cursor: 'pointer' }}
+                    >
+                      {(hoverRating || rating) >= star ? (
+                        <AiFillStar size={26} />
+                      ) : (
+                        <AiOutlineStar size={26} />
+                      )}
+                    </button>
+                  ))}
                 </div>
+                <div className="text-muted small" style={{ fontSize: '12px' }}>
+                  {rating} out of 5
+                </div>
+              </div>
 
-                <div className="col-md-8">
-                  {/* Mood Tag */}
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold small">Suasana Hati yang Paling Mewakili Buku Ini</label>
-                    <div className="d-flex flex-wrap gap-2">
-                      {moods.map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setMoodTag(m)}
-                          className={`btn btn-sm rounded-pill ${
-                            moodTag === m ? 'btn-rv-plum' : 'btn-outline-secondary'
-                          }`}
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Favorite Quote (For 9:16 Vibe Card) */}
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold small">
-                      Kutipan Favorit (Akan Tampil di Kartu Visual 9:16)
-                    </label>
-                    <textarea
-                      className="form-control"
-                      rows="2"
-                      placeholder="Tulis kalimat paling berkesan dari buku ini..."
-                      value={quote}
-                      onChange={(e) => setQuote(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {/* Private Note (Protected, only visible to user) */}
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold small text-primary d-flex align-items-center gap-1">
-                      <span>🔒 Catatan Pribadi (Hanya Terlihat Oleh Anda)</span>
-                    </label>
-                    <textarea
-                      className="form-control bg-light"
-                      rows="2"
-                      placeholder="Refleksi jujur, hal yang ingin kamu terapkan dalam hidup..."
-                      value={privateNote}
-                      onChange={(e) => setPrivateNote(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Public Review (Subject to moderation) */}
-                  <div className="mb-2">
-                    <label className="form-label fw-semibold small text-success d-flex align-items-center gap-1">
-                      <span>🌐 Ulasan Publik Komunitas (Akan Ditampilkan di Detail Buku)</span>
-                    </label>
-                    <textarea
-                      className="form-control"
-                      rows="2"
-                      placeholder="Pendapatmu yang bermanfaat bagi pembaca lain di komunitas..."
-                      value={publicReview}
-                      onChange={(e) => setPublicReview(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-check small text-muted">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="spoilerCheck"
-                      checked={isSpoiler}
-                      onChange={(e) => setIsSpoiler(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="spoilerCheck">
-                      Tandai ulasan ini mengandung spoiler (bocoran alur cerita)
-                    </label>
-                  </div>
+              <div className="col-sm-6">
+                <label className="form-label small fw-bold text-dark mb-1">Date finished</label>
+                <div className="input-group">
+                  <input
+                    type="date"
+                    className="form-control form-control-sm rounded-3"
+                    value={finishedDate}
+                    onChange={(e) => setFinishedDate(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="modal-footer border-top py-2">
-              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onClose}>
-                Batal
+            {/* How did this book feel? */}
+            <div className="mb-3">
+              <label className="form-label small fw-bold text-dark mb-1.5 d-block">
+                How did this book feel?
+              </label>
+              <div className="d-flex flex-wrap gap-2">
+                {moodList.map((m) => {
+                  const isSelected = selectedMoods.includes(m.label);
+                  return (
+                    <button
+                      key={m.label}
+                      type="button"
+                      onClick={() => toggleMood(m.label)}
+                      className="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 transition-all"
+                      style={{
+                        backgroundColor: isSelected ? 'var(--rv-ink-plum)' : '#FFFFFF',
+                        color: isSelected ? '#FFFFFF' : 'var(--rv-ink-plum)',
+                        borderColor: isSelected ? 'var(--rv-ink-plum)' : '#E0D8CE',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
+                        fontSize: '13px'
+                      }}
+                    >
+                      <span>{m.icon}</span>
+                      <span>{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Favorite quote (optional) */}
+            <div className="mb-3">
+              <label className="form-label small fw-bold text-dark mb-1 d-block">
+                Favorite quote <span className="text-muted fw-normal">(optional)</span>
+              </label>
+              <textarea
+                className="form-control rounded-3"
+                rows={2}
+                placeholder="Add a short quote you would like to remember..."
+                value={favoriteQuote}
+                onChange={(e) => setFavoriteQuote(e.target.value)}
+                style={{ fontSize: '13px' }}
+              />
+              <span className="text-muted small" style={{ fontSize: '11px' }}>
+                This can appear on your Vibe Card.
+              </span>
+            </div>
+
+            {/* Personal notes (optional) */}
+            <div className="mb-3">
+              <label className="form-label small fw-bold text-dark mb-1 d-block">
+                Personal notes <span className="text-muted fw-normal">(optional)</span>
+              </label>
+              <div className="position-relative">
+                <textarea
+                  className="form-control rounded-3 pe-4"
+                  rows={2}
+                  placeholder="Private reflections..."
+                  value={personalNotes}
+                  onChange={(e) => setPersonalNotes(e.target.value)}
+                  style={{ fontSize: '13px' }}
+                />
+                <span className="position-absolute bottom-0 end-0 p-2 text-muted opacity-75">
+                  <AiOutlineLock size={14} />
+                </span>
+              </div>
+              <span className="text-muted small" style={{ fontSize: '11px' }}>
+                Private. Only you can see these notes.
+              </span>
+            </div>
+
+            {/* Create Vibe Card Next Box */}
+            <div
+              className="p-3 rounded-3 mb-4 d-flex align-items-center gap-3 border"
+              style={{ backgroundColor: '#F4EFF7', borderColor: '#E5DCE9' }}
+            >
+              <span style={{ fontSize: '24px' }}>✨</span>
+              <div className="flex-grow-1">
+                <div className="form-check mb-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="createVibeCardCheck"
+                    checked={createVibeCard}
+                    onChange={(e) => setCreateVibeCard(e.target.checked)}
+                    style={{ accentColor: 'var(--rv-ink-plum)', cursor: 'pointer' }}
+                  />
+                  <label
+                    className="form-check-label fw-bold small text-dark"
+                    htmlFor="createVibeCardCheck"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    Create a Vibe Card next
+                  </label>
+                </div>
+                <div className="text-muted small" style={{ fontSize: '12px' }}>
+                  Preview a shareable card after saving your finished read.
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="d-flex align-items-center justify-content-end gap-2 pt-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-light border rounded-pill px-4 py-2 fw-semibold"
+                onClick={onClose}
+              >
+                Cancel
               </button>
-              <button type="submit" className="btn btn-rv-coral btn-sm px-4" disabled={loading}>
-                {loading ? 'Menyimpan...' : 'Selesai & Buka Vibe Card'}
+              <button
+                type="submit"
+                className="btn btn-sm text-white rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5"
+                style={{ backgroundColor: 'var(--rv-ink-plum)' }}
+              >
+                <AiOutlineCheck size={16} /> Save finished read
               </button>
             </div>
-          </form>
-        </div>
+            <div className="text-center mt-2">
+              <span className="text-muted small" style={{ fontSize: '11px' }}>
+                You can edit your rating and notes later.
+              </span>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );

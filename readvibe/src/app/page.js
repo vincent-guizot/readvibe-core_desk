@@ -2,272 +2,452 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  AiOutlineHeart,
-  AiOutlineBook,
-  AiOutlineFire,
-  AiOutlineShareAlt,
-  AiOutlineCheckCircle,
-  AiOutlineEye,
+  AiFillStar,
+  AiOutlineArrowRight,
+  AiOutlineBook
 } from 'react-icons/ai';
-import DigitalPreviewModal from '../components/DigitalPreviewModal';
-import AddToWishlistModal from '../components/AddToWishlistModal';
+import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { readVibeStore } from '../lib/store';
 
-export default function Home() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3360';
-
-  const [featuredBooks, setFeaturedBooks] = useState([]);
-  const [moodTags, setMoodTags] = useState([]);
-  const [editorialPicks, setEditorialPicks] = useState([]);
-  const [selectedBookForPreview, setSelectedBookForPreview] = useState(null);
-  const [selectedBookForWishlist, setSelectedBookForWishlist] = useState(null);
-  const [token, setToken] = useState(null);
+export default function HomePage() {
+  const router = useRouter();
+  const [books, setBooks] = useState([]);
+  const [activeMood, setActiveMood] = useState('Cozy');
+  const [bookmarkedIds, setBookmarkedIds] = useState(['the-midnight-library', 'the-comfort-book']);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('readvibe_token');
-    if (savedToken) setToken(savedToken);
+    setBooks(readVibeStore.getBooks());
+  }, []);
 
-    fetch(`${API_URL}/api/books?limit=8`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.data) setFeaturedBooks(res.data);
-      })
-      .catch(console.error);
+  const moodPills = [
+    { key: 'Cozy', label: 'Cozy', icon: '🏠' },
+    { key: 'Reflective', label: 'Reflective', icon: '🍃' },
+    { key: 'Adventurous', label: 'Adventurous', icon: '⛰️' },
+    { key: 'Hopeful', label: 'Hopeful', icon: '☀️' },
+    { key: 'Mindful', label: 'Mindful', icon: '🪷' },
+    { key: 'Need a laugh', label: 'Need a laugh', icon: '😊' }
+  ];
 
-    fetch(`${API_URL}/api/moods`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.data) setMoodTags(res.data);
-      })
-      .catch(console.error);
+  // Specific 5 books matching home or discovery.png
+  const pickedBooks = [
+    {
+      id: 'midnight-library',
+      title: 'The Midnight Library',
+      author: 'Matt Haig',
+      rating: 4.3,
+      mood: 'Reflective',
+      moodIcon: '🍃',
+      coverUrl: '/assets/books/midnight-library.jpg'
+    },
+    {
+      id: 'the-comfort-book',
+      title: 'The Comfort Book',
+      author: 'Matt Haig',
+      rating: 4.4,
+      mood: 'Cozy',
+      moodIcon: '🏠',
+      coverUrl: '/assets/books/comfort-book.jpg'
+    },
+    {
+      id: 'before-the-coffee-gets-cold',
+      title: 'Before the Coffee Gets Cold',
+      author: 'Toshikazu Kawaguchi',
+      rating: 4.3,
+      mood: 'Hopeful',
+      moodIcon: '☀️',
+      coverUrl: '/assets/books/coffee-cold.jpg'
+    },
+    {
+      id: 'psalm-wild-built',
+      title: 'A Psalm for the Wild-Built',
+      author: 'Becky Chambers',
+      rating: 4.4,
+      mood: 'Mindful',
+      moodIcon: '🪷',
+      coverUrl: '/assets/books/wild-built.jpg'
+    },
+    {
+      id: 'the-little-prince',
+      title: 'The Little Prince',
+      author: 'Antoine de Saint-Exupéry',
+      rating: 4.6,
+      mood: 'Need a laugh',
+      moodIcon: '😊',
+      coverUrl: '/assets/books/little-prince.jpg'
+    }
+  ];
 
-    fetch(`${API_URL}/api/editorial?active=true`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.data) setEditorialPicks(res.data);
-      })
-      .catch(console.error);
-  }, [API_URL]);
+  const toggleBookmark = (id) => {
+    if (bookmarkedIds.includes(id)) {
+      setBookmarkedIds(bookmarkedIds.filter((bId) => bId !== id));
+    } else {
+      setBookmarkedIds([...bookmarkedIds, id]);
+    }
+  };
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="py-5 text-center text-md-start" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, var(--rv-cream-paper) 100%)' }}>
-        <div className="container py-4">
-          <div className="row align-items-center g-5">
-            <div className="col-lg-7">
-              <span className="badge rounded-pill px-3 py-2 mb-3" style={{ backgroundColor: 'var(--rv-soft-lilac)', color: 'var(--rv-ink-plum)' }}>
-                ✨ Kurasi AI & Estetika Membaca
+    <div className="pb-5" style={{ backgroundColor: '#FAF7F2', minHeight: '100vh' }}>
+      {/* ================= HERO SECTION ================= */}
+      <section className="py-4 py-lg-5 overflow-hidden">
+        <div className="container">
+          <div className="row align-items-center g-4">
+            {/* Left Column: Heading and CTAs */}
+            <div className="col-lg-6">
+              <span
+                className="fw-bold small d-inline-block mb-3"
+                style={{ color: '#D96B50', letterSpacing: '0.12em', fontSize: '13px' }}
+              >
+                A LITTLE MOOD. A GREAT BOOK.
               </span>
-              <h1 className="display-4 fw-bold mb-3" style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', lineHeight: 1.2 }}>
-                Temukan Buku yang Selaras dengan Suasana Hatimu
+
+              <h1
+                className="display-4 fw-bold mb-3"
+                style={{
+                  fontFamily: 'var(--font-editorial)',
+                  color: 'var(--rv-ink-plum)',
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                Find your next read.
+                <br />
+                Feel your next vibe.
               </h1>
-              <p className="lead text-muted mb-4" style={{ fontSize: '1.15rem', lineHeight: 1.7 }}>
-                ReadVibe memadukan kurasi pustakawan dengan kecerdasan emosional Google Gemini. Temukan buku sesuai vibe, simpan di smart wishlist, dan buat kartu visual estetik 9:16 untuk dibagikan.
+
+              <p className="text-muted mb-4" style={{ fontSize: '1.15rem', maxWidth: '480px' }}>
+                Discover stories that meet you where you are.
               </p>
-              <div className="d-flex flex-wrap gap-3 justify-content-center justify-content-md-start">
-                <Link href="/vibe-matcher" className="btn btn-rv-plum px-4 py-3 rounded-pill fw-bold shadow-sm">
-                  ✨ Coba AI Vibe Matcher
+
+              <div className="d-flex flex-wrap align-items-center gap-3">
+                <Link
+                  href="/vibe-matcher"
+                  className="btn btn-rv-plum px-4 py-2.5 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                >
+                  <span>✨</span> Find my vibe
                 </Link>
-                <Link href="/discover" className="btn btn-outline-secondary px-4 py-3 rounded-pill fw-semibold">
-                  Jelajah Katalog Buku
+
+                <Link
+                  href="/search"
+                  className="btn btn-link text-decoration-none fw-semibold p-0 d-inline-flex align-items-center gap-1.5"
+                  style={{ color: 'var(--rv-ink-plum)' }}
+                >
+                  Explore books <span style={{ transform: 'translateX(2px)' }}>→</span>
                 </Link>
               </div>
             </div>
 
-            <div className="col-lg-5">
-              <div className="position-relative mx-auto" style={{ maxWidth: '340px' }}>
-                <div
-                  className="rounded-4 shadow-lg p-3 text-white overflow-hidden"
+            {/* Right Column: Hero Artwork with 3 Books & Mug */}
+            <div className="col-lg-6 position-relative text-center">
+              {/* Sticker Pill */}
+              <div
+                className="position-absolute end-0 top-0 mt-2 me-4 px-3 py-1.5 rounded-pill shadow-sm d-inline-flex align-items-center gap-1.5 z-2"
+                style={{
+                  backgroundColor: '#FDEEE9',
+                  color: 'var(--rv-ink-plum)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  transform: 'rotate(2deg)'
+                }}
+              >
+                <span>Picked for your mood</span>
+                <span>🪄</span>
+              </div>
+
+              {/* Books Stack / Display illustration */}
+              <div className="position-relative d-inline-block">
+                <img
+                  src="/assets/illustrations/book-stacks-text.png"
+                  alt="ReadVibe Curations"
+                  className="img-fluid"
                   style={{
-                    background: 'linear-gradient(135deg, #35233F 0%, #201426 100%)',
-                    aspectRatio: '9/16',
-                    border: '1px solid rgba(255,255,255,0.15)',
+                    maxHeight: '340px',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 12px 24px rgba(43, 19, 44, 0.08))'
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.src = '/assets/illustrations/books.png';
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= SECTION: HOW ARE YOU FEELING TODAY? ================= */}
+      <section className="py-4">
+        <div className="container">
+          <div className="mb-3">
+            <h2
+              className="h3 fw-bold mb-1"
+              style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+            >
+              How are you feeling today?
+            </h2>
+            <p className="text-muted small mb-0">
+              Choose a mood and discover your next chapter.
+            </p>
+          </div>
+
+          {/* Horizontal Mood Selector Pills */}
+          <div className="d-flex flex-wrap gap-2.5 mb-5">
+            {moodPills.map((m) => {
+              const isActive = activeMood === m.key;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setActiveMood(m.key)}
+                  className="btn d-inline-flex align-items-center gap-2 rounded-4 px-3.5 py-2.5 border transition-all"
+                  style={{
+                    backgroundColor: isActive ? '#EFE9F4' : '#FFFFFF',
+                    borderColor: isActive ? '#BC9FC9' : '#EAE2D8',
+                    color: isActive ? 'var(--rv-ink-plum)' : '#495057',
+                    fontWeight: isActive ? 600 : 500,
+                    boxShadow: isActive ? '0 2px 6px rgba(188, 159, 201, 0.25)' : 'none'
                   }}
                 >
-                  <div className="p-3 d-flex flex-column h-100">
-                    <span className="badge bg-danger rounded-pill align-self-start mb-2" style={{ fontSize: '10px' }}>
-                      ✨ VIBE CARD 9:16
-                    </span>
-                    <img
-                      src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400"
-                      alt=""
-                      className="rounded-3 shadow mb-3 mx-auto"
-                      style={{ width: '130px', height: '190px', objectFit: 'cover' }}
-                    />
-                    <h6 className="fw-bold mb-1 text-center" style={{ fontFamily: 'var(--font-editorial)' }}>
-                      Filosofi Teras
-                    </h6>
-                    <small className="text-white-50 text-center d-block mb-2">Henry Manampiring</small>
-                    <div className="text-center text-warning mb-2" style={{ fontSize: '12px' }}>
-                      ★★★★★
-                    </div>
-                    <p className="small text-white-50 fst-italic text-center my-auto" style={{ fontSize: '11px' }}>
-                      "Ketenangan sejati datang dari menerima apa yang berada di luar kendali kita."
-                    </p>
-                    <div className="mt-auto pt-2 border-top border-secondary text-center">
-                      <span className="badge bg-light text-dark rounded-pill" style={{ fontSize: '10px' }}>
-                        🧘 Calm & Mindful
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  <span style={{ fontSize: '16px' }}>{m.icon}</span>
+                  <span style={{ fontSize: '14px' }}>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ================= SECTION: PICKED FOR YOUR VIBE ================= */}
+          <div className="mb-4">
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <span
+                  className="small fw-bold d-block text-uppercase"
+                  style={{ color: '#D96B50', letterSpacing: '0.1em', fontSize: '11px' }}
+                >
+                  PERSONALIZED FOR YOU
+                </span>
+                <h3
+                  className="h4 fw-bold mb-0"
+                  style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+                >
+                  Picked for your vibe
+                </h3>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mood Tags Showcase */}
-      <section className="py-5 bg-white border-top border-bottom">
-        <div className="container">
-          <div className="text-center mb-4">
-            <h3 className="fw-bold mb-1" style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}>
-              Pilih Vibe Hari Ini
-            </h3>
-            <p className="text-muted small">Suasana hati apa yang ingin kamu jelajahi dalam membaca?</p>
-          </div>
-
-          <div className="d-flex flex-wrap gap-2 justify-content-center">
-            {moodTags.map((m) => (
               <Link
-                key={m.id}
-                href={`/discover?mood=${encodeURIComponent(m.name)}`}
-                className="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold"
-                style={{ borderColor: 'var(--rv-border)' }}
+                href="/search"
+                className="text-decoration-none small fw-semibold d-inline-flex align-items-center gap-1"
+                style={{ color: '#D96B50' }}
               >
-                {m.name}
+                See all →
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Books */}
-      <section className="py-5">
-        <div className="container">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div>
-              <h3 className="fw-bold mb-1" style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}>
-                Koleksi Rekomendasi Terhangat
-              </h3>
-              <p className="text-muted small mb-0">Pilihan kurasi pustakawan dan trending di komunitas ReadVibe.</p>
             </div>
-            <Link href="/discover" className="btn btn-sm btn-outline-secondary rounded-pill px-3">
-              Lihat Semua &rarr;
-            </Link>
+
+            {/* 5 Book Cards in a row (Scrollable / Grid) */}
+            <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
+              {pickedBooks.map((b) => {
+                const isBookmarked = bookmarkedIds.includes(b.id);
+                return (
+                  <div className="col" key={b.id}>
+                    <div
+                      className="card h-100 border-0 rounded-4 shadow-sm bg-white p-3 d-flex flex-column justify-content-between position-relative transition-all"
+                      style={{
+                        borderColor: '#EAE2D8',
+                        borderWidth: '1px',
+                        borderStyle: 'solid'
+                      }}
+                    >
+                      {/* Top section: Cover & Details */}
+                      <div>
+                        {/* Bookmark Button */}
+                        <button
+                          type="button"
+                          className="btn btn-link p-0 position-absolute top-0 end-0 m-3 text-decoration-none"
+                          style={{ color: isBookmarked ? '#D96B50' : '#ADB5BD' }}
+                          onClick={() => toggleBookmark(b.id)}
+                          title="Bookmark"
+                        >
+                          {isBookmarked ? <BsBookmarkFill size={18} /> : <BsBookmark size={18} />}
+                        </button>
+
+                        {/* Cover Image */}
+                        <Link href={`/books/${b.id}`} className="d-block text-center mb-3">
+                          <img
+                            src={b.coverUrl}
+                            alt={b.title}
+                            className="rounded-3 shadow-sm img-fluid"
+                            style={{ height: '145px', width: 'auto', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                            }}
+                          />
+                        </Link>
+
+                        {/* Title and Author */}
+                        <Link
+                          href={`/books/${b.id}`}
+                          className="text-decoration-none d-block mb-1"
+                        >
+                          <h6
+                            className="fw-bold mb-0 text-truncate"
+                            style={{
+                              fontFamily: 'var(--font-editorial)',
+                              color: 'var(--rv-ink-plum)',
+                              fontSize: '15px'
+                            }}
+                            title={b.title}
+                          >
+                            {b.title}
+                          </h6>
+                        </Link>
+                        <div
+                          className="text-muted small text-truncate mb-2"
+                          style={{ fontSize: '12px' }}
+                          title={b.author}
+                        >
+                          {b.author}
+                        </div>
+
+                        {/* Rating */}
+                        <div className="d-flex align-items-center gap-1 mb-3">
+                          <div className="d-flex gap-0.5 text-warning" style={{ fontSize: '13px' }}>
+                            <AiFillStar />
+                            <AiFillStar />
+                            <AiFillStar />
+                            <AiFillStar />
+                            <AiFillStar />
+                          </div>
+                          <span className="small fw-semibold text-muted ms-1" style={{ fontSize: '12px' }}>
+                            {b.rating}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bottom Mood Pill */}
+                      <div>
+                        <span
+                          className="badge rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1"
+                          style={{
+                            backgroundColor: '#F3EEF7',
+                            color: 'var(--rv-ink-plum)',
+                            fontSize: '11px',
+                            border: '1px solid #E5DCE9'
+                          }}
+                        >
+                          <span>{b.moodIcon}</span>
+                          <span>{b.mood}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="row g-4">
-            {featuredBooks.map((b) => (
-              <div key={b.id} className="col-6 col-md-4 col-lg-3">
-                <div className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden rv-book-card bg-white">
-                  <div className="position-relative">
+          {/* ================= SECTION: BOTTOM 2 CARDS ================= */}
+          <div className="row g-4 mt-2">
+            {/* Left Wide Card: Cat with Book Stack */}
+            <div className="col-lg-8">
+              <div
+                className="card border-0 rounded-4 shadow-sm p-4 h-100 position-relative overflow-hidden"
+                style={{
+                  backgroundColor: '#F9F4EE',
+                  borderColor: '#EFE7DC',
+                  borderWidth: '1px',
+                  borderStyle: 'solid'
+                }}
+              >
+                <div className="row align-items-center g-3">
+                  <div className="col-sm-4 text-center">
                     <img
-                      src={b.image || 'https://via.placeholder.com/300x450'}
-                      alt={b.title}
-                      className="card-img-top"
-                      style={{ height: '240px', objectFit: 'cover' }}
+                      src="/assets/illustrations/book-stack-with-flower-vase.png"
+                      alt="Cat and Books"
+                      className="img-fluid"
+                      style={{ maxHeight: '130px', objectFit: 'contain' }}
+                      onError={(e) => {
+                        e.currentTarget.src = '/assets/illustrations/books.png';
+                      }}
                     />
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
-                      onClick={() => setSelectedBookForWishlist(b)}
-                      title="Tambah ke Wishlist"
-                    >
-                      <AiOutlineHeart size={18} style={{ color: 'var(--rv-vibe-coral)' }} />
-                    </button>
                   </div>
-
-                  <div className="card-body p-3 d-flex flex-column">
-                    <h6 className="fw-bold mb-1 text-truncate" style={{ color: 'var(--rv-ink-plum)' }}>
-                      {b.title}
-                    </h6>
-                    <small className="text-muted mb-2">{b.author?.name || 'Penulis'}</small>
-
-                    <div className="d-flex flex-wrap gap-1 mb-3">
-                      {(b.moods || []).slice(0, 2).map((m) => (
-                        <span key={m.id} className="badge bg-light text-dark border" style={{ fontSize: '10px' }}>
-                          {m.name}
-                        </span>
-                      ))}
+                  <div className="col-sm-8 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div>
+                      <h4
+                        className="fw-bold mb-1"
+                        style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+                      >
+                        Your next favorite might be one mood away.
+                      </h4>
+                      <p className="text-muted small mb-0">
+                        Answer a few quick questions and get personalized book picks.
+                      </p>
                     </div>
 
-                    <div className="mt-auto pt-2 border-top d-flex gap-2">
-                      <Link
-                        href={`/books/${b.id}`}
-                        className="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1"
-                        style={{ fontSize: '12px' }}
-                      >
-                        Detail
-                      </Link>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-rv-plum rounded-pill px-3"
-                        onClick={() => setSelectedBookForPreview(b)}
-                        title="Pratinjau Buku"
-                      >
-                        <AiOutlineEye size={16} />
-                      </button>
-                    </div>
+                    <Link
+                      href="/vibe-matcher"
+                      className="btn btn-rv-plum rounded-pill px-4 py-2 fw-bold flex-shrink-0 text-nowrap shadow-sm"
+                      style={{ fontSize: '14px' }}
+                    >
+                      Try Vibe Matcher →
+                    </Link>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right Card: Reading Journey */}
+            <div className="col-lg-4">
+              <div
+                className="card border-0 rounded-4 shadow-sm p-4 h-100 position-relative"
+                style={{
+                  backgroundColor: '#EEF4EF',
+                  borderColor: '#DFE8E0',
+                  borderWidth: '1px',
+                  borderStyle: 'solid'
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <span style={{ fontSize: '20px' }}>🌱</span>
+                    <div>
+                      <h6
+                        className="fw-bold mb-0"
+                        style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+                      >
+                        Your reading journey
+                      </h6>
+                      <div className="text-muted" style={{ fontSize: '12px' }}>
+                        3 books finished this month
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/my-reading"
+                    className="btn btn-sm btn-light rounded-circle shadow-sm border p-2 d-flex align-items-center justify-content-center"
+                    style={{ width: '32px', height: '32px', color: 'var(--rv-ink-plum)' }}
+                    title="View My Reading"
+                  >
+                    →
+                  </Link>
+                </div>
+
+                {/* Book Icons Row */}
+                <div className="d-flex align-items-center gap-2 mt-3">
+                  <span style={{ color: 'var(--rv-ink-plum)', fontSize: '24px' }}>
+                    <AiOutlineBook />
+                  </span>
+                  <span style={{ color: 'var(--rv-ink-plum)', fontSize: '24px' }}>
+                    <AiOutlineBook />
+                  </span>
+                  <span style={{ color: '#ADB5BD', fontSize: '24px' }}>
+                    <AiOutlineBook />
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* Feature Pillars */}
-      <section className="py-5 bg-white border-top">
-        <div className="container">
-          <div className="row g-4 text-center">
-            <div className="col-md-3">
-              <div className="p-3">
-                <div className="display-6 mb-2">✨</div>
-                <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>AI Vibe Matcher</h5>
-                <p className="text-muted small">Padukan frekuensi emosi dan mood membaca dengan model Gemini 2.5.</p>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="p-3">
-                <div className="display-6 mb-2">📱</div>
-                <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>Vibe Card 9:16</h5>
-                <p className="text-muted small">Ekspor kartu estetik rasio 9:16 beresolusi tinggi untuk Instagram Story.</p>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="p-3">
-                <div className="display-6 mb-2">💖</div>
-                <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>Smart Wishlist</h5>
-                <p className="text-muted small">Atur prioritas buku incaran dan bagikan tautan wishlist publik.</p>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="p-3">
-                <div className="display-6 mb-2">📖</div>
-                <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>Digital Preview</h5>
-                <p className="text-muted small">Baca pratinjau buku langsung melalui Google Books Embedded Viewer.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Modals */}
-      <DigitalPreviewModal
-        isOpen={!!selectedBookForPreview}
-        onClose={() => setSelectedBookForPreview(null)}
-        book={selectedBookForPreview}
-      />
-
-      <AddToWishlistModal
-        isOpen={!!selectedBookForWishlist}
-        onClose={() => setSelectedBookForWishlist(null)}
-        book={selectedBookForWishlist}
-        token={token}
-        onSuccess={() => setSelectedBookForWishlist(null)}
-      />
     </div>
   );
 }
