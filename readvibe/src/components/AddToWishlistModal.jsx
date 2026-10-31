@@ -12,9 +12,18 @@ import { readVibeStore } from '../lib/store';
 
 export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
   const [priority, setPriority] = useState('Soon'); // 'Someday' | 'Soon' | 'Next up'
-  const [reason, setReason] = useState('A friend recommended it. Saving this for a quiet weekend.');
+  const [reason, setReason] = useState('');
   const [referrer, setReferrer] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+
+  React.useEffect(() => {
+    if (book) {
+      setPriority(book.priority || 'Soon');
+      setReason(book.reason || '');
+      setReferrer(book.referrer || '');
+      if (book.isPublic !== undefined) setIsPublic(book.isPublic);
+    }
+  }, [book]);
 
   if (!isOpen || !book) return null;
 

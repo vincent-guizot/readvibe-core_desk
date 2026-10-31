@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AiOutlineHeart, AiFillHeart, AiFillStar, AiOutlineBook } from 'react-icons/ai';
+import { AiFillStar, AiOutlineBook } from 'react-icons/ai';
+import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 import { readVibeStore } from '../lib/store';
 import AddToWishlistModal from './AddToWishlistModal';
 
 export default function BookCard({ book, onWishlistChange }) {
-  const [inWishlist, setInWishlist] = useState(() => readVibeStore.isInWishlist(book.id));
+  const [inWishlist, setInWishlist] = useState(false);
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
+
+  useEffect(() => {
+    setInWishlist(readVibeStore.isInWishlist(book.id));
+  }, [book.id]);
 
   const handleWishlistClick = (e) => {
     e.preventDefault();
@@ -25,20 +30,23 @@ export default function BookCard({ book, onWishlistChange }) {
   return (
     <>
       <div className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden rv-card bg-white position-relative">
-        {/* Wishlist toggle button */}
+        {/* Wishlist toggle bookmark ribbon button */}
         <button
           type="button"
           onClick={handleWishlistClick}
-          className="btn btn-sm rounded-circle position-absolute top-0 end-0 m-3 p-2 shadow-sm border-0"
+          className="btn btn-sm rounded-circle position-absolute top-0 end-0 m-3 p-2 shadow-sm border-0 d-flex align-items-center justify-content-center"
           style={{
-            backgroundColor: inWishlist ? '#FFEBE6' : 'rgba(255, 255, 255, 0.9)',
-            color: inWishlist ? '#D96B50' : '#756F78',
+            backgroundColor: inWishlist ? '#FFEBE6' : 'rgba(255, 255, 255, 0.92)',
+            color: inWishlist ? '#D96B50' : '#8C827A',
             zIndex: 10,
-            backdropFilter: 'blur(4px)'
+            width: '34px',
+            height: '34px',
+            backdropFilter: 'blur(4px)',
+            transition: 'all 0.2s ease'
           }}
-          title={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+          title={inWishlist ? 'In your Wishlist (Click to remove)' : 'Bookmark to Wishlist'}
         >
-          {inWishlist ? <AiFillHeart size={18} /> : <AiOutlineHeart size={18} />}
+          {inWishlist ? <BsBookmarkFill size={16} style={{ color: '#D96B50' }} /> : <BsBookmark size={16} />}
         </button>
 
         {/* Book Cover Link */}

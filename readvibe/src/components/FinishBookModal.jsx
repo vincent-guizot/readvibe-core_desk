@@ -17,9 +17,9 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
   const [rating, setRating] = useState(4);
   const [hoverRating, setHoverRating] = useState(0);
   const [finishedDate, setFinishedDate] = useState('2026-10-29');
-  const [selectedMoods, setSelectedMoods] = useState(['Reflective', 'Hopeful']);
+  const [selectedMoods, setSelectedMoods] = useState([]);
   const [favoriteQuote, setFavoriteQuote] = useState('');
-  const [personalNotes, setPersonalNotes] = useState('A thoughtful reminder to be gentler with the choices I have made.');
+  const [personalNotes, setPersonalNotes] = useState('');
   const [createVibeCard, setCreateVibeCard] = useState(true);
 
   if (!isOpen || !book) return null;

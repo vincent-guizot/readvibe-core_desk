@@ -7,7 +7,7 @@ import { readVibeStore } from '../lib/store';
 export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded }) {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [mood, setMood] = useState(book?.moods?.[0] || 'Cozy');
+  const [mood, setMood] = useState('');
   const [content, setContent] = useState('');
   const [isSpoiler, setIsSpoiler] = useState(false);
 

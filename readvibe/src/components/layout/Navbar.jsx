@@ -53,11 +53,18 @@ export default function Navbar() {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const unreadCount = unreadNotifications.length;
 
   const handleMarkAllRead = () => {
     const updated = readVibeStore.markAllNotificationsRead();
     setNotifications(updated);
+  };
+
+  const handleNotificationClick = (notif) => {
+    const updated = readVibeStore.deleteNotification(notif.id);
+    setNotifications(updated);
+    setIsNotifOpen(false);
   };
 
   const handleLogout = () => {
@@ -76,17 +83,11 @@ export default function Navbar() {
           <img
             src="/assets/logos/readvibe-horizontal-color.png"
             alt="ReadVibe"
-            style={{ height: '34px', objectFit: 'contain' }}
+            style={{ height: '36px', objectFit: 'contain' }}
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
           />
-          <span
-            className="fw-bold fs-4 mb-0 d-none d-sm-inline"
-            style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', letterSpacing: '-0.02em' }}
-          >
-            ReadVibe
-          </span>
         </Link>
 
         {/* Center: Search pill */}
@@ -194,24 +195,25 @@ export default function Navbar() {
                 </div>
 
                 <div className="list-group list-group-flush" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-muted small">No notifications yet</div>
+                  {unreadNotifications.length === 0 ? (
+                    <div className="p-4 text-center text-muted small">
+                      <p className="mb-1">🎉 You&apos;re all caught up!</p>
+                      <span style={{ fontSize: '12px' }}>No new unread notifications.</span>
+                    </div>
                   ) : (
-                    notifications.map((notif) => (
+                    unreadNotifications.map((notif) => (
                       <Link
                         key={notif.id}
                         href={notif.link || '/my-reading'}
-                        className={`list-group-item list-group-item-action p-3 text-decoration-none ${
-                          !notif.read ? 'bg-light' : ''
-                        }`}
-                        onClick={() => setIsNotifOpen(false)}
+                        className="list-group-item list-group-item-action p-3 text-decoration-none bg-light"
+                        onClick={() => handleNotificationClick(notif)}
                       >
                         <div className="d-flex align-items-start gap-2">
                           <span
                             className="p-1 rounded-circle flex-shrink-0 mt-1"
                             style={{
-                              backgroundColor: notif.read ? '#EFE9F4' : '#FFEBE6',
-                              color: notif.read ? 'var(--rv-ink-plum)' : '#D96B50'
+                              backgroundColor: '#FFEBE6',
+                              color: '#D96B50'
                             }}
                           >
                             <AiOutlineCheckCircle size={14} />

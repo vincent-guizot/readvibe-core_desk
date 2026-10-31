@@ -254,11 +254,30 @@ export default function BookDetailPage() {
 
             <button
               type="button"
-              onClick={() => setIsWishlistModalOpen(true)}
-              className="btn btn-white border rounded-3 px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm"
-              style={{ backgroundColor: '#FFFFFF', color: 'var(--rv-ink-plum)', borderColor: '#E0D8CE' }}
+              onClick={() => {
+                if (inWishlist) {
+                  readVibeStore.removeFromWishlist(book.id);
+                  setInWishlist(false);
+                } else {
+                  setIsWishlistModalOpen(true);
+                }
+              }}
+              className={`btn rounded-3 px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm transition-all`}
+              style={
+                inWishlist
+                  ? { backgroundColor: '#D96B50', borderColor: '#D96B50', color: '#FFFFFF' }
+                  : { backgroundColor: '#FFFFFF', color: 'var(--rv-ink-plum)', borderColor: '#E0D8CE' }
+              }
             >
-              <BsBookmark size={16} /> Add to wishlist
+              {inWishlist ? (
+                <>
+                  <BsBookmarkFill size={16} style={{ color: '#FFFFFF' }} /> In wishlist
+                </>
+              ) : (
+                <>
+                  <BsBookmark size={16} /> Add to wishlist
+                </>
+              )}
             </button>
 
             <button
@@ -309,17 +328,16 @@ export default function BookDetailPage() {
             </span>
           </div>
 
-          {/* Overview / Reader Reviews Tabs */}
-          <div className="border-bottom mb-4 d-flex gap-4">
+          {/* Overview / Reader Reviews Tabs (Matching Wishlist Tab Design) */}
+          <div className="d-flex align-items-center gap-4 border-bottom pb-2 mb-4">
             <button
               type="button"
-              className={`btn btn-link text-decoration-none p-0 pb-2.5 fw-bold ${
-                activeTab === 'overview' ? 'border-bottom border-2 border-danger' : 'text-muted'
+              className={`btn btn-link text-decoration-none p-0 pb-2 fw-semibold position-relative ${
+                activeTab === 'overview' ? 'fw-bold' : 'text-muted'
               }`}
               style={{
                 color: activeTab === 'overview' ? 'var(--rv-ink-plum)' : '#6C757D',
-                borderColor: activeTab === 'overview' ? '#D96B50 !important' : 'transparent',
-                borderRadius: 0
+                borderBottom: activeTab === 'overview' ? '2.5px solid #D96B50' : 'none'
               }}
               onClick={() => setActiveTab('overview')}
             >
@@ -327,16 +345,16 @@ export default function BookDetailPage() {
             </button>
             <button
               type="button"
-              className={`btn btn-link text-decoration-none p-0 pb-2.5 fw-bold ${
-                activeTab === 'reviews' ? 'border-bottom border-2 border-danger' : 'text-muted'
+              className={`btn btn-link text-decoration-none p-0 pb-2 fw-semibold position-relative ${
+                activeTab === 'reviews' ? 'fw-bold' : 'text-muted'
               }`}
               style={{
                 color: activeTab === 'reviews' ? 'var(--rv-ink-plum)' : '#6C757D',
-                borderRadius: 0
+                borderBottom: activeTab === 'reviews' ? '2.5px solid #D96B50' : 'none'
               }}
               onClick={() => setActiveTab('reviews')}
             >
-              Reader reviews
+              Reader reviews ({reviews.length})
             </button>
           </div>
 

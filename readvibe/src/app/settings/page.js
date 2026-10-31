@@ -18,11 +18,13 @@ import {
   AiOutlineExport
 } from 'react-icons/ai';
 import { readVibeStore } from '../../lib/store';
+import EditProfileModal from '../../components/EditProfileModal';
 
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('account');
   const [user, setUser] = useState(null);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('••••••••••••••••');
@@ -185,14 +187,15 @@ export default function SettingsPage() {
                   <div className="d-flex align-items-center justify-content-between py-2 border-bottom">
                     <span className="text-muted small">Display name</span>
                     <div className="d-flex align-items-center gap-3">
-                      <span className="fw-semibold text-dark small">{user?.name || 'Admin ReadVibe'}</span>
-                      <Link
-                        href="/profile"
-                        className="small text-decoration-none fw-semibold d-inline-flex align-items-center gap-1"
-                        style={{ color: 'var(--rv-ink-plum)', fontSize: '12px' }}
+                      <span className="fw-semibold text-dark small">{user?.name || 'Vincent Reader'}</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditProfileModalOpen(true)}
+                        className="btn btn-sm btn-link p-0 small text-decoration-none fw-semibold"
+                        style={{ color: '#D96B50', fontSize: '13px' }}
                       >
-                        Edit profile <AiOutlineExport size={12} />
-                      </Link>
+                        Edit profile
+                      </button>
                     </div>
                   </div>
 
@@ -580,17 +583,24 @@ export default function SettingsPage() {
               <p className="text-muted small mb-3" style={{ lineHeight: 1.5 }}>
                 Change your photo, bio, and reading preferences.
               </p>
-              <Link
-                href="/profile"
-                className="fw-semibold text-decoration-none small d-inline-flex align-items-center gap-1"
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="btn btn-link p-0 fw-semibold text-decoration-none small d-inline-flex align-items-center gap-1 border-0"
                 style={{ color: '#D96B50' }}
               >
                 Edit profile →
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        onUpdated={(u) => setUser(u)}
+      />
     </div>
   );
 }

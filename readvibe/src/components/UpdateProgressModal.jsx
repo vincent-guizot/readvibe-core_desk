@@ -4,19 +4,34 @@ import React, { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import { readVibeStore } from '../lib/store';
 
-export default function UpdateProgressModal({ book, currentReading, isOpen, onClose, onUpdated }) {
+export default function UpdateProgressModal({
+  book,
+  currentReading,
+  isOpen,
+  onClose,
+  onUpdated,
+  onProgressUpdated
+}) {
   const [currentPage, setCurrentPage] = useState(currentReading?.currentPage || 0);
   const [notes, setNotes] = useState(currentReading?.notes || '');
 
+  React.useEffect(() => {
+    if (currentReading) {
+      setCurrentPage(currentReading.currentPage || 0);
+      setNotes(currentReading.notes || '');
+    }
+  }, [currentReading, book]);
+
   if (!isOpen || !book) return null;
 
-  const totalPages = book.pages || 300;
+  const totalPages = book.pages || currentReading?.totalPages || 300;
   const percentage = Math.min(100, Math.round((currentPage / totalPages) * 100));
 
   const handleSubmit = (e) => {
     e.preventDefault();
     readVibeStore.updateReadingProgress(book.id, currentPage, notes);
     if (onUpdated) onUpdated();
+    if (onProgressUpdated) onProgressUpdated();
     onClose();
   };
 

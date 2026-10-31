@@ -15,7 +15,7 @@ export default function HomePage() {
   const router = useRouter();
   const [books, setBooks] = useState([]);
   const [activeMood, setActiveMood] = useState('Cozy');
-  const [bookmarkedIds, setBookmarkedIds] = useState(['the-midnight-library', 'the-comfort-book']);
+  const [wishlistVersion, setWishlistVersion] = useState(0);
 
   useEffect(() => {
     setBooks(readVibeStore.getBooks());
@@ -30,61 +30,78 @@ export default function HomePage() {
     { key: 'Need a laugh', label: 'Need a laugh', icon: '😊' }
   ];
 
-  // Specific 5 books matching home or discovery.png
-  const pickedBooks = [
+  const allAvailableBooks = books.length > 0 ? books : [
     {
       id: 'midnight-library',
       title: 'The Midnight Library',
       author: 'Matt Haig',
       rating: 4.3,
       mood: 'Reflective',
-      moodIcon: '🍃',
+      moods: ['Reflective', 'Thoughtful', 'Cozy'],
       coverUrl: '/assets/books/midnight-library.jpg'
     },
     {
-      id: 'the-comfort-book',
+      id: 'comfort-book',
       title: 'The Comfort Book',
       author: 'Matt Haig',
       rating: 4.4,
       mood: 'Cozy',
-      moodIcon: '🏠',
+      moods: ['Cozy', 'Warm & Healing', 'Hopeful'],
       coverUrl: '/assets/books/comfort-book.jpg'
     },
     {
-      id: 'before-the-coffee-gets-cold',
+      id: 'coffee-cold',
       title: 'Before the Coffee Gets Cold',
       author: 'Toshikazu Kawaguchi',
       rating: 4.3,
       mood: 'Hopeful',
-      moodIcon: '☀️',
+      moods: ['Hopeful', 'Reflective', 'Cozy'],
       coverUrl: '/assets/books/coffee-cold.jpg'
     },
     {
-      id: 'psalm-wild-built',
+      id: 'wild-built',
       title: 'A Psalm for the Wild-Built',
       author: 'Becky Chambers',
       rating: 4.4,
       mood: 'Mindful',
-      moodIcon: '🪷',
+      moods: ['Mindful', 'Gentle', 'Hopeful'],
       coverUrl: '/assets/books/wild-built.jpg'
     },
     {
-      id: 'the-little-prince',
+      id: 'little-prince',
       title: 'The Little Prince',
       author: 'Antoine de Saint-Exupéry',
       rating: 4.6,
       mood: 'Need a laugh',
-      moodIcon: '😊',
+      moods: ['Need a laugh', 'Mindful', 'Nostalgic'],
       coverUrl: '/assets/books/little-prince.jpg'
     }
   ];
 
-  const toggleBookmark = (id) => {
-    if (bookmarkedIds.includes(id)) {
-      setBookmarkedIds(bookmarkedIds.filter((bId) => bId !== id));
+  // Dynamically filter books based on active mood tab
+  const displayedPickedBooks = allAvailableBooks.filter((b) => {
+    if (!activeMood) return true;
+    const moodTarget = activeMood.toLowerCase();
+    const hasInMoods = b.moods?.some((m) => m.toLowerCase().includes(moodTarget));
+    const hasInMood = b.mood?.toLowerCase().includes(moodTarget);
+    return hasInMoods || hasInMood;
+  });
+
+  const booksToDisplay = displayedPickedBooks.length > 0 ? displayedPickedBooks.slice(0, 5) : allAvailableBooks.slice(0, 5);
+
+  const toggleBookmark = (b) => {
+    const bookId = b.id || b.slug;
+    if (readVibeStore.isInWishlist(bookId)) {
+      readVibeStore.removeFromWishlist(bookId);
     } else {
-      setBookmarkedIds([...bookmarkedIds, id]);
+      readVibeStore.addToWishlist({
+        bookId: bookId,
+        priority: 'High',
+        reason: `Discovered under ${activeMood} vibe on home page`,
+        isPublic: true
+      });
     }
+    setWishlistVersion((v) => v + 1);
   };
 
   return (
@@ -244,10 +261,11 @@ export default function HomePage() {
 
             {/* 5 Book Cards in a row (Scrollable / Grid) */}
             <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
-              {pickedBooks.map((b) => {
-                const isBookmarked = bookmarkedIds.includes(b.id);
+              {booksToDisplay.map((b) => {
+                const bookId = b.id || b.slug;
+                const isBookmarked = readVibeStore.isInWishlist(bookId);
                 return (
-                  <div className="col" key={b.id}>
+                  <div className="col" key={bookId}>
                     <div
                       className="card h-100 border-0 rounded-4 shadow-sm bg-white p-3 d-flex flex-column justify-content-between position-relative transition-all"
                       style={{
@@ -261,16 +279,20 @@ export default function HomePage() {
                         {/* Bookmark Button */}
                         <button
                           type="button"
-                          className="btn btn-link p-0 position-absolute top-0 end-0 m-3 text-decoration-none"
-                          style={{ color: isBookmarked ? '#D96B50' : '#ADB5BD' }}
-                          onClick={() => toggleBookmark(b.id)}
-                          title="Bookmark"
+                          className="btn btn-link p-0 position-absolute top-0 end-0 m-3 text-decoration-none shadow-none"
+                          style={{
+                            color: isBookmarked ? '#D96B50' : '#ADB5BD',
+                            fontSize: '20px',
+                            transition: 'color 0.2s ease, transform 0.2s ease'
+                          }}
+                          onClick={() => toggleBookmark(b)}
+                          title={isBookmarked ? 'In your wishlist' : 'Add to wishlist'}
                         >
-                          {isBookmarked ? <BsBookmarkFill size={18} /> : <BsBookmark size={18} />}
+                          {isBookmarked ? <BsBookmarkFill style={{ color: '#D96B50' }} /> : <BsBookmark />}
                         </button>
 
                         {/* Cover Image */}
-                        <Link href={`/books/${b.id}`} className="d-block text-center mb-3">
+                        <Link href={`/books/${bookId}`} className="d-block text-center mb-3">
                           <img
                             src={b.coverUrl}
                             alt={b.title}

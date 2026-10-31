@@ -443,6 +443,7 @@ export default function MyReadingPage() {
       {/* Modals */}
       {selectedBookForProgress && (
         <UpdateProgressModal
+          key={selectedBookForProgress.id}
           book={selectedBookForProgress}
           currentReading={selectedProgressItem}
           isOpen={!!selectedBookForProgress}
@@ -451,6 +452,7 @@ export default function MyReadingPage() {
             setSelectedProgressItem(null);
           }}
           onProgressUpdated={reloadData}
+          onUpdated={reloadData}
         />
       )}
 

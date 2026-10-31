@@ -18,69 +18,63 @@ import AddToWishlistModal from '../../components/AddToWishlistModal';
 
 export default function WishlistPage() {
   const router = useRouter();
+  const [items, setItems] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
   const [isPrivate, setIsPrivate] = useState(true);
   const [selectedBookForEdit, setSelectedBookForEdit] = useState(null);
 
-  // Exact 4 initial books from wishlist.png
-  const wishlistItems = [
-    {
-      id: 'the-comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      moods: ['Cozy', 'Uplifting', 'Thoughtful'],
-      priority: 'High',
-      priorityColor: '#FDF0ED',
-      priorityTextColor: '#D96B50',
-      reason: 'For slow evenings after a long week.',
-      dateAdded: '12 Jan 2025'
-    },
-    {
-      id: 'morisaki-bookshop',
-      title: 'Days at the Morisaki Bookshop',
-      author: 'Satoshi Yagisawa',
-      coverUrl: '/assets/books/morisaki.jpg',
-      moods: ['Reflective', 'Cozy', 'Everyday Life'],
-      priority: 'High',
-      priorityColor: '#FDF0ED',
-      priorityTextColor: '#D96B50',
-      reason: 'A friend recommended this cozy bookshop story.',
-      dateAdded: '3 Jan 2025'
-    },
-    {
-      id: 'cerulean-sea',
-      title: 'The House in the Cerulean Sea',
-      author: 'TJ Klune',
-      coverUrl: '/assets/books/cerulean-sea.jpg',
-      moods: ['Hopeful', 'Fantasy', 'Heartwarming'],
-      priority: 'Medium',
-      priorityColor: '#F3EEF7',
-      priorityTextColor: '#7A5B87',
-      reason: 'Saving this for my next fantasy escape.',
-      dateAdded: '28 Dec 2024'
-    },
-    {
-      id: 'the-little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      coverUrl: '/assets/books/little-prince.jpg',
-      moods: ['Mindful', 'Classic', 'Philosophical'],
-      priority: 'Low',
-      priorityColor: '#EAE6DF',
-      priorityTextColor: '#666666',
-      reason: 'A classic I would love to revisit.',
-      dateAdded: '14 Dec 2024'
-    }
-  ];
+  const reloadWishlist = () => {
+    const rawWishlist = readVibeStore.getWishlist();
+    const books = readVibeStore.getBooks();
+    const enriched = rawWishlist.map((w) => {
+      const book = books.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
+        id: w.bookId,
+        title: w.bookId,
+        author: 'Unknown Author',
+        coverUrl: '/assets/books/midnight-library.jpg',
+        moods: ['Cozy']
+      };
+      const isHigh = w.priority === 'High' || w.priority === 'Next up';
+      const isLow = w.priority === 'Low' || w.priority === 'Someday';
+      return {
+        ...book,
+        ...w,
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        coverUrl: book.coverUrl,
+        moods: book.moods || ['Cozy'],
+        priority: w.priority || 'Medium',
+        priorityColor: isHigh ? '#FDF0ED' : isLow ? '#EAE6DF' : '#F3EEF7',
+        priorityTextColor: isHigh ? '#D96B50' : isLow ? '#666666' : '#7A5B87',
+        reason: w.reason || 'For slow evenings after a long week.',
+        dateAdded: w.addedAt || 'Recently'
+      };
+    });
+    setItems(enriched);
+  };
+
+  useEffect(() => {
+    reloadWishlist();
+  }, []);
 
   const handleStartReading = (bookId) => {
     readVibeStore.startReadingBook(bookId);
     router.push(`/reader/${bookId}`);
   };
 
-  const filteredItems = wishlistItems.filter((item) => {
-    if (activeTab === 'High') return item.priority === 'High';
+  const handleRemoveItem = (bookId) => {
+    readVibeStore.removeFromWishlist(bookId);
+    reloadWishlist();
+  };
+
+  const allCount = items.length;
+  const highCount = items.filter((i) => i.priority === 'High' || i.priority === 'Next up').length;
+  const mediumCount = items.filter((i) => i.priority === 'Medium' || i.priority === 'Soon').length;
+
+  const filteredItems = items.filter((item) => {
+    if (activeTab === 'High') return item.priority === 'High' || item.priority === 'Next up';
+    if (activeTab === 'Medium') return item.priority === 'Medium' || item.priority === 'Soon';
     if (activeTab === 'Recent') return true;
     return true;
   });
@@ -175,7 +169,7 @@ export default function WishlistPage() {
             }}
             onClick={() => setActiveTab('All')}
           >
-            All books (18)
+            All books ({allCount})
           </button>
           <button
             type="button"
@@ -188,7 +182,20 @@ export default function WishlistPage() {
             }}
             onClick={() => setActiveTab('High')}
           >
-            High priority (5)
+            High priority ({highCount})
+          </button>
+          <button
+            type="button"
+            className={`btn btn-link text-decoration-none p-0 pb-2 fw-semibold position-relative ${
+              activeTab === 'Medium' ? 'fw-bold' : 'text-muted'
+            }`}
+            style={{
+              color: activeTab === 'Medium' ? 'var(--rv-ink-plum)' : '#6C757D',
+              borderBottom: activeTab === 'Medium' ? '2.5px solid #D96B50' : 'none'
+            }}
+            onClick={() => setActiveTab('Medium')}
+          >
+            Medium ({mediumCount})
           </button>
           <button
             type="button"
@@ -333,6 +340,14 @@ export default function WishlistPage() {
                       >
                         <AiOutlineEdit size={13} /> Edit note
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.bookId || item.id)}
+                        className="btn btn-sm btn-link text-danger text-decoration-none py-0 small text-center"
+                        style={{ fontSize: '11px' }}
+                      >
+                        Remove from list
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -340,18 +355,11 @@ export default function WishlistPage() {
             ))}
           </div>
 
-          {/* Bottom Pagination Info & Button */}
+          {/* Bottom Pagination Info */}
           <div className="d-flex flex-column align-items-center gap-2 pt-2">
             <span className="text-muted small" style={{ fontSize: '13px' }}>
-              Showing 4 of 18 books
+              Showing {filteredItems.length} of {items.length} books
             </span>
-            <button
-              type="button"
-              className="btn btn-sm btn-white border rounded-pill px-4 py-2 fw-semibold text-muted shadow-sm"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              Load more books ▾
-            </button>
           </div>
         </div>
 
@@ -398,22 +406,22 @@ export default function WishlistPage() {
               <div className="d-flex align-items-center gap-3">
                 <span style={{ fontSize: '18px' }}>📖</span>
                 <div>
-                  <span className="fw-bold text-dark me-1">18</span>
+                  <span className="fw-bold text-dark me-1">{items.length}</span>
                   <span className="text-muted">saved books</span>
                 </div>
               </div>
               <div className="d-flex align-items-center gap-3">
                 <span style={{ fontSize: '18px' }}>🚩</span>
                 <div>
-                  <span className="fw-bold text-dark me-1">5</span>
+                  <span className="fw-bold text-dark me-1">{highCount}</span>
                   <span className="text-muted">high priority</span>
                 </div>
               </div>
               <div className="d-flex align-items-center gap-3">
                 <span style={{ fontSize: '18px' }}>🍃</span>
                 <div>
-                  <span className="fw-bold text-dark me-1">4</span>
-                  <span className="text-muted">moods to explore</span>
+                  <span className="fw-bold text-dark me-1">{mediumCount}</span>
+                  <span className="text-muted">medium priority</span>
                 </div>
               </div>
             </div>
@@ -456,7 +464,10 @@ export default function WishlistPage() {
           book={selectedBookForEdit}
           isOpen={true}
           onClose={() => setSelectedBookForEdit(null)}
-          onSaved={() => setSelectedBookForEdit(null)}
+          onSaved={() => {
+            setSelectedBookForEdit(null);
+            reloadWishlist();
+          }}
         />
       )}
     </div>

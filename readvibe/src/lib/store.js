@@ -592,8 +592,10 @@ export const readVibeStore = {
   updateReadingProgress: (bookId, newPage, notes) => {
     const list = getLocalItem('readvibe_current_reading', INITIAL_CURRENT_READING);
     let targetItem = null;
+    let found = false;
     const updated = list.map((item) => {
-      if (item.bookId === bookId) {
+      if (item.bookId === bookId || item.id === bookId) {
+        found = true;
         targetItem = {
           ...item,
           currentPage: Number(newPage),
@@ -604,9 +606,24 @@ export const readVibeStore = {
       }
       return item;
     });
+
+    if (!found) {
+      const book = INITIAL_BOOKS.find((b) => b.id === bookId || b.slug === bookId);
+      targetItem = {
+        id: `reading-${Date.now()}`,
+        bookId: book?.id || bookId,
+        currentPage: Number(newPage),
+        totalPages: book?.pages || 300,
+        startedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        notes: notes || '',
+        lastRead: 'Just now'
+      };
+      updated.unshift(targetItem);
+    }
+
     setLocalItem('readvibe_current_reading', updated);
 
-    if (targetItem && targetItem.id) {
+    if (targetItem && targetItem.id && !targetItem.id.toString().startsWith('reading-')) {
       apiFetch(`/api/reading/${targetItem.id}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -768,6 +785,25 @@ export const readVibeStore = {
     return getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
   },
 
+  markNotificationAsRead: (id) => {
+    const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
+    const updated = notifs.map((n) => (n.id === id ? { ...n, read: true } : n));
+    setLocalItem('readvibe_notifications', updated);
+    return updated;
+  },
+
+  deleteNotification: (id) => {
+    const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
+    const updated = notifs.filter((n) => n.id !== id);
+    setLocalItem('readvibe_notifications', updated);
+    return updated;
+  },
+
+  clearAllNotifications: () => {
+    setLocalItem('readvibe_notifications', []);
+    return [];
+  },
+
   markAllNotificationsRead: () => {
     const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
     const updated = notifs.map((n) => ({ ...n, read: true }));
@@ -784,6 +820,17 @@ export const readVibeStore = {
     const current = getLocalItem('readvibe_user', INITIAL_USER);
     const updated = { ...current, ...updates };
     setLocalItem('readvibe_user', updated);
+
+    apiFetch('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        fullname: updates.name || updates.fullname || current.name,
+        bio: updates.bio,
+        location: updates.location,
+        image: updates.avatar || updates.image
+      }),
+    }).catch(() => {});
+
     return updated;
   },
 

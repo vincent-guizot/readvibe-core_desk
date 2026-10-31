@@ -16,10 +16,8 @@ import AddToWishlistModal from '../../components/AddToWishlistModal';
 
 export default function VibeMatcherPage() {
   const router = useRouter();
-  const [selectedMoods, setSelectedMoods] = useState(['Cozy', 'Hopeful']);
-  const [promptText, setPromptText] = useState(
-    'It has been a long week. I would love something warm, gentle, and a little hopeful.'
-  );
+  const [selectedMoods, setSelectedMoods] = useState([]);
+  const [promptText, setPromptText] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Any genre');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [selectedLength, setSelectedLength] = useState('Under 300 pages');
@@ -92,7 +90,7 @@ export default function VibeMatcherPage() {
   };
 
   const handleReset = () => {
-    setSelectedMoods(['Cozy', 'Hopeful']);
+    setSelectedMoods([]);
     setPromptText('');
     setSelectedGenre('Any genre');
     setSelectedLanguage('English');

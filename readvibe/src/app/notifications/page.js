@@ -11,6 +11,7 @@ import {
   AiOutlineLock
 } from 'react-icons/ai';
 import { BsBookmarks, BsStars } from 'react-icons/bs';
+import { readVibeStore } from '../../lib/store';
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread'
@@ -98,7 +99,13 @@ export default function NotificationsPage() {
   const allCount = notifications.length;
 
   const handleMarkAllRead = () => {
+    readVibeStore.markAllNotificationsRead();
     setNotifications(notifications.map((n) => ({ ...n, unread: false })));
+  };
+
+  const handleDismiss = (id) => {
+    setNotifications(notifications.filter((n) => n.id !== id));
+    readVibeStore.deleteNotification(id);
   };
 
   const filteredNotifications =

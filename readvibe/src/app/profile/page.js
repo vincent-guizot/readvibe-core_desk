@@ -19,9 +19,11 @@ import {
 } from 'react-icons/ai';
 import { BsBookmarks } from 'react-icons/bs';
 import { readVibeStore } from '../../lib/store';
+import EditProfileModal from '../../components/EditProfileModal';
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [currentReading, setCurrentReading] = useState([]);
   const [finishedReads, setFinishedReads] = useState([]);
@@ -66,8 +68,8 @@ export default function ProfilePage() {
           {/* User Avatar & Info */}
           <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-4">
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"
-              alt={user.name || 'Admin ReadVibe'}
+              src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+              alt={user.name || 'Vincent Reader'}
               className="rounded-circle object-fit-cover shadow-sm"
               style={{ width: '100px', height: '100px' }}
               onError={(e) => {
@@ -79,19 +81,19 @@ export default function ProfilePage() {
                 className="fw-bold mb-0"
                 style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
               >
-                {user.name || 'Admin ReadVibe'}
+                {user.name || 'Vincent Reader'}
               </h2>
-              <p className="text-muted small mb-2">@{user.username || 'adminreadvibe'}</p>
+              <p className="text-muted small mb-2">@{user.username || 'vinc'}</p>
               <p className="text-dark mb-2 small" style={{ maxWidth: '520px' }}>
-                Finding good stories between coffee breaks and lines of code.
+                {user.bio || 'Finding good stories between coffee breaks and quiet reflections.'}
               </p>
 
               <div className="d-flex flex-wrap align-items-center gap-3 text-muted small" style={{ fontSize: '12px' }}>
                 <span className="d-flex align-items-center gap-1">
-                  <span style={{ color: '#D96B50' }}>📍</span> Jakarta, Indonesia
+                  <span style={{ color: '#D96B50' }}>📍</span> {user.location || 'Jakarta, Indonesia'}
                 </span>
                 <span className="d-flex align-items-center gap-1">
-                  <span style={{ color: '#D96B50' }}>📅</span> Joined October 2026
+                  <span style={{ color: '#D96B50' }}>📅</span> Member since October 2026
                 </span>
               </div>
             </div>
@@ -99,13 +101,14 @@ export default function ProfilePage() {
 
           {/* Action buttons */}
           <div className="d-flex align-items-center gap-2 flex-shrink-0">
-            <Link
-              href="/settings"
-              className="btn btn-sm rounded-pill px-3 py-2 fw-semibold text-white d-inline-flex align-items-center gap-1.5 shadow-sm"
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="btn btn-sm rounded-pill px-3 py-2 fw-semibold text-white d-inline-flex align-items-center gap-1.5 shadow-sm border-0"
               style={{ backgroundColor: 'var(--rv-ink-plum)', fontSize: '12px' }}
             >
               <AiOutlineEdit size={14} /> Edit profile
-            </Link>
+            </button>
 
             <Link
               href={`/u/${user.username || 'adminreadvibe'}`}
@@ -648,6 +651,12 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdated={(u) => setUser(u)}
+      />
     </div>
   );
 }
