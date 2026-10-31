@@ -35,7 +35,7 @@ export default function LoginPage({ onLoginSuccess, apiUrl }) {
 
   const handleQuick = (demoEmail) => {
     setEmail(demoEmail);
-    setPassword('admin123');
+    setPassword('password123');
   };
 
   return (

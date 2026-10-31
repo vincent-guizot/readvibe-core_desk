@@ -58,7 +58,7 @@ export default function App() {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'admin123' }),
+        body: JSON.stringify({ email, password: 'password123' }),
       });
       const data = await res.json();
       if (res.ok && data.data?.token) {
