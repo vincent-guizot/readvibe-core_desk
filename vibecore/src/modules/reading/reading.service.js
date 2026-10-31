@@ -193,7 +193,7 @@ export class ReadingService {
     return {
       cardRatio: '9:16',
       title: activity.book.title,
-      author: activity.book.author ? activity.book.author.name : 'Unknown Author',
+      author: activity.book.author ? (activity.book.author.pen_name || activity.book.author.name) : 'Unknown Author',
       coverImage: activity.book.image,
       rating: activity.rating,
       quote: activity.quote || '',
@@ -201,6 +201,37 @@ export class ReadingService {
       reader: activity.user ? activity.user.profile?.fullname || activity.user.username : '',
       finishDate: activity.finishDate,
     };
+  }
+
+  static async updateActivity(id, userId, payload) {
+    const activity = await db.reading_activity.findOne({
+      where: { id, userId },
+    });
+    if (!activity) {
+      throw AppError.notFound('Aktivitas membaca tidak ditemukan.', ErrorCodes.NOT_FOUND);
+    }
+
+    const { status, rating, quote, privateNote, publicReview, moodTag, isSpoiler, finishDate } = payload;
+    await activity.update({
+      status: status !== undefined ? status : activity.status,
+      rating: rating !== undefined ? rating : activity.rating,
+      quote: quote !== undefined ? quote : activity.quote,
+      privateNote: privateNote !== undefined ? privateNote : activity.privateNote,
+      publicReview: publicReview !== undefined ? publicReview : activity.publicReview,
+      moodTag: moodTag !== undefined ? moodTag : activity.moodTag,
+      isSpoiler: isSpoiler !== undefined ? !!isSpoiler : activity.isSpoiler,
+      finishDate: finishDate !== undefined ? finishDate : activity.finishDate,
+    });
+
+    return await db.reading_activity.findByPk(activity.id, {
+      include: [
+        {
+          model: db.book,
+          as: 'book',
+          include: [{ model: db.author, as: 'author' }],
+        },
+      ],
+    });
   }
 
   static async deleteActivity(id, userId) {

@@ -38,6 +38,7 @@ router.use('/api/ai', recommendationRoutes); // Alias
 router.use('/api/reading', readingRoutes);
 router.use('/api/reading-activities', readingRoutes); // Alias
 router.use('/api/wishlists', wishlistRoutes);
+router.use('/api/wishlist', wishlistRoutes); // Alias
 router.use('/api/reviews', reviewRoutes);
 router.use('/api/moods', moodRoutes);
 router.use('/api/editorial', editorialRoutes);

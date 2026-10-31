@@ -25,7 +25,7 @@ export class MoodService {
     return mood;
   }
 
-  static async create({ name, description, color, icon }) {
+  static async create({ name, description, color, icon, emoji }) {
     const existing = await db.mood_tag.findOne({ where: { name } });
     if (existing) {
       throw AppError.conflict(`Mood tag "${name}" sudah ada.`, ErrorCodes.RESOURCE_ALREADY_EXISTS);
@@ -35,11 +35,11 @@ export class MoodService {
       name,
       description,
       color: color || '#EF786B',
-      icon: icon || 'Sparkles',
+      icon: icon || emoji || 'Sparkles',
     });
   }
 
-  static async update(id, { name, description, color, icon }) {
+  static async update(id, { name, description, color, icon, emoji }) {
     const mood = await db.mood_tag.findByPk(id);
     if (!mood) {
       throw AppError.notFound('Mood tag tidak ditemukan.', ErrorCodes.NOT_FOUND);
@@ -56,7 +56,7 @@ export class MoodService {
       name: name !== undefined ? name : mood.name,
       description: description !== undefined ? description : mood.description,
       color: color !== undefined ? color : mood.color,
-      icon: icon !== undefined ? icon : mood.icon,
+      icon: icon !== undefined ? icon : (emoji !== undefined ? emoji : mood.icon),
     });
 
     return mood;

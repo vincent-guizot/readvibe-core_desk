@@ -8,6 +8,7 @@ const router = Router();
 
 // Public route to view a user's public wishlist
 router.get('/user/:userId', WishlistController.getUserPublicWishlist);
+router.get('/public/:userId', WishlistController.getUserPublicWishlist);
 
 // Authenticated user wishlist
 router.use(authentication);

@@ -26,6 +26,7 @@ Server akan aktif di `http://localhost:3360`.
 - `npm run dev` : Menjalankan server development dengan nodemon dan Babel di port 3360 (`src/server.js`).
 - `npm run build` : Melakukan kompilasi Babel dari `src/` ke direktori `build/`.
 - `npm start` : Menjalankan server hasil kompilasi produksi (`node build/server.js`).
+- `npm test` : Menjalankan comprehensive automated test suite (80 pengujian endpoint & RBAC) di `tests/runner.js`.
 
 ## Konfigurasi Environment
 

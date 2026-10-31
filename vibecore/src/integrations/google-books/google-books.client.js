@@ -12,7 +12,8 @@ export class GoogleBooksClient {
       return response.data.items || [];
     } catch (err) {
       logger.error('Google Books API search error:', err.message);
-      throw err;
+      // Fallback: If rate-limited (429), network error, or Google API issue, return empty array gracefully
+      return [];
     }
   }
 }

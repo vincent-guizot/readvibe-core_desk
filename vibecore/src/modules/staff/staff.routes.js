@@ -13,6 +13,8 @@ router.use(authorization(['Admin'])); // Admin only
 router.get('/', StaffController.list);
 router.post('/', validateRequest(validateStaffPayload), StaffController.create);
 router.patch('/:id/role', StaffController.updateRole);
+router.put('/:id/role', StaffController.updateRole);
+router.put('/:id', StaffController.updateRole);
 router.delete('/:id', StaffController.delete);
 
 export default router;

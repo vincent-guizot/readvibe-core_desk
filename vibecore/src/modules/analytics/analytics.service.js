@@ -26,7 +26,7 @@ export class AnalyticsService {
           model: db.book,
           as: 'book',
           attributes: ['id', 'title', 'image'],
-          include: [{ model: db.author, as: 'author', attributes: ['name'] }],
+          include: [{ model: db.author, as: 'author', attributes: ['id', 'pen_name'] }],
         },
       ],
       group: ['wishlist.bookId', 'book.id', 'book->author.id'],

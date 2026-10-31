@@ -5,7 +5,7 @@ import { ErrorCodes } from '../../contracts/error-codes';
 export class AuthorService {
   static async list() {
     return await db.author.findAll({
-      order: [['name', 'ASC']],
+      order: [['pen_name', 'ASC']],
     });
   }
 
@@ -19,19 +19,19 @@ export class AuthorService {
     return author;
   }
 
-  static async create({ name, bio, image }) {
-    return await db.author.create({ name, bio, image });
+  static async create({ name, pen_name }) {
+    const finalName = pen_name || name;
+    return await db.author.create({ pen_name: finalName });
   }
 
-  static async update(id, { name, bio, image }) {
+  static async update(id, { name, pen_name }) {
     const author = await db.author.findByPk(id);
     if (!author) {
       throw AppError.notFound('Penulis tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
+    const finalName = pen_name || name || author.pen_name;
     await author.update({
-      name: name !== undefined ? name : author.name,
-      bio: bio !== undefined ? bio : author.bio,
-      image: image !== undefined ? image : author.image,
+      pen_name: finalName,
     });
     return author;
   }

@@ -12,5 +12,6 @@ router.use(authorization(['Admin', 'Librarian']));
 
 router.get('/reviews', ModerationController.listReviews);
 router.patch('/reviews/:id', validateRequest(validateModerationDecision), ModerationController.moderate);
+router.put('/reviews/:id', validateRequest(validateModerationDecision), ModerationController.moderate);
 
 export default router;

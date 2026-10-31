@@ -14,6 +14,15 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      name: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return this.pen_name;
+        },
+        set(value) {
+          this.setDataValue('pen_name', value);
+        },
+      },
       profileId: DataTypes.INTEGER,
       userId: DataTypes.INTEGER,
     },

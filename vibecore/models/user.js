@@ -29,6 +29,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         defaultValue: 'Member', // Member, Librarian, Admin
       },
+      status: {
+        type: DataTypes.STRING,
+        defaultValue: 'Active', // Active, Suspended
+      },
       profileId: DataTypes.INTEGER,
     },
     {
