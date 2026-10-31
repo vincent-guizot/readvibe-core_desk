@@ -1,10 +1,12 @@
-import bcrypt from 'bcryptjs';
-import db from './models';
+'use strict';
 
-async function seed() {
-  try {
-    await db.sequelize.authenticate();
-    console.log('Connected to database for seeding...');
+const bcrypt = require('bcryptjs');
+const db = require('../models');
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    console.log('🌱 [Seeder] Starting ReadVibe ecosystem seeding...');
 
     // 1. Seed Profiles & Users
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -349,12 +351,28 @@ async function seed() {
       },
     });
 
-    console.log('✅ Seeding completed successfully!');
-    process.exit(0);
-  } catch (err) {
-    console.error('❌ Seeding failed:', err);
-    process.exit(1);
-  }
-}
+    console.log('✅ [Seeder] ReadVibe ecosystem seeding completed successfully!');
+  },
 
-seed();
+  async down(queryInterface, Sequelize) {
+    console.log('🧹 [Seeder] Reverting ReadVibe ecosystem seed data...');
+
+    // Delete in reverse order of foreign key dependencies
+    await queryInterface.bulkDelete('reading_activities', null, {});
+    await queryInterface.bulkDelete('wishlists', null, {});
+    await queryInterface.bulkDelete('editorial_picks', null, {});
+    await queryInterface.bulkDelete('book_moods', null, {});
+    await queryInterface.bulkDelete('books', null, {});
+    await queryInterface.bulkDelete('authors', null, {});
+    await queryInterface.bulkDelete('genres', null, {});
+    await queryInterface.bulkDelete('mood_tags', null, {});
+    await queryInterface.bulkDelete('users', {
+      email: ['admin@vibedesk.app', 'librarian@vibedesk.app', 'member@readvibe.app'],
+    }, {});
+    await queryInterface.bulkDelete('profiles', {
+      fullname: ['System Admin', 'Librarian Sarah', 'Vincent Reader'],
+    }, {});
+
+    console.log('✅ [Seeder] ReadVibe ecosystem seed data reverted successfully!');
+  },
+};
