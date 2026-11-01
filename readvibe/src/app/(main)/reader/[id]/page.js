@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,36 +12,69 @@ import {
   AiOutlineClose,
   AiOutlineMinus,
   AiOutlinePlus,
-  AiOutlineEllipsis
+  AiOutlineCheck,
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { useBooks, useReading } from '@/hooks';
 
 export default function ReaderPage() {
   const params = useParams();
   const router = useRouter();
-  const bookId = params?.id || 'lantern-bookshop';
+  const bookId = params?.id || 'midnight-library';
 
-  // Book info defaulting to Elena Rowan's The Lantern Bookshop
-  const defaultBook = {
-    title: 'The Lantern Bookshop',
-    author: 'Elena Rowan',
-    totalPages: 64
-  };
+  const { books, getBookById } = useBooks();
+  const { getBookProgress, updateBookProgress, finishBook } = useReading();
 
-  const [book, setBook] = useState(defaultBook);
+  // Find book from Redux catalog or default fallback
+  const book = useMemo(() => {
+    return (
+      getBookById(bookId) ||
+      books.find((b) => b.id === bookId || b.slug === bookId) || {
+        id: bookId,
+        title: 'The Lantern Bookshop',
+        author: 'Elena Rowan',
+        pages: 64,
+      }
+    );
+  }, [bookId, books, getBookById]);
+
   const [bookmarked, setBookmarked] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+  const [bookmarkToast, setBookmarkToast] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Appearance settings matching reading page.png
+  // Appearance settings
   const [fontSize, setFontSize] = useState(20);
   const [fontFamily, setFontFamily] = useState('serif'); // 'serif' | 'sans'
   const [theme, setTheme] = useState('sepia'); // 'light' | 'sepia' | 'dark'
   const [lineSpacing, setLineSpacing] = useState('medium'); // 'tight' | 'medium' | 'relaxed'
 
-  // Chapters matching reading page.png
+  // Load preferences from localStorage if available
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('readvibe_reader_theme');
+      if (savedTheme) setTheme(savedTheme);
+      const savedFont = localStorage.getItem('readvibe_reader_font');
+      if (savedFont) setFontFamily(savedFont);
+    }
+  }, []);
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('readvibe_reader_theme', newTheme);
+    }
+  };
+
+  const handleFontChange = (newFont) => {
+    setFontFamily(newFont);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('readvibe_reader_font', newFont);
+    }
+  };
+
+  // Sample reading chapters
   const chapters = [
     {
       num: 1,
@@ -51,8 +84,8 @@ export default function ReaderPage() {
         'The rain had barely begun when the envelope slipped through the mail slot, landing with a soft thud on the hardwood floor.',
         'Mira didn’t recognize the handwriting. It was penned in faded walnut ink, slanted with deliberate grace, addressed simply to: The resident of 44 Elm Street who remembers the smell of old paper.',
         'Inside was not a letter, but a slip of parchment bearing an address three streets over that had remained empty for as long as she could recall.',
-        'Curiosity is a patient hunter. Within an hour, Mira had pulled on her woolen coat and stepped into the mist.'
-      ]
+        'Curiosity is a patient hunter. Within an hour, Mira had pulled on her woolen coat and stepped into the mist.',
+      ],
     },
     {
       num: 2,
@@ -62,12 +95,12 @@ export default function ReaderPage() {
         'The cobblestones were slick underfoot, reflecting the amber streetlamps like dark glass.',
         'At the end of the alleyway stood a brick façade tucked between a tailor shop and an apothecary. A weathered oak door stood ajar by an inch, allowing a sliver of warm, buttery candlelight to slice across the pavement.',
         'She paused with one hand resting against the chilled stone. Music was playing somewhere inside — a gramophone record turning through a waltz that sounded both ancient and immediate.',
-        'Without knocking, she pushed gently, and the door swung inward without a creak.'
-      ]
+        'Without knocking, she pushed gently, and the door swung inward without a creak.',
+      ],
     },
     {
       num: 3,
-      title: 'The Lantern Bookshop',
+      title: 'The Shelves of Second Chances',
       page: 18,
       content: [
         'By the time Mira reached the corner, the rain had softened to a whisper. A lantern glowed above a narrow doorway, its amber light spilling across the wet pavement.',
@@ -77,8 +110,8 @@ export default function ReaderPage() {
         'Mira paused just inside the doorway, letting her eyes adjust to the warm, expectant light. The shop was smaller than she had imagined, yet it felt like a room that had always existed, waiting for her to find it.',
         'Rows of books rose around her, their spines faded and bright, maps and stories and forgotten worlds. A wooden ladder rested against one shelf, and a handwritten note peeked from between two books.',
         'At the far end, a figure looked up from a table, a smile forming as if she had been expecting company. “You found us,” the woman said, her voice as gentle as the rain.',
-        'Mira stepped further inside, the bell’s soft chime still trembling in the air, and for the first time that day, she felt exactly where she was meant to be.'
-      ]
+        'Mira stepped further inside, the bell’s soft chime still trembling in the air, and for the first time that day, she felt exactly where she was meant to be.',
+      ],
     },
     {
       num: 4,
@@ -87,8 +120,8 @@ export default function ReaderPage() {
       content: [
         'The aisles seemed deeper than the exterior of the building should have allowed.',
         'Every shelf was labeled not by genre or author, but by moments: "Books for rainy afternoons when nothing else will do," "Words to read before making a decision you cannot take back," and "Stories that feel like coming home after a long journey."',
-        'Mira reached out, her fingertips grazing the embossed leather spines. Each book seemed quietly warm, like tea cooling on a saucer.'
-      ]
+        'Mira reached out, her fingertips grazing the embossed leather spines. Each book seemed quietly warm, like tea cooling on a saucer.',
+      ],
     },
     {
       num: 5,
@@ -97,37 +130,66 @@ export default function ReaderPage() {
       content: [
         'The woman at the desk poured a steaming mug of jasmine tea and pushed it across the counter.',
         '“We have been keeping your volume safe, Mira,” she said with a gentle nod. “Some stories need time before their readers are ready to open them.”',
-        'Mira sat down, her heart quiet in a way it hadn’t been in years.'
-      ]
+        'Mira sat down, her heart quiet in a way it hadn’t been in years.',
+      ],
     },
     {
       num: 6,
-      title: 'The Last Train',
-      page: 58,
+      title: 'The Final Passage',
+      page: 64,
       content: [
         'Outside, the distant whistle of the evening commuter train echoed through the valley.',
         'Mira closed the book, running her hand across its linen cover. The rain had ceased, and stars were emerging between breaks in the purple twilight.',
-        'She stepped out into the night, knowing that whatever came tomorrow, she would always know the way back to the lantern.'
-      ]
-    }
+        'She stepped out into the night, knowing that whatever came tomorrow, she would always know the way back to the lantern.',
+      ],
+    },
   ];
 
-  // Default to Chapter 3 (index 2) matching reading page.png
-  const [activeChapterIndex, setActiveChapterIndex] = useState(2);
-  const currentChapter = chapters[activeChapterIndex] || chapters[2];
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
 
+  // Restore chapter from Redux reading progress if available
+  useEffect(() => {
+    const progress = getBookProgress(book.id);
+    if (progress && progress.currentPage > 0) {
+      const foundIdx = chapters.findIndex(
+        (ch, idx) =>
+          ch.page <= progress.currentPage &&
+          (chapters[idx + 1] ? chapters[idx + 1].page > progress.currentPage : true)
+      );
+      if (foundIdx !== -1) {
+        setActiveChapterIndex(foundIdx);
+      }
+    }
+  }, [book.id]);
+
+  const currentChapter = chapters[activeChapterIndex] || chapters[0];
   const settingsRef = useRef(null);
 
-  useEffect(() => {
-    const storeBook = readVibeStore.getBookById(bookId);
-    if (storeBook) {
-      setBook({
-        title: storeBook.title || defaultBook.title,
-        author: storeBook.author || defaultBook.author,
-        totalPages: storeBook.pages || 64
-      });
+  // Sync page change to Redux
+  const handleChapterChange = (index) => {
+    setActiveChapterIndex(index);
+    const targetChapter = chapters[index];
+    if (targetChapter) {
+      updateBookProgress(book.id, targetChapter.page);
     }
-  }, [bookId]);
+  };
+
+  // Mark book finished
+  const handleFinishBook = () => {
+    finishBook({
+      bookId: book.id,
+      rating: 5,
+      favoriteQuote: book.quote || '',
+      moods: book.moods || ['Cozy'],
+    });
+    router.push(`/finished-reads/edit-review?bookId=${book.id}`);
+  };
+
+  const handleToggleBookmark = () => {
+    setBookmarked(!bookmarked);
+    setBookmarkToast(true);
+    setTimeout(() => setBookmarkToast(false), 2000);
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -151,7 +213,7 @@ export default function ReaderPage() {
       cardBg: '#FFFFFF',
       dropCapColor: '#2B132C',
       highlightBg: '#F3EEF7',
-      trackBg: '#E9E3DC'
+      trackBg: '#E9E3DC',
     },
     sepia: {
       bg: '#FAF7F2',
@@ -162,7 +224,7 @@ export default function ReaderPage() {
       cardBg: '#FFFFFF',
       dropCapColor: '#2B132C',
       highlightBg: '#F3EEF7',
-      trackBg: '#E2D8CC'
+      trackBg: '#E2D8CC',
     },
     dark: {
       bg: '#18121E',
@@ -173,8 +235,8 @@ export default function ReaderPage() {
       cardBg: '#231B2B',
       dropCapColor: '#E6B8C2',
       highlightBg: 'rgba(209, 180, 221, 0.2)',
-      trackBg: '#2E2435'
-    }
+      trackBg: '#2E2435',
+    },
   };
 
   const activeTheme = themeStyles[theme];
@@ -185,9 +247,8 @@ export default function ReaderPage() {
     return 2.1;
   };
 
-  // Calculate progress percent
   const currentPage = currentChapter.page;
-  const progressPercent = Math.round((currentPage / (book.totalPages || 64)) * 100);
+  const progressPercent = Math.min(Math.round((currentPage / (book.pages || 64)) * 100), 100);
 
   return (
     <div
@@ -195,7 +256,7 @@ export default function ReaderPage() {
       style={{
         backgroundColor: activeTheme.bg,
         color: activeTheme.text,
-        transition: 'background-color 0.2s ease, color 0.2s ease'
+        transition: 'background-color 0.2s ease, color 0.2s ease',
       }}
     >
       {/* ================= TOP NAVIGATION BAR ================= */}
@@ -204,7 +265,7 @@ export default function ReaderPage() {
         style={{
           backgroundColor: activeTheme.navBg,
           borderColor: activeTheme.border,
-          zIndex: 1030
+          zIndex: 1030,
         }}
       >
         {/* Left: Back Link & Logo */}
@@ -219,13 +280,13 @@ export default function ReaderPage() {
 
           <div className="vr d-none d-sm-block" style={{ height: '18px', opacity: 0.3 }} />
 
-          <Link href="/discover" className="d-none d-md-flex align-items-center gap-2 text-decoration-none">
-            <span style={{ fontSize: '20px' }}>📖</span>
+          <Link href={`/books/${book.id}`} className="d-none d-md-flex align-items-center gap-1.5 text-decoration-none">
+            <span style={{ fontSize: '18px' }}>📖</span>
             <span
               className="fw-bold"
-              style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', fontSize: '18px' }}
+              style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', fontSize: '16px' }}
             >
-              ReadVibe
+              ReadVibe Reader
             </span>
           </Link>
 
@@ -253,264 +314,153 @@ export default function ReaderPage() {
           </div>
         </div>
 
-        {/* Right Action Icons: Bookmark, Aa, Search, Fullscreen, More */}
+        {/* Right Action Icons: Bookmark, Aa, Fullscreen */}
         <div className="d-flex align-items-center gap-1.5 position-relative" ref={settingsRef}>
           {/* Bookmark */}
           <button
             type="button"
-            className="btn btn-sm border-0 p-2 rounded-circle"
-            style={{ color: bookmarked ? '#D96B50' : activeTheme.text }}
-            onClick={() => setBookmarked(!bookmarked)}
-            title={bookmarked ? 'Bookmarked' : 'Add bookmark'}
+            className="btn btn-sm btn-light rounded-circle p-2 text-muted border-0 shadow-xs"
+            onClick={handleToggleBookmark}
+            title={bookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+            style={{ color: bookmarked ? '#D96B50' : 'inherit' }}
           >
-            {bookmarked ? <BsBookmarkFill size={16} /> : <BsBookmark size={16} />}
+            {bookmarked ? <BsBookmarkFill size={16} color="#D96B50" /> : <BsBookmark size={16} />}
           </button>
 
-          {/* Aa Reading Settings Toggle */}
+          {/* Aa Reading Settings Dropdown */}
           <button
             type="button"
-            className={`btn btn-sm rounded-3 px-2.5 py-1 fw-bold ${isSettingsOpen ? 'btn-light border' : 'border-0'}`}
-            style={{
-              color: activeTheme.text,
-              backgroundColor: isSettingsOpen ? (theme === 'dark' ? '#2B132C' : '#EFE9F4') : 'transparent',
-              borderColor: isSettingsOpen ? '#D1B4DD' : 'transparent',
-              fontSize: '14px'
-            }}
+            className={`btn btn-sm rounded-circle p-2 border-0 shadow-xs ${
+              isSettingsOpen ? 'btn-secondary text-white' : 'btn-light text-muted'
+            }`}
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            title="Reading Settings"
+            title="Appearance Settings"
           >
-            Aa
-          </button>
-
-          {/* Search */}
-          <button
-            type="button"
-            className="btn btn-sm border-0 p-2 rounded-circle d-none d-sm-inline-flex"
-            style={{ color: activeTheme.text }}
-            onClick={() => alert('Search within book coming soon!')}
-            title="Search text"
-          >
-            <AiOutlineSearch size={18} />
+            <span className="fw-bold" style={{ fontSize: '14px' }}>
+              Aa
+            </span>
           </button>
 
           {/* Fullscreen */}
           <button
             type="button"
-            className="btn btn-sm border-0 p-2 rounded-circle d-none d-sm-inline-flex"
-            style={{ color: activeTheme.text }}
+            className="btn btn-sm btn-light rounded-circle p-2 text-muted border-0 d-none d-sm-inline-flex shadow-xs"
             onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
-            {isFullscreen ? <AiOutlineCompress size={18} /> : <AiOutlineExpand size={18} />}
+            {isFullscreen ? <AiOutlineCompress size={16} /> : <AiOutlineExpand size={16} />}
           </button>
 
-          {/* More options */}
-          <button
-            type="button"
-            className="btn btn-sm border-0 p-2 rounded-circle"
-            style={{ color: activeTheme.text }}
-            title="More Options"
-          >
-            <AiOutlineEllipsis size={18} />
-          </button>
-
-          {/* ================= FLOATING READING SETTINGS POPOVER ================= */}
+          {/* Settings Popup Menu */}
           {isSettingsOpen && (
             <div
               className="position-absolute end-0 mt-2 p-3 rounded-4 shadow-lg border"
               style={{
                 top: '100%',
-                width: '270px',
                 backgroundColor: activeTheme.cardBg,
-                color: activeTheme.text,
                 borderColor: activeTheme.border,
-                zIndex: 1050
+                width: '280px',
+                zIndex: 1040,
               }}
             >
-              <h6 className="fw-bold mb-3 small" style={{ color: activeTheme.text }}>
-                Reading settings
-              </h6>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <span className="small fw-bold" style={{ color: activeTheme.text }}>
+                  Reader Appearance
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link p-0 text-muted"
+                  onClick={() => setIsSettingsOpen(false)}
+                >
+                  <AiOutlineClose size={14} />
+                </button>
+              </div>
 
-              {/* Font Size Row */}
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <span className="small text-muted">Font size</span>
-                <div className="d-flex align-items-center border rounded-3 overflow-hidden bg-light">
+              {/* Theme Selector */}
+              <div className="mb-3">
+                <label className="form-label small text-muted mb-1">Theme</label>
+                <div className="d-flex gap-2">
+                  {[
+                    { id: 'light', label: 'Light', bg: '#FFFFFF', color: '#222' },
+                    { id: 'sepia', label: 'Sepia', bg: '#FAF7F2', color: '#2B132C' },
+                    { id: 'dark', label: 'Dark', bg: '#18121E', color: '#EAE3EE' },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleThemeChange(t.id)}
+                      className={`btn btn-sm flex-grow-1 border rounded-3 py-1 ${
+                        theme === t.id ? 'fw-bold' : ''
+                      }`}
+                      style={{
+                        backgroundColor: t.bg,
+                        color: t.color,
+                        borderColor: theme === t.id ? '#D96B50' : '#E0D8CE',
+                        boxShadow: theme === t.id ? '0 0 0 2px #D96B50' : 'none',
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Size Selector */}
+              <div className="mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="small text-muted">Font Size</span>
+                  <span className="small fw-semibold">{fontSize}px</span>
+                </div>
+                <div className="d-flex align-items-center gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm btn-light border-0 px-2 py-1"
-                    onClick={() => setFontSize(Math.max(14, fontSize - 1))}
-                    title="Decrease font size"
+                    className="btn btn-sm btn-light border rounded-circle p-1"
+                    onClick={() => setFontSize((s) => Math.max(s - 2, 14))}
                   >
                     <AiOutlineMinus size={12} />
                   </button>
-                  <span className="px-3 fw-bold small" style={{ minWidth: '32px', textAlign: 'center' }}>
-                    {fontSize}
-                  </span>
+                  <input
+                    type="range"
+                    min="14"
+                    max="28"
+                    step="2"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="form-range flex-grow-1"
+                  />
                   <button
                     type="button"
-                    className="btn btn-sm btn-light border-0 px-2 py-1"
-                    onClick={() => setFontSize(Math.min(32, fontSize + 1))}
-                    title="Increase font size"
+                    className="btn btn-sm btn-light border rounded-circle p-1"
+                    onClick={() => setFontSize((s) => Math.min(s + 2, 28))}
                   >
                     <AiOutlinePlus size={12} />
                   </button>
                 </div>
               </div>
 
-              {/* Font Family Row */}
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <span className="small text-muted">Font</span>
-                <div className="btn-group btn-group-sm">
+              {/* Font Family Selector */}
+              <div className="mb-2">
+                <label className="form-label small text-muted mb-1">Typeface</label>
+                <div className="d-flex gap-2">
                   <button
                     type="button"
-                    className={`btn px-3 py-1 fw-semibold ${fontFamily === 'serif' ? 'border' : 'border-0'}`}
-                    style={{
-                      backgroundColor: fontFamily === 'serif' ? '#FAF6FC' : 'transparent',
-                      borderColor: fontFamily === 'serif' ? '#D1B4DD' : 'transparent',
-                      color: fontFamily === 'serif' ? 'var(--rv-ink-plum)' : activeTheme.text,
-                      borderRadius: '8px 0 0 8px'
-                    }}
-                    onClick={() => setFontFamily('serif')}
+                    onClick={() => handleFontChange('serif')}
+                    className={`btn btn-sm flex-grow-1 rounded-3 py-1 ${
+                      fontFamily === 'serif' ? 'btn-rv-plum' : 'btn-light border'
+                    }`}
+                    style={{ fontFamily: 'serif' }}
                   >
                     Serif
                   </button>
                   <button
                     type="button"
-                    className={`btn px-3 py-1 fw-semibold ${fontFamily === 'sans' ? 'border' : 'border-0'}`}
-                    style={{
-                      backgroundColor: fontFamily === 'sans' ? '#FAF6FC' : 'transparent',
-                      borderColor: fontFamily === 'sans' ? '#D1B4DD' : 'transparent',
-                      color: fontFamily === 'sans' ? 'var(--rv-ink-plum)' : activeTheme.text,
-                      borderRadius: '0 8px 8px 0'
-                    }}
-                    onClick={() => setFontFamily('sans')}
+                    onClick={() => handleFontChange('sans')}
+                    className={`btn btn-sm flex-grow-1 rounded-3 py-1 ${
+                      fontFamily === 'sans' ? 'btn-rv-plum' : 'btn-light border'
+                    }`}
+                    style={{ fontFamily: 'sans-serif' }}
                   >
                     Sans
-                  </button>
-                </div>
-              </div>
-
-              {/* Theme Row */}
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <span className="small text-muted">Theme</span>
-                <div className="d-flex align-items-center gap-2">
-                  {/* Light */}
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      className="rounded-circle border"
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        backgroundColor: '#FFFFFF',
-                        borderColor: theme === 'light' ? 'var(--rv-ink-plum)' : '#E0DAD2',
-                        boxShadow: theme === 'light' ? '0 0 0 2px var(--rv-ink-plum)' : 'none',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setTheme('light')}
-                      title="Light Theme"
-                    />
-                    <div style={{ fontSize: '10px' }} className="text-muted mt-1">Light</div>
-                  </div>
-
-                  {/* Sepia */}
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      className="rounded-circle border"
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        backgroundColor: '#F5E8D8',
-                        borderColor: theme === 'sepia' ? 'var(--rv-ink-plum)' : '#DCCAB5',
-                        boxShadow: theme === 'sepia' ? '0 0 0 2px var(--rv-ink-plum)' : 'none',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setTheme('sepia')}
-                      title="Sepia Theme"
-                    />
-                    <div style={{ fontSize: '10px' }} className="text-muted mt-1">Sepia</div>
-                  </div>
-
-                  {/* Dark */}
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      className="rounded-circle border"
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        backgroundColor: '#242028',
-                        borderColor: theme === 'dark' ? '#EFE9F4' : '#444',
-                        boxShadow: theme === 'dark' ? '0 0 0 2px #EFE9F4' : 'none',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setTheme('dark')}
-                      title="Dark Theme"
-                    />
-                    <div style={{ fontSize: '10px' }} className="text-muted mt-1">Dark</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Line Spacing Row */}
-              <div className="d-flex align-items-center justify-content-between">
-                <span className="small text-muted">Line spacing</span>
-                <div className="btn-group btn-group-sm">
-                  {/* Tight */}
-                  <button
-                    type="button"
-                    className={`btn px-2.5 py-1 ${lineSpacing === 'tight' ? 'border' : 'border-0'}`}
-                    style={{
-                      backgroundColor: lineSpacing === 'tight' ? '#FAF6FC' : 'transparent',
-                      borderColor: lineSpacing === 'tight' ? '#D1B4DD' : 'transparent',
-                      borderRadius: '8px 0 0 8px'
-                    }}
-                    onClick={() => setLineSpacing('tight')}
-                    title="Tight Line Spacing"
-                  >
-                    <svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor">
-                      <rect y="1" width="18" height="1.8" rx="0.9" />
-                      <rect y="6" width="18" height="1.8" rx="0.9" />
-                      <rect y="11" width="18" height="1.8" rx="0.9" />
-                    </svg>
-                  </button>
-
-                  {/* Medium (Default in screenshot) */}
-                  <button
-                    type="button"
-                    className={`btn px-2.5 py-1 ${lineSpacing === 'medium' ? 'border' : 'border-0'}`}
-                    style={{
-                      backgroundColor: lineSpacing === 'medium' ? '#FAF6FC' : 'transparent',
-                      borderColor: lineSpacing === 'medium' ? '#D1B4DD' : 'transparent'
-                    }}
-                    onClick={() => setLineSpacing('medium')}
-                    title="Medium Line Spacing"
-                  >
-                    <svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor">
-                      <rect y="0" width="18" height="1.8" rx="0.9" />
-                      <rect y="6" width="18" height="1.8" rx="0.9" />
-                      <rect y="12" width="18" height="1.8" rx="0.9" />
-                    </svg>
-                  </button>
-
-                  {/* Relaxed */}
-                  <button
-                    type="button"
-                    className={`btn px-2.5 py-1 ${lineSpacing === 'relaxed' ? 'border' : 'border-0'}`}
-                    style={{
-                      backgroundColor: lineSpacing === 'relaxed' ? '#FAF6FC' : 'transparent',
-                      borderColor: lineSpacing === 'relaxed' ? '#D1B4DD' : 'transparent',
-                      borderRadius: '0 8px 8px 0'
-                    }}
-                    onClick={() => setLineSpacing('relaxed')}
-                    title="Relaxed Line Spacing"
-                  >
-                    <svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor">
-                      <rect y="0" width="18" height="1.5" rx="0.75" />
-                      <rect y="7" width="18" height="1.5" rx="0.75" />
-                      <rect y="13" width="18" height="1.5" rx="0.75" />
-                    </svg>
                   </button>
                 </div>
               </div>
@@ -519,9 +469,19 @@ export default function ReaderPage() {
         </div>
       </header>
 
+      {/* Bookmark Feedback Alert */}
+      {bookmarkToast && (
+        <div
+          className="position-fixed top-0 start-50 translate-middle-x mt-4 py-1.5 px-3 rounded-pill shadow-sm small text-white"
+          style={{ backgroundColor: '#2B132C', zIndex: 1080 }}
+        >
+          {bookmarked ? `✓ Bookmarked page ${currentPage}` : 'Bookmark removed'}
+        </div>
+      )}
+
       {/* ================= MAIN SPLIT: CONTENTS & TEXT ================= */}
       <div className="flex-grow-1 d-flex">
-        {/* Left Sidebar: Contents (matching reading page.png) */}
+        {/* Left Sidebar: Contents */}
         {isSidebarOpen && (
           <aside
             className="d-none d-lg-flex flex-column justify-content-between p-4 border-end"
@@ -529,11 +489,14 @@ export default function ReaderPage() {
               width: '260px',
               backgroundColor: activeTheme.sidebarBg,
               borderColor: activeTheme.border,
-              flexShrink: 0
+              flexShrink: 0,
             }}
           >
             <div>
-              <h5 className="fw-bold mb-1" style={{ fontFamily: 'var(--font-editorial)', color: activeTheme.text }}>
+              <h5
+                className="fw-bold mb-1"
+                style={{ fontFamily: 'var(--font-editorial)', color: activeTheme.text }}
+              >
                 Contents
               </h5>
               <p className="text-muted small mb-4" style={{ fontSize: '13px' }}>
@@ -547,14 +510,14 @@ export default function ReaderPage() {
                     <button
                       key={ch.num}
                       type="button"
-                      onClick={() => setActiveChapterIndex(idx)}
+                      onClick={() => handleChapterChange(idx)}
                       className="btn text-start p-2.5 rounded-3 border-0 d-flex align-items-center gap-2"
                       style={{
                         backgroundColor: isActive ? activeTheme.highlightBg : 'transparent',
                         color: isActive ? 'var(--rv-ink-plum)' : activeTheme.text,
                         fontWeight: isActive ? 600 : 400,
                         fontSize: '14px',
-                        borderLeft: isActive ? '3px solid var(--rv-ink-plum)' : '3px solid transparent'
+                        borderLeft: isActive ? '3px solid #D96B50' : '3px solid transparent',
                       }}
                     >
                       <span className="opacity-75" style={{ minWidth: '16px' }}>
@@ -569,8 +532,12 @@ export default function ReaderPage() {
 
             {/* Bottom sample edition notice */}
             <div className="pt-4 border-top" style={{ borderColor: activeTheme.border }}>
-              <div className="text-muted small" style={{ fontSize: '12px' }}>Sample edition</div>
-              <div className="text-muted small" style={{ fontSize: '11px', opacity: 0.8 }}>Original demo story</div>
+              <div className="text-muted small" style={{ fontSize: '12px' }}>
+                Total: {book.pages || 64} pages
+              </div>
+              <div className="text-muted small" style={{ fontSize: '11px', opacity: 0.8 }}>
+                Connected with Redux Reading State
+              </div>
             </div>
           </aside>
         )}
@@ -588,7 +555,7 @@ export default function ReaderPage() {
                 style={{
                   fontFamily: 'var(--font-editorial)',
                   color: activeTheme.text,
-                  letterSpacing: '-0.02em'
+                  letterSpacing: '-0.02em',
                 }}
               >
                 {currentChapter.title}
@@ -598,17 +565,20 @@ export default function ReaderPage() {
             {/* Reading Content */}
             <article
               style={{
-                fontFamily: fontFamily === 'serif' ? 'var(--font-editorial), Georgia, serif' : 'var(--font-ui), sans-serif',
+                fontFamily:
+                  fontFamily === 'serif'
+                    ? 'var(--font-editorial), Georgia, serif'
+                    : 'var(--font-ui), sans-serif',
                 fontSize: `${fontSize}px`,
                 lineHeight: getLineHeight(),
-                color: activeTheme.text
+                color: activeTheme.text,
               }}
             >
               {currentChapter.content.map((paragraph, idx) => (
                 <p key={idx} className="mb-4" style={{ textAlign: 'justify' }}>
                   {idx === 0 ? (
                     <>
-                      {/* Drop Cap for first letter */}
+                      {/* Drop Cap */}
                       <span
                         style={{
                           float: 'left',
@@ -618,7 +588,7 @@ export default function ReaderPage() {
                           paddingTop: '6px',
                           fontFamily: 'var(--font-editorial)',
                           fontWeight: 'bold',
-                          color: activeTheme.dropCapColor
+                          color: activeTheme.dropCapColor,
                         }}
                       >
                         {paragraph.charAt(0)}
@@ -631,6 +601,31 @@ export default function ReaderPage() {
                 </p>
               ))}
             </article>
+
+            {/* Complete Book Card if at final chapter */}
+            {activeChapterIndex === chapters.length - 1 && (
+              <div
+                className="card border-0 rounded-4 shadow-sm p-4 mt-5 text-center"
+                style={{ backgroundColor: activeTheme.sidebarBg, borderColor: activeTheme.border }}
+              >
+                <div className="fs-1 mb-2">🎉</div>
+                <h4 className="fw-bold mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
+                  You reached the final page!
+                </h4>
+                <p className="text-muted small mb-3">
+                  Mark this book as finished to update your reading stats and create a personalized Vibe Card.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleFinishBook}
+                    className="btn btn-rv-plum rounded-pill px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                  >
+                    <AiOutlineCheck size={18} /> Complete Book &amp; Review
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -641,10 +636,13 @@ export default function ReaderPage() {
         style={{
           backgroundColor: activeTheme.navBg,
           borderColor: activeTheme.border,
-          zIndex: 1020
+          zIndex: 1020,
         }}
       >
-        <div className="d-flex align-items-center justify-content-between gap-3 mx-auto" style={{ maxWidth: '900px' }}>
+        <div
+          className="d-flex align-items-center justify-content-between gap-3 mx-auto"
+          style={{ maxWidth: '900px' }}
+        >
           {/* Previous Chapter */}
           <button
             type="button"
@@ -653,11 +651,9 @@ export default function ReaderPage() {
               color: activeChapterIndex > 0 ? activeTheme.text : 'rgba(0,0,0,0.3)',
               cursor: activeChapterIndex > 0 ? 'pointer' : 'default',
               pointerEvents: activeChapterIndex > 0 ? 'auto' : 'none',
-              fontWeight: 500
+              fontWeight: 500,
             }}
-            onClick={() => {
-              if (activeChapterIndex > 0) setActiveChapterIndex(activeChapterIndex - 1);
-            }}
+            onClick={() => handleChapterChange(activeChapterIndex - 1)}
           >
             <AiOutlineArrowLeft size={14} /> Previous
           </button>
@@ -665,7 +661,7 @@ export default function ReaderPage() {
           {/* Progress Bar & Page Status */}
           <div className="d-flex flex-column align-items-center" style={{ width: '280px', maxWidth: '50%' }}>
             <span className="small text-muted mb-1" style={{ fontSize: '12px' }}>
-              Page {currentChapter.page} of {book.totalPages || 64}
+              Page {currentChapter.page} of {book.pages || 64}
             </span>
             <div
               className="rounded-pill overflow-hidden w-100"
@@ -676,31 +672,38 @@ export default function ReaderPage() {
                 style={{
                   width: `${progressPercent}%`,
                   backgroundColor: 'var(--rv-ink-plum)',
-                  transition: 'width 0.3s ease'
+                  transition: 'width 0.3s ease',
                 }}
               />
             </div>
             <span className="text-muted mt-1" style={{ fontSize: '11px' }}>
-              {progressPercent}% of sample
+              {progressPercent}% read
             </span>
           </div>
 
-          {/* Next Chapter */}
-          <button
-            type="button"
-            className="btn btn-sm btn-link text-decoration-none d-flex align-items-center gap-1.5 p-0"
-            style={{
-              color: activeChapterIndex < chapters.length - 1 ? activeTheme.text : 'rgba(0,0,0,0.3)',
-              cursor: activeChapterIndex < chapters.length - 1 ? 'pointer' : 'default',
-              pointerEvents: activeChapterIndex < chapters.length - 1 ? 'auto' : 'none',
-              fontWeight: 500
-            }}
-            onClick={() => {
-              if (activeChapterIndex < chapters.length - 1) setActiveChapterIndex(activeChapterIndex + 1);
-            }}
-          >
-            Next <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>←</span>
-          </button>
+          {/* Next Chapter or Complete */}
+          {activeChapterIndex < chapters.length - 1 ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-link text-decoration-none d-flex align-items-center gap-1.5 p-0"
+              style={{
+                color: activeTheme.text,
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+              onClick={() => handleChapterChange(activeChapterIndex + 1)}
+            >
+              Next <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>←</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFinishBook}
+              className="btn btn-sm btn-rv-coral rounded-pill px-3 py-1 fw-bold text-white shadow-xs d-inline-flex align-items-center gap-1"
+            >
+              <AiOutlineCheck size={14} /> Finish
+            </button>
+          )}
         </div>
       </footer>
     </div>
