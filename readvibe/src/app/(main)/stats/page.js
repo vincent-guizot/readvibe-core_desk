@@ -17,6 +17,7 @@ export default function StatsPage() {
   const [year, setYear] = useState('2026');
   const [showYearMenu, setShowYearMenu] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const availableYears = ['2026', '2025', 'All Time'];
 
@@ -221,64 +222,210 @@ export default function StatsPage() {
 
   const handleDownloadRecap = () => {
     setDownloading(true);
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1920;
-    const ctx = canvas.getContext('2d');
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
 
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-    grad.addColorStop(0, '#FAF7F2');
-    grad.addColorStop(1, '#EFE9F4');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1080, 1920);
+      // 1. Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+      grad.addColorStop(0, '#FAF7F2');
+      grad.addColorStop(0.5, '#F7F2F9');
+      grad.addColorStop(1, '#EFE9F4');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
 
-    // Decorative frame
-    ctx.strokeStyle = '#D96B50';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(60, 60, 960, 1800);
+      // Decorative outer border
+      ctx.strokeStyle = '#D96B50';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(60, 60, 960, 1800);
 
-    // Header
-    ctx.fillStyle = '#2B132C';
-    ctx.font = 'bold 44px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('READVIBE 2026 READING STATS', 540, 200);
+      // Inner subtle frame
+      ctx.strokeStyle = 'rgba(217, 107, 80, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(76, 76, 928, 1768);
 
-    ctx.font = 'bold 72px serif';
-    ctx.fillText('Your Reading Journey, in Chapters', 540, 310);
+      // Helper function to draw rounded rect
+      const drawRoundRect = (x, y, w, h, radius, fill, stroke) => {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+        if (fill) {
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+        if (stroke) {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      };
 
-    // Stats
-    ctx.fillStyle = '#E87A65';
-    ctx.font = 'bold 110px sans-serif';
-    ctx.fillText('12', 320, 520);
-    ctx.font = 'bold 32px sans-serif';
-    ctx.fillStyle = '#2B132C';
-    ctx.fillText('Books Finished', 320, 580);
+      // 2. Header
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#775282';
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText('READVIBE · EMOTIONAL READING COMPANION', 540, 170);
 
-    ctx.fillStyle = '#7C9885';
-    ctx.font = 'bold 110px sans-serif';
-    ctx.fillText('3,120', 760, 520);
-    ctx.font = 'bold 32px sans-serif';
-    ctx.fillStyle = '#2B132C';
-    ctx.fillText('Pages Read', 760, 580);
+      ctx.fillStyle = '#D96B50';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText(`✨ ${year} ANNUAL READING RECAP ✨`, 540, 220);
 
-    ctx.fillStyle = '#2B132C';
-    ctx.font = 'italic 52px serif';
-    ctx.fillText('“Cozy & Curious”', 540, 820);
-    ctx.font = '32px sans-serif';
-    ctx.fillStyle = '#6C757D';
-    ctx.fillText('Top Mood: Cozy (5 books) · Average Rating: 4.5 ★', 540, 890);
+      ctx.fillStyle = '#2B132C';
+      ctx.font = 'bold 64px serif';
+      const userName = user?.name ? `${user.name}’s Reading Journey` : 'Your Reading Journey';
+      ctx.fillText(userName, 540, 310);
 
-    // Footer
-    ctx.font = '28px sans-serif';
-    ctx.fillStyle = '#999999';
-    ctx.fillText('readvibe.app · Emotional Reading Companion', 540, 1750);
+      ctx.fillStyle = '#6C757D';
+      ctx.font = 'italic 38px serif';
+      const secondMood = moodsOnShelf[1]?.label ? moodsOnShelf[1].label : 'Curious';
+      const vibeTagline = `“${topMood} & ${secondMood}”`;
+      ctx.fillText(vibeTagline, 540, 370);
 
-    const link = document.createElement('a');
-    link.download = `readvibe-${year}-recap.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    setDownloading(false);
+      // Header divider
+      ctx.strokeStyle = '#EADCEE';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(180, 420);
+      ctx.lineTo(900, 420);
+      ctx.stroke();
+
+      // 3. Stats 2x2 Grid Cards
+      // Card 1: Books Finished (Left, Top)
+      drawRoundRect(120, 470, 390, 200, 24, '#FFFFFF', '#F0E6D8');
+      ctx.fillStyle = '#D96B50';
+      ctx.font = 'bold 84px sans-serif';
+      ctx.fillText(String(totalBooksFinished), 315, 570);
+      ctx.fillStyle = '#554359';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('Books Finished', 315, 625);
+
+      // Card 2: Pages Read (Right, Top)
+      drawRoundRect(570, 470, 390, 200, 24, '#FFFFFF', '#E6EFE8');
+      ctx.fillStyle = '#5C826A';
+      ctx.font = 'bold 84px sans-serif';
+      ctx.fillText(totalPages.toLocaleString(), 765, 570);
+      ctx.fillStyle = '#554359';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('Pages Read', 765, 625);
+
+      // Card 3: Average Rating (Left, Bottom)
+      drawRoundRect(120, 700, 390, 190, 24, '#FFFFFF', '#FDEEE4');
+      ctx.fillStyle = '#E27D60';
+      ctx.font = 'bold 74px sans-serif';
+      ctx.fillText(`${avgRating} ★`, 315, 790);
+      ctx.fillStyle = '#554359';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('Average Rating', 315, 845);
+
+      // Card 4: Top Mood (Right, Bottom)
+      drawRoundRect(570, 700, 390, 190, 24, '#FFFFFF', '#F3EDF6');
+      ctx.fillStyle = '#775282';
+      ctx.font = 'bold 60px sans-serif';
+      ctx.fillText(`${topMoodEmoji} ${topMood}`, 765, 785);
+      ctx.fillStyle = '#554359';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('Most-Read Mood', 765, 845);
+
+      // 4. Reading Goal & Genre Highlights
+      drawRoundRect(120, 920, 840, 120, 20, '#FFFFFF', 'rgba(119, 82, 130, 0.15)');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#2B132C';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(`🎯 ${year} Goal: ${goalCompleted} of ${goalTarget} books read (${goalPercent}%)`, 160, 970);
+      ctx.fillStyle = '#6C757D';
+      ctx.font = '24px sans-serif';
+      const topGenre = genresExplored[0]?.label || 'Fiction';
+      ctx.fillText(`📚 Top Genre: ${topGenre} · Peak Reading Month: ${peakMonth?.month || 'October'}`, 160, 1010);
+
+      // 5. Highest-Rated Hall of Fame Reads
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#2B132C';
+      ctx.font = 'bold 36px serif';
+      ctx.fillText('HALL OF FAME READS', 540, 1100);
+
+      drawRoundRect(120, 1130, 840, 350, 24, '#FFFFFF', '#E6DCED');
+      ctx.textAlign = 'left';
+      highestRatedReads.slice(0, 3).forEach((book, idx) => {
+        const rowY = 1200 + idx * 95;
+        // Star badge
+        ctx.fillStyle = '#D96B50';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText(`★ ${book.rating}`, 160, rowY);
+
+        // Title
+        ctx.fillStyle = '#2B132C';
+        ctx.font = 'bold 30px sans-serif';
+        const displayTitle = book.title.length > 28 ? book.title.substring(0, 26) + '...' : book.title;
+        ctx.fillText(displayTitle, 280, rowY);
+
+        // Author
+        ctx.fillStyle = '#777777';
+        ctx.font = '24px sans-serif';
+        ctx.fillText(`by ${book.author}`, 280, rowY + 32);
+
+        // Subtle divider between items
+        if (idx < 2) {
+          ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(160, rowY + 50);
+          ctx.lineTo(920, rowY + 50);
+          ctx.stroke();
+        }
+      });
+
+      // 6. Favorite Quote of the Year
+      const topQuoteItem = activeYearReads.find((r) => r.favoriteQuote);
+      const quoteText = topQuoteItem?.favoriteQuote
+        ? `“${topQuoteItem.favoriteQuote}”`
+        : '“Books don’t give you the answer. They give you the space to find it yourself.”';
+
+      drawRoundRect(120, 1515, 840, 180, 20, '#FAF6FA', '#E2D5E8');
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#5C4066';
+      ctx.font = 'italic 28px serif';
+
+      const words = quoteText.split(' ');
+      let line1 = '';
+      let line2 = '';
+      words.forEach((w) => {
+        if ((line1 + w).length < 46) {
+          line1 += (line1 ? ' ' : '') + w;
+        } else {
+          line2 += (line2 ? ' ' : '') + w;
+        }
+      });
+      ctx.fillText(line1, 540, 1590);
+      if (line2) {
+        ctx.fillText(line2, 540, 1635);
+      }
+
+      // 7. Footer Watermark
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillStyle = '#775282';
+      ctx.fillText('readvibe.app · Emotional Reading Companion', 540, 1750);
+      ctx.font = '22px sans-serif';
+      ctx.fillStyle = '#999999';
+      ctx.fillText(`Curated for @${user?.username || 'reader'} · Keep turning pages.`, 540, 1785);
+
+      const link = document.createElement('a');
+      link.download = `readvibe-${year}-recap.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 5000);
+    } catch (err) {
+      console.error('Error generating recap canvas:', err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -301,6 +448,27 @@ export default function StatsPage() {
           </li>
         </ol>
       </nav>
+
+      {/* Download Recap Feedback Alert */}
+      {downloadSuccess && (
+        <div
+          className="alert alert-success border-0 shadow-sm rounded-4 px-4 py-2.5 small d-flex align-items-center justify-content-between mb-3"
+          style={{ backgroundColor: '#EBF4ED', color: '#3A6349' }}
+        >
+          <div className="d-flex align-items-center gap-2">
+            <span>🎉</span>
+            <span>
+              <strong>Recap exported!</strong> Your {year} reading recap (1080×1920) was saved to your device.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn-close small"
+            onClick={() => setDownloadSuccess(false)}
+            aria-label="Close"
+          />
+        </div>
+      )}
 
       {/* Header Banner */}
       <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4 mb-4">
