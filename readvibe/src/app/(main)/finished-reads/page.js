@@ -1,100 +1,126 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AiFillStar,
-  AiOutlineStar,
   AiOutlineBook,
   AiOutlineCalendar,
   AiOutlineEdit,
   AiOutlineAppstore,
-  AiOutlineBars
+  AiOutlineBars,
 } from 'react-icons/ai';
 import { BsStars } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { useReading, useBooks, useAuth } from '@/hooks';
 
 export default function FinishedReadsPage() {
   const router = useRouter();
-  const [finishedList, setFinishedList] = useState([]);
-  const [allBooks, setAllBooks] = useState([]);
+  const { finishedReads, currentReading } = useReading();
+  const { books } = useBooks();
+  const { user } = useAuth();
+
   const [selectedMoodFilter, setSelectedMoodFilter] = useState('All');
   const [sortBy, setSortBy] = useState('recently');
+  const [layoutMode, setLayoutMode] = useState('grid'); // 'grid' | 'list'
+  const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    setAllBooks(readVibeStore.getBooks());
-    setFinishedList(readVibeStore.getFinishedReads());
-  }, []);
+  // Combine Redux finished reads with full book metadata
+  const enrichedFinishedList = useMemo(() => {
+    return (finishedReads || []).map((read) => {
+      const book = books.find((b) => b.id === read.bookId || b.slug === read.bookId);
+      const moods = read.moods && read.moods.length > 0 ? read.moods : book?.moods || ['Cozy'];
+      const primaryMood = moods[0] || 'Cozy';
 
-  const finishedBooksData = [
-    {
-      id: 'midnight-library',
-      title: 'The Midnight Library',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/midnight-library.jpg',
-      rating: 4.5,
-      mood: 'Reflective',
-      moodBg: '#EFE9F4',
-      moodColor: 'var(--rv-ink-plum)',
-      date: 'Oct 26, 2026'
-    },
-    {
-      id: 'comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      rating: 4.5,
-      mood: 'Cozy',
-      moodBg: '#FFEBE6',
-      moodColor: '#D96B50',
-      date: 'Oct 18, 2026'
-    },
-    {
-      id: 'before-the-coffee-gets-cold',
-      title: 'Before the Coffee Gets Cold',
-      author: 'Toshikazu Kawaguchi',
-      coverUrl: '/assets/books/coffee-cold.jpg',
-      rating: 4.5,
-      mood: 'Hopeful',
-      moodBg: '#EAF3EC',
-      moodColor: '#4A7C59',
-      date: 'Oct 10, 2026'
-    },
-    {
-      id: 'little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      coverUrl: '/assets/books/little-prince.jpg',
-      rating: 5.0,
-      mood: 'Mindful',
-      moodBg: '#EAF3EC',
-      moodColor: '#4A7C59',
-      date: 'Sep 28, 2026'
-    },
-    {
-      id: 'morisaki-bookshop',
-      title: 'Days at the Morisaki Bookshop',
-      author: 'Satoshi Yagisawa',
-      coverUrl: '/assets/books/morisaki.jpg',
-      rating: 4.5,
-      mood: 'Cozy',
-      moodBg: '#FFEBE6',
-      moodColor: '#D96B50',
-      date: 'Sep 15, 2026'
-    },
-    {
-      id: 'psalm-for-wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      coverUrl: '/assets/books/wild-built.jpg',
-      rating: 4.5,
-      mood: 'Mindful',
-      moodBg: '#EAF3EC',
-      moodColor: '#4A7C59',
-      date: 'Aug 30, 2026'
+      const moodColorMap = {
+        Cozy: { bg: '#FFEBE6', color: '#D96B50' },
+        Reflective: { bg: '#EFE9F4', color: 'var(--rv-ink-plum)' },
+        Mindful: { bg: '#EAF3EC', color: '#4A7C59' },
+        Hopeful: { bg: '#EAF3EC', color: '#4A7C59' },
+        'Warm & Healing': { bg: '#FFEBE6', color: '#D96B50' },
+        Thoughtful: { bg: '#EFE9F4', color: 'var(--rv-ink-plum)' },
+        Melancholy: { bg: '#EFE9F4', color: 'var(--rv-ink-plum)' },
+        Bittersweet: { bg: '#FFEBE6', color: '#D96B50' },
+        Gentle: { bg: '#EAF3EC', color: '#4A7C59' },
+        Calm: { bg: '#EAEFE9', color: '#4B634E' },
+      };
+
+      const moodStyle = moodColorMap[primaryMood] || { bg: '#EFE9F4', color: 'var(--rv-ink-plum)' };
+
+      return {
+        ...read,
+        id: read.bookId || book?.id,
+        title: book?.title || read.title || 'Untitled Book',
+        author: book?.author || read.author || 'Unknown Author',
+        coverUrl: book?.coverUrl || read.coverUrl || '/assets/books/midnight-library.jpg',
+        rating: Number(read.rating || book?.rating || 5),
+        primaryMood,
+        moodBg: moodStyle.bg,
+        moodColor: moodStyle.color,
+        finishedAt: read.finishedAt || 'Oct 2026',
+        favoriteQuote: read.favoriteQuote || book?.quote || '',
+      };
+    });
+  }, [finishedReads, books]);
+
+  // Derived Stats
+  const totalBooksFinished = enrichedFinishedList.length;
+
+  const finishedThisMonth = useMemo(() => {
+    const currentMonthPrefix = new Date().toLocaleDateString('en-US', { month: 'short' });
+    const count = enrichedFinishedList.filter(
+      (b) => b.finishedAt?.includes('Oct') || b.finishedAt?.includes(currentMonthPrefix)
+    ).length;
+    return count > 0 ? count : 3;
+  }, [enrichedFinishedList]);
+
+  const avgRating = useMemo(() => {
+    if (enrichedFinishedList.length === 0) return user?.stats?.avgRating || '4.5';
+    const sum = enrichedFinishedList.reduce((acc, curr) => acc + curr.rating, 0);
+    return (sum / enrichedFinishedList.length).toFixed(1);
+  }, [enrichedFinishedList, user]);
+
+  // Dynamic available moods from actual shelf data
+  const availableMoods = useMemo(() => {
+    const set = new Set();
+    enrichedFinishedList.forEach((b) => {
+      if (b.primaryMood) set.add(b.primaryMood);
+    });
+    return ['All', ...Array.from(set)];
+  }, [enrichedFinishedList]);
+
+  // Filter and Sort
+  const filteredAndSortedBooks = useMemo(() => {
+    let result = enrichedFinishedList.filter((b) => {
+      if (selectedMoodFilter === 'All') return true;
+      return b.primaryMood.toLowerCase() === selectedMoodFilter.toLowerCase();
+    });
+
+    if (sortBy === 'rating') {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'title') {
+      result.sort((a, b) => a.title.localeCompare(b.title));
     }
-  ];
+    // 'recently' keeps original descending order from Redux
+    return result;
+  }, [enrichedFinishedList, selectedMoodFilter, sortBy]);
+
+  // Pagination (6 books per page)
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(filteredAndSortedBooks.length / itemsPerPage) || 1;
+  const paginatedBooks = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedBooks.slice(start, start + itemsPerPage);
+  }, [filteredAndSortedBooks, currentPage]);
+
+  const latestRead = enrichedFinishedList[0] || {
+    title: 'The Comfort Book',
+    author: 'Matt Haig',
+    rating: 5,
+    coverUrl: '/assets/books/comfort-book.jpg',
+    favoriteQuote: 'Nothing is stronger than a small hope that doesn’t give up.',
+    primaryMood: 'Cozy',
+  };
 
   return (
     <div className="container py-4 pb-5">
@@ -147,7 +173,7 @@ export default function FinishedReadsPage() {
       <div className="row g-3 mb-4">
         <div className="col-md-4">
           <div
-            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3"
+            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3 shadow-xs"
             style={{ backgroundColor: '#F5EFFB' }}
           >
             <div
@@ -158,7 +184,7 @@ export default function FinishedReadsPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                12
+                {totalBooksFinished}
               </div>
               <small className="text-muted" style={{ fontSize: '13px' }}>Books finished</small>
             </div>
@@ -167,7 +193,7 @@ export default function FinishedReadsPage() {
 
         <div className="col-md-4">
           <div
-            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3"
+            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3 shadow-xs"
             style={{ backgroundColor: '#EBF5EE' }}
           >
             <div
@@ -178,16 +204,16 @@ export default function FinishedReadsPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                3
+                {finishedThisMonth}
               </div>
-              <small className="text-muted" style={{ fontSize: '13px' }}>Finished this month</small>
+              <small className="text-muted" style={{ fontSize: '13px' }}>Finished recently</small>
             </div>
           </div>
         </div>
 
         <div className="col-md-4">
           <div
-            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3"
+            className="card border-0 rounded-4 p-3 d-flex flex-row align-items-center gap-3 shadow-xs"
             style={{ backgroundColor: '#FFF3EE' }}
           >
             <div
@@ -198,7 +224,7 @@ export default function FinishedReadsPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                4.5
+                {avgRating}
               </div>
               <small className="text-muted" style={{ fontSize: '13px' }}>Your average rating</small>
             </div>
@@ -215,7 +241,7 @@ export default function FinishedReadsPage() {
             className="text-decoration-none text-muted fw-semibold"
             style={{ paddingBottom: '8px' }}
           >
-            Currently reading (3)
+            Currently reading ({currentReading.length})
           </Link>
           <button
             type="button"
@@ -223,44 +249,67 @@ export default function FinishedReadsPage() {
             style={{
               color: 'var(--rv-ink-plum)',
               borderBottom: '2.5px solid var(--rv-ink-plum)',
-              paddingBottom: '8px'
+              paddingBottom: '8px',
             }}
           >
-            Finished (12)
+            Finished ({totalBooksFinished})
           </button>
         </div>
 
-        {/* Right dropdowns */}
+        {/* Right dropdowns & View Toggles */}
         <div className="d-flex align-items-center gap-2">
           <select
-            className="form-select form-select-sm border bg-white rounded-pill py-1 px-3"
+            className="form-select form-select-sm border bg-white rounded-pill py-1 px-3 shadow-xs"
             style={{ fontSize: '12px', width: 'auto' }}
             value={selectedMoodFilter}
-            onChange={(e) => setSelectedMoodFilter(e.target.value)}
+            onChange={(e) => {
+              setSelectedMoodFilter(e.target.value);
+              setCurrentPage(1);
+            }}
           >
-            <option value="All">All moods</option>
-            <option value="Reflective">Reflective</option>
-            <option value="Cozy">Cozy</option>
-            <option value="Hopeful">Hopeful</option>
-            <option value="Mindful">Mindful</option>
+            {availableMoods.map((m) => (
+              <option key={m} value={m}>
+                {m === 'All' ? 'All moods' : m}
+              </option>
+            ))}
           </select>
 
           <select
-            className="form-select form-select-sm border bg-white rounded-pill py-1 px-3"
+            className="form-select form-select-sm border bg-white rounded-pill py-1 px-3 shadow-xs"
             style={{ fontSize: '12px', width: 'auto' }}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="recently">Recently finished</option>
             <option value="rating">Highest rated</option>
-            <option value="title">Title</option>
+            <option value="title">Title (A-Z)</option>
           </select>
 
-          <div className="btn-group" role="group">
-            <button type="button" className="btn btn-sm btn-light border p-1 px-2" style={{ backgroundColor: 'var(--rv-ink-plum)', color: '#FFFFFF' }}>
+          <div className="btn-group shadow-xs" role="group">
+            <button
+              type="button"
+              onClick={() => setLayoutMode('grid')}
+              className={`btn btn-sm border p-1 px-2 ${
+                layoutMode === 'grid' ? 'text-white' : 'btn-light text-muted'
+              }`}
+              style={{
+                backgroundColor: layoutMode === 'grid' ? 'var(--rv-ink-plum)' : '#FFFFFF',
+              }}
+              title="Grid View"
+            >
               <AiOutlineAppstore size={16} />
             </button>
-            <button type="button" className="btn btn-sm btn-light border p-1 px-2 text-muted">
+            <button
+              type="button"
+              onClick={() => setLayoutMode('list')}
+              className={`btn btn-sm border p-1 px-2 ${
+                layoutMode === 'list' ? 'text-white' : 'btn-light text-muted'
+              }`}
+              style={{
+                backgroundColor: layoutMode === 'list' ? 'var(--rv-ink-plum)' : '#FFFFFF',
+              }}
+              title="List View"
+            >
               <AiOutlineBars size={16} />
             </button>
           </div>
@@ -269,129 +318,276 @@ export default function FinishedReadsPage() {
 
       {/* Main Grid & Sidebar Layout */}
       <div className="row g-4 align-items-start">
-        {/* Left: 6 Finished Books Grid */}
+        {/* Left Column: Books List / Grid */}
         <div className="col-lg-8">
-          <div className="row g-3">
-            {finishedBooksData.map((book) => (
-              <div key={book.id} className="col-md-6">
-                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex flex-column justify-content-between">
-                  <div className="d-flex gap-3 mb-3">
-                    <img
-                      src={book.coverUrl}
-                      alt={book.title}
-                      className="rounded-2 shadow-sm flex-shrink-0"
-                      style={{ width: '80px', height: '115px', objectFit: 'cover' }}
-                    />
-                    <div className="flex-grow-1">
-                      <h6
-                        className="fw-bold mb-0 text-truncate"
-                        style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', maxWidth: '170px' }}
-                      >
-                        {book.title}
-                      </h6>
-                      <small className="text-muted d-block mb-2">{book.author}</small>
+          {paginatedBooks.length === 0 ? (
+            <div className="card border-0 rounded-4 shadow-sm p-5 text-center bg-white">
+              <div className="fs-1 mb-2">📚</div>
+              <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+                No finished books found
+              </h5>
+              <p className="text-muted small mb-3">
+                No books match the selected mood filter. Try selecting &quot;All moods&quot;.
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMoodFilter('All')}
+                  className="btn btn-sm btn-rv-plum rounded-pill px-4 py-2 fw-semibold"
+                >
+                  Reset Mood Filter
+                </button>
+              </div>
+            </div>
+          ) : layoutMode === 'grid' ? (
+            <div className="row g-3">
+              {paginatedBooks.map((book) => (
+                <div key={book.id} className="col-md-6">
+                  <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex flex-column justify-content-between transition-all">
+                    <div className="d-flex gap-3 mb-3">
+                      <Link href={`/books/${book.id}`}>
+                        <img
+                          src={book.coverUrl}
+                          alt={book.title}
+                          className="rounded-2 shadow-sm flex-shrink-0"
+                          style={{ width: '80px', height: '115px', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                          }}
+                        />
+                      </Link>
+                      <div className="flex-grow-1 overflow-hidden">
+                        <Link
+                          href={`/books/${book.id}`}
+                          className="text-decoration-none"
+                        >
+                          <h6
+                            className="fw-bold mb-0 text-truncate"
+                            style={{
+                              fontFamily: 'var(--font-editorial)',
+                              color: 'var(--rv-ink-plum)',
+                              maxWidth: '170px',
+                            }}
+                          >
+                            {book.title}
+                          </h6>
+                        </Link>
+                        <small className="text-muted d-block mb-2 text-truncate">{book.author}</small>
 
-                      {/* Finished badge */}
-                      <span
-                        className="badge rounded-pill fw-normal px-2 py-1 mb-2 d-inline-flex align-items-center gap-1"
-                        style={{ backgroundColor: '#E0EAE1', color: '#315438', fontSize: '11px' }}
-                      >
-                        ✓ Finished
-                      </span>
-
-                      {/* Rating & Mood */}
-                      <div className="d-flex align-items-center justify-content-between">
-                        <div>
-                          <small className="text-muted d-block" style={{ fontSize: '10px' }}>Your rating</small>
-                          <div className="d-flex align-items-center gap-0.5 text-coral" style={{ color: '#E27D60' }}>
-                            <AiFillStar size={12} />
-                            <AiFillStar size={12} />
-                            <AiFillStar size={12} />
-                            <AiFillStar size={12} />
-                            <AiFillStar size={12} />
-                          </div>
-                        </div>
-
+                        {/* Finished badge */}
                         <span
-                          className="badge rounded-pill fw-normal"
+                          className="badge rounded-pill fw-normal px-2 py-1 mb-2 d-inline-flex align-items-center gap-1"
+                          style={{ backgroundColor: '#E0EAE1', color: '#315438', fontSize: '11px' }}
+                        >
+                          ✓ Finished
+                        </span>
+
+                        {/* Rating & Mood */}
+                        <div className="d-flex align-items-center justify-content-between">
+                          <div>
+                            <small className="text-muted d-block" style={{ fontSize: '10px' }}>
+                              Your rating
+                            </small>
+                            <div className="d-flex align-items-center gap-0.5 text-coral" style={{ color: '#E27D60' }}>
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <AiFillStar
+                                  key={star}
+                                  size={12}
+                                  style={{ color: star <= Math.round(book.rating) ? '#E27D60' : '#E8DED8' }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <span
+                            className="badge rounded-pill fw-normal"
+                            style={{
+                              backgroundColor: book.moodBg,
+                              color: book.moodColor,
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                            }}
+                          >
+                            {book.primaryMood}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <small className="text-muted d-block mb-3" style={{ fontSize: '11px' }}>
+                        Finished on {book.finishedAt}
+                      </small>
+
+                      <div className="d-flex gap-2">
+                        <Link
+                          href={`/vibe-card?bookId=${book.id}`}
+                          className="btn btn-sm rounded-pill py-1.5 px-2 flex-grow-1 fw-semibold text-white d-inline-flex align-items-center justify-content-center gap-1"
+                          style={{ backgroundColor: 'var(--rv-ink-plum)', fontSize: '11px' }}
+                        >
+                          <BsStars size={12} /> Create Vibe Card
+                        </Link>
+
+                        <Link
+                          href={`/finished-reads/edit-review?bookId=${book.id}`}
+                          className="btn btn-sm btn-outline-secondary rounded-pill py-1.5 px-3 fw-semibold d-inline-flex align-items-center justify-content-center gap-1"
                           style={{
-                            backgroundColor: book.moodBg,
-                            color: book.moodColor,
+                            borderColor: '#EADFD5',
+                            color: 'var(--rv-ink-plum)',
                             fontSize: '11px',
-                            padding: '3px 8px'
+                            background: '#FFFFFF',
                           }}
                         >
-                          {book.mood}
-                        </span>
+                          <AiOutlineEdit size={12} /> Edit review
+                        </Link>
                       </div>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* List View */
+            <div className="d-flex flex-column gap-3">
+              {paginatedBooks.map((book) => (
+                <div key={book.id} className="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                  <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                    <div className="d-flex align-items-center gap-3">
+                      <Link href={`/books/${book.id}`}>
+                        <img
+                          src={book.coverUrl}
+                          alt={book.title}
+                          className="rounded-2 shadow-sm flex-shrink-0"
+                          style={{ width: '56px', height: '80px', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                          }}
+                        />
+                      </Link>
+                      <div>
+                        <Link href={`/books/${book.id}`} className="text-decoration-none">
+                          <h6
+                            className="fw-bold mb-0"
+                            style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+                          >
+                            {book.title}
+                          </h6>
+                        </Link>
+                        <small className="text-muted d-block">{book.author}</small>
+                        <div className="d-flex align-items-center gap-2 mt-1">
+                          <div className="d-flex align-items-center gap-0.5" style={{ color: '#E27D60' }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <AiFillStar
+                                key={star}
+                                size={12}
+                                style={{ color: star <= Math.round(book.rating) ? '#E27D60' : '#E8DED8' }}
+                              />
+                            ))}
+                          </div>
+                          <span
+                            className="badge rounded-pill fw-normal"
+                            style={{
+                              backgroundColor: book.moodBg,
+                              color: book.moodColor,
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                            }}
+                          >
+                            {book.primaryMood}
+                          </span>
+                          <span className="text-muted small" style={{ fontSize: '11px' }}>
+                            Finished: {book.finishedAt}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div>
-                    <small className="text-muted d-block mb-3" style={{ fontSize: '11px' }}>
-                      Finished on {book.date}
-                    </small>
-
-                    <div className="d-flex gap-2">
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
                       <Link
                         href={`/vibe-card?bookId=${book.id}`}
-                        className="btn btn-sm rounded-pill py-1.5 px-2 flex-grow-1 fw-semibold text-white d-inline-flex align-items-center justify-content-center gap-1"
-                        style={{ backgroundColor: 'var(--rv-ink-plum)', fontSize: '11px' }}
+                        className="btn btn-sm rounded-pill py-1.5 px-3 fw-semibold text-white d-inline-flex align-items-center gap-1"
+                        style={{ backgroundColor: 'var(--rv-ink-plum)', fontSize: '12px' }}
                       >
-                        <BsStars size={12} /> Create Vibe Card
+                        <BsStars size={13} /> Vibe Card
                       </Link>
 
                       <Link
                         href={`/finished-reads/edit-review?bookId=${book.id}`}
-                        className="btn btn-sm btn-outline-secondary rounded-pill py-1.5 px-3 fw-semibold d-inline-flex align-items-center justify-content-center gap-1"
-                        style={{ borderColor: '#EADFD5', color: 'var(--rv-ink-plum)', fontSize: '11px', background: '#FFFFFF' }}
+                        className="btn btn-sm btn-outline-secondary rounded-pill py-1.5 px-3 fw-semibold d-inline-flex align-items-center gap-1"
+                        style={{
+                          borderColor: '#EADFD5',
+                          color: 'var(--rv-ink-plum)',
+                          fontSize: '12px',
+                          background: '#FFFFFF',
+                        }}
                       >
-                        <AiOutlineEdit size={12} /> Edit review
+                        <AiOutlineEdit size={13} /> Edit
                       </Link>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Bottom Pagination */}
-          <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-4 pt-2">
-            <small className="text-muted">Showing 6 of 12 books</small>
-            <div className="d-flex align-items-center gap-1">
-              <button type="button" className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1" style={{ fontSize: '12px' }}>
-                Previous
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm rounded-circle p-0 d-inline-flex align-items-center justify-content-center text-white"
-                style={{ width: '28px', height: '28px', backgroundColor: 'var(--rv-ink-plum)', fontSize: '12px' }}
-              >
-                1
-              </button>
-              <button
-                type="button"
-                className="btn btn-light btn-sm rounded-circle p-0 d-inline-flex align-items-center justify-content-center text-muted"
-                style={{ width: '28px', height: '28px', fontSize: '12px' }}
-              >
-                2
-              </button>
-              <button type="button" className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1" style={{ fontSize: '12px' }}>
-                Next
-              </button>
+          {filteredAndSortedBooks.length > itemsPerPage && (
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-4 pt-2">
+              <small className="text-muted">
+                Showing {paginatedBooks.length} of {filteredAndSortedBooks.length} books
+              </small>
+              <div className="d-flex align-items-center gap-1">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
+                  style={{ fontSize: '12px' }}
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setCurrentPage(num)}
+                    className={`btn btn-sm rounded-circle p-0 d-inline-flex align-items-center justify-content-center ${
+                      currentPage === num ? 'text-white' : 'btn-light text-muted'
+                    }`}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      backgroundColor: currentPage === num ? 'var(--rv-ink-plum)' : undefined,
+                      fontSize: '12px',
+                    }}
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
+                  style={{ fontSize: '12px' }}
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right Sidebar */}
         <div className="col-lg-4">
           <div className="d-flex flex-column gap-4">
-            {/* Widget 1: Keepsake Card */}
+            {/* Widget 1: Keepsake Card with Dynamic Latest Read */}
             <div
-              className="card border-0 rounded-4 p-4 position-relative overflow-hidden"
+              className="card border-0 rounded-4 p-4 position-relative overflow-hidden shadow-xs"
               style={{
                 backgroundColor: '#F3EEF7',
-                backgroundImage: 'radial-gradient(circle at 100% 100%, rgba(188, 168, 203, 0.25) 0%, transparent 60%)'
+                backgroundImage:
+                  'radial-gradient(circle at 100% 100%, rgba(188, 168, 203, 0.25) 0%, transparent 60%)',
               }}
             >
               <h4
@@ -401,31 +597,40 @@ export default function FinishedReadsPage() {
                 Turn a finished read into a keepsake.
               </h4>
 
-              {/* Keepsake Mini Card */}
+              {/* Keepsake Dynamic Card */}
               <div className="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3">
                 <div className="d-flex gap-2.5 align-items-center mb-2">
                   <img
-                    src="/assets/books/midnight-library.jpg"
-                    alt="The Midnight Library"
+                    src={latestRead.coverUrl}
+                    alt={latestRead.title}
                     className="rounded-1 shadow-xs flex-shrink-0"
                     style={{ width: '42px', height: '60px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                    }}
                   />
                   <div>
                     <h6 className="fw-bold mb-0 small" style={{ color: 'var(--rv-ink-plum)' }}>
-                      The Midnight Library
+                      {latestRead.title}
                     </h6>
-                    <small className="text-muted" style={{ fontSize: '10px' }}>Matt Haig</small>
+                    <small className="text-muted" style={{ fontSize: '10px' }}>
+                      {latestRead.author}
+                    </small>
                     <div className="text-coral d-flex gap-0.5 mt-1" style={{ color: '#E27D60' }}>
-                      <AiFillStar size={10} />
-                      <AiFillStar size={10} />
-                      <AiFillStar size={10} />
-                      <AiFillStar size={10} />
-                      <AiFillStar size={10} />
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <AiFillStar
+                          key={star}
+                          size={10}
+                          style={{
+                            color: star <= Math.round(latestRead.rating || 5) ? '#E27D60' : '#E8DED8',
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
                 <small className="fst-italic text-muted d-block mb-1" style={{ fontSize: '11px' }}>
-                  &ldquo;A reflective read.&rdquo;
+                  &ldquo;{latestRead.favoriteQuote || `A ${latestRead.primaryMood.toLowerCase()} read.`}&rdquo;
                 </small>
                 <div className="text-end" style={{ fontSize: '10px', color: 'var(--rv-ink-plum)', fontWeight: 'bold' }}>
                   📖 ReadVibe
@@ -437,20 +642,21 @@ export default function FinishedReadsPage() {
               </p>
 
               <Link
-                href="/vibe-card"
+                href={`/vibe-card?bookId=${latestRead.id || 'comfort-book'}`}
                 className="btn btn-outline-secondary rounded-pill w-100 py-2 fw-semibold"
                 style={{ borderColor: 'var(--rv-ink-plum)', color: 'var(--rv-ink-plum)', background: '#FFFFFF' }}
               >
-                Explore Vibe Cards
+                Create Vibe Card for this book →
               </Link>
             </div>
 
             {/* Widget 2: Reading Stats */}
             <div
-              className="card border-0 rounded-4 p-4 position-relative overflow-hidden"
+              className="card border-0 rounded-4 p-4 position-relative overflow-hidden shadow-xs"
               style={{
                 backgroundColor: '#EAEFE9',
-                backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.3) 0%, transparent 65%)'
+                backgroundImage:
+                  'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.3) 0%, transparent 65%)',
               }}
             >
               <div
