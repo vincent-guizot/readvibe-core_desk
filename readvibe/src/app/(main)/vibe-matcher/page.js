@@ -11,11 +11,17 @@ import {
   AiOutlineCheck
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { useBooks, useWishlist, useReading } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
+import { recommendationApi } from '@/features/recommendations/services/recommendation.api';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 
 export default function VibeMatcherPage() {
   const router = useRouter();
+  const { books: allBooks } = useBooks();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { finishedReads } = useReading();
+
   const [selectedMoods, setSelectedMoods] = useState([]);
   const [promptText, setPromptText] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Any genre');
@@ -24,7 +30,6 @@ export default function VibeMatcherPage() {
   const [hideFinished, setHideFinished] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [wishlistModalBook, setWishlistModalBook] = useState(null);
-  const [savedWishlistIds, setSavedWishlistIds] = useState([]);
 
   // Exact 3 matched books from ai vibe matcher.png
   const [matches, setMatches] = useState([
@@ -100,31 +105,49 @@ export default function VibeMatcherPage() {
   const handleFindNextRead = async (e) => {
     e.preventDefault();
     setIsSearching(true);
+
+    const finishedIds = hideFinished ? finishedReads.map((f) => f.bookId) : [];
+
     try {
-      const res = await fetch('http://localhost:3360/api/recommendations/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          moodTags: selectedMoods,
-          queryText: promptText,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.data?.matches && data.data.matches.length > 0) {
-        const mapped = data.data.matches.map((m, idx) => ({
-          id: m.book.slug || m.book.id,
-          title: m.book.title,
-          author: m.book.author?.name || m.book.author?.pen_name || 'Penulis',
+      // 1. Try Live VibeCore API
+      const liveData = await recommendationApi.matchVibe(selectedMoods, promptText);
+
+      if (liveData?.matches && liveData.matches.length > 0) {
+        let mapped = liveData.matches.map((m, idx) => ({
+          id: m.book?.slug || m.book?.id || `match-${idx}`,
+          title: m.book?.title || 'Book Title',
+          author: m.book?.author?.name || m.book?.author?.pen_name || m.book?.author || 'Author',
           rating: '4.5',
           reviews: '1,200',
-          category: m.book.genre?.name || 'Literature',
-          tag: m.book.moods?.[0]?.name || selectedMoods[0] || 'Curated',
+          category: m.book?.genre?.name || m.book?.genre || 'Literature',
+          tag: m.book?.moods?.[0]?.name || selectedMoods[0] || 'Curated',
           matchScore: `${m.matchScore}% match`,
           isTopPick: idx === 0,
-          coverUrl: m.book.image || '/assets/books/comfort-book.jpg',
-          whyFits: m.reason,
+          coverUrl: m.book?.image || m.book?.coverUrl || '/assets/books/comfort-book.jpg',
+          whyFits: m.reason || 'Sangat selaras dengan suasana hatimu.',
         }));
-        setMatches(mapped);
+
+        if (hideFinished) {
+          mapped = mapped.filter((b) => !finishedIds.includes(b.id));
+        }
+
+        if (mapped.length > 0) {
+          setMatches(mapped);
+          return;
+        }
+      }
+
+      // 2. Intelligent local heuristic fallback
+      const localMatches = recommendationApi.calculateLocalVibeMatch(allBooks, {
+        moodTags: selectedMoods,
+        queryText: promptText,
+        genre: selectedGenre,
+        maxLength: selectedLength,
+        finishedIds,
+      });
+
+      if (localMatches.length > 0) {
+        setMatches(localMatches);
       }
     } catch (err) {
       console.warn('Vibe Matcher fallback:', err);
@@ -134,10 +157,16 @@ export default function VibeMatcherPage() {
   };
 
   const toggleSaveWishlist = (book) => {
-    if (savedWishlistIds.includes(book.id)) {
-      setSavedWishlistIds(savedWishlistIds.filter((bId) => bId !== book.id));
+    toggleWishlist(book.id, 'High', book.whyFits || 'Matched via AI Vibe Matcher');
+    if (readVibeStore.isInWishlist(book.id)) {
+      readVibeStore.removeFromWishlist(book.id);
     } else {
-      setWishlistModalBook(book);
+      readVibeStore.addToWishlist({
+        bookId: book.id,
+        priority: 'High',
+        reason: book.whyFits || 'Matched via AI Vibe Matcher',
+        isPublic: true,
+      });
     }
   };
 
@@ -384,7 +413,7 @@ export default function VibeMatcherPage() {
           {/* Cards List */}
           <div className="d-flex flex-column gap-3 mb-4">
             {matches.map((b) => {
-              const isSaved = savedWishlistIds.includes(b.id);
+              const isSaved = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
               return (
                 <div
                   key={b.id}
