@@ -14,6 +14,7 @@ import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 import { useBooks, useWishlist, useReading } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 import { recommendationApi } from '@/features/recommendations/services/recommendation.api';
+import { Skeleton } from '@/components/ui';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 
 export default function VibeMatcherPage() {
@@ -384,19 +385,35 @@ export default function VibeMatcherPage() {
                 Your next chapter awaits
               </h4>
               <p className="text-muted small mb-2">
-                3 books matched to your vibe
+                {isSearching
+                  ? 'Finding your frequency...'
+                  : `${matches.length} ${matches.length === 1 ? 'book' : 'books'} matched to your vibe`}
               </p>
 
               <div className="d-flex flex-wrap gap-1.5">
-                <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#FEECE8', color: '#D96B50', fontSize: '11px' }}>
-                  🪑 Cozy
-                </span>
-                <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#FFF5EB', color: '#E27D60', fontSize: '11px' }}>
-                  ☀️ Hopeful
-                </span>
-                <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#EBF4ED', color: '#5C826A', fontSize: '11px' }}>
-                  🍃 Gentle pace
-                </span>
+                {selectedMoods.length > 0 ? (
+                  selectedMoods.map((m) => (
+                    <span
+                      key={m}
+                      className="badge rounded-pill px-2.5 py-1"
+                      style={{ backgroundColor: '#FEECE8', color: '#D96B50', fontSize: '11px' }}
+                    >
+                      ✦ {m}
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#FEECE8', color: '#D96B50', fontSize: '11px' }}>
+                      🪑 Cozy
+                    </span>
+                    <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#FFF5EB', color: '#E27D60', fontSize: '11px' }}>
+                      ☀️ Hopeful
+                    </span>
+                    <span className="badge rounded-pill px-2.5 py-1" style={{ backgroundColor: '#EBF4ED', color: '#5C826A', fontSize: '11px' }}>
+                      🍃 Gentle pace
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -410,18 +427,54 @@ export default function VibeMatcherPage() {
             </button>
           </div>
 
-          {/* Cards List */}
+          {/* Cards List or Skeleton Loading */}
           <div className="d-flex flex-column gap-3 mb-4">
-            {matches.map((b) => {
-              const isSaved = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
-              return (
-                <div
-                  key={b.id}
-                  className="card border-0 rounded-4 shadow-sm p-4 bg-white position-relative"
-                  style={{
-                    border: b.isTopPick ? '2px solid #E87A65' : '1px solid #ECE4DA'
-                  }}
-                >
+            {isSearching ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                  <div className="row g-3">
+                    <div className="col-auto">
+                      <Skeleton width="84px" height="122px" borderRadius="12px" />
+                    </div>
+                    <div className="col">
+                      <Skeleton width="45%" height="22px" className="mb-2" />
+                      <Skeleton width="25%" height="14px" className="mb-3" />
+                      <Skeleton width="85%" height="14px" className="mb-1" />
+                      <Skeleton width="70%" height="14px" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : matches.length === 0 ? (
+              <div className="card border-0 rounded-4 shadow-sm p-5 text-center bg-white">
+                <span style={{ fontSize: '2.5rem' }}>🍃</span>
+                <h5 className="fw-bold mt-3 mb-1 rv-editorial" style={{ color: 'var(--rv-ink-plum)' }}>
+                  No exact match found
+                </h5>
+                <p className="text-muted small mb-3">
+                  Try broadening your mood selection or clearing length restrictions.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="btn btn-sm btn-rv-coral rounded-pill px-4"
+                  >
+                    Reset and explore all vibes
+                  </button>
+                </div>
+              </div>
+            ) : (
+              matches.map((b) => {
+                const isSaved = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
+                return (
+                  <div
+                    key={b.id}
+                    className="card border-0 rounded-4 shadow-sm p-4 bg-white position-relative"
+                    style={{
+                      border: b.isTopPick ? '2px solid #E87A65' : '1px solid #ECE4DA',
+                    }}
+                  >
                   {/* Top Badges */}
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
@@ -522,7 +575,7 @@ export default function VibeMatcherPage() {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
 
           <div className="d-flex align-items-center gap-1.5 text-muted small" style={{ fontSize: '12px' }}>
@@ -539,7 +592,6 @@ export default function VibeMatcherPage() {
           isOpen={true}
           onClose={() => setWishlistModalBook(null)}
           onSaved={() => {
-            setSavedWishlistIds([...savedWishlistIds, wishlistModalBook.id]);
             setWishlistModalBook(null);
           }}
         />
