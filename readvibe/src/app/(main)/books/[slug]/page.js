@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,10 +10,10 @@ import {
   AiOutlineShareAlt,
   AiOutlineEdit,
   AiOutlineArrowRight,
-  AiOutlineCheck
+  AiOutlineCheck,
 } from 'react-icons/ai';
-import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { BsBookmark, BsBookmarkFill, BsStars } from 'react-icons/bs';
+import { useBooks, useWishlist, useReading } from '@/hooks';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 import WriteReviewModal from '@/components/WriteReviewModal';
 import ReportModal from '@/components/ReportModal';
@@ -23,86 +23,87 @@ export default function BookDetailPage() {
   const router = useRouter();
   const bookIdentifier = params?.slug || params?.id || 'midnight-library';
 
-  const [book, setBook] = useState(null);
+  const { books, getBookById } = useBooks();
+  const { isInWishlist, removeWishlist } = useWishlist();
+  const { getBookProgress, isBookFinished, startBook } = useReading();
+
+  // Find book from Redux
+  const book = useMemo(() => {
+    return (
+      getBookById(bookIdentifier) ||
+      books.find((b) => b.id === bookIdentifier || b.slug === bookIdentifier) ||
+      books[0]
+    );
+  }, [bookIdentifier, books, getBookById]);
+
   const [activeTab, setActiveTab] = useState('overview');
-  const [inWishlist, setInWishlist] = useState(false);
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  useEffect(() => {
-    let foundBook = readVibeStore.getBookById(bookIdentifier);
-    if (!foundBook) {
-      // Default fallback to Midnight Library for rich demo experience
-      foundBook = {
-        id: 'midnight-library',
-        title: 'The Midnight Library',
-        author: 'Matt Haig',
-        category: 'CONTEMPORARY FICTION',
-        rating: 4.3,
-        reviewCount: '1,248',
-        moods: ['Reflective', 'Hopeful', 'Philosophical'],
-        pages: 304,
-        language: 'English',
-        year: 2020,
-        format: 'Paperback',
-        publisher: 'Canongate Books',
-        coverUrl: '/assets/books/midnight-library.jpg',
-        description:
-          'Nora Seed finds herself in a mysterious library between life and death, where every book contains a version of the life she could have lived. As she steps into different realities, she explores the choices, chances and what truly gives life meaning.\n\nA moving and imaginative story about regret, possibility and the quiet power of second chances, reminding us that it’s never too late to find a life worth living.',
-        editorialTip: 'A thoughtful read for a fresh perspective.'
-      };
+  // Dynamic reading status
+  const inWishlist = book ? isInWishlist(book.id) : false;
+  const readingProgress = book ? getBookProgress(book.id) : null;
+  const isFinished = book ? isBookFinished(book.id) : false;
+
+  // Handle Start / Continue reading
+  const handleStartOrContinueReading = () => {
+    if (!book) return;
+    if (!readingProgress && !isFinished) {
+      startBook(book.id, book.pages || 300);
     }
-    setBook(foundBook);
-    setInWishlist(readVibeStore.isInWishlist(foundBook.id));
-  }, [bookIdentifier]);
-
-  if (!book) {
-    return (
-      <div className="container py-5 text-center">
-        <h4 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>Loading book...</h4>
-      </div>
-    );
-  }
-
-  const handleStartReading = () => {
-    readVibeStore.startReadingBook(book.id);
     router.push(`/reader/${book.id}`);
   };
 
   const handleShare = () => {
-    if (navigator.clipboard) {
+    if (typeof window !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+      setTimeout(() => setCopiedLink(false), 2500);
     }
   };
 
-  // Recommended related books matching book detail.png
-  const relatedBooks = [
+  // Dynamic Related Books sharing same mood or genre
+  const relatedBooks = useMemo(() => {
+    if (!book) return [];
+    const sameMoodOrGenre = books.filter((b) => {
+      if (b.id === book.id) return false;
+      const sharesMood = b.moods?.some((m) => book.moods?.includes(m));
+      const sharesGenre = b.genre?.toLowerCase() === book.genre?.toLowerCase();
+      return sharesMood || sharesGenre;
+    });
+    return (sameMoodOrGenre.length > 0 ? sameMoodOrGenre : books.filter((b) => b.id !== book.id)).slice(0, 3);
+  }, [book, books]);
+
+  if (!book) {
+    return (
+      <div className="container py-5 text-center">
+        <h4 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+          Loading book details...
+        </h4>
+      </div>
+    );
+  }
+
+  const reviews = [
     {
-      id: 'the-comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      moods: ['Uplifting', 'Comforting', 'Reflective']
+      id: 1,
+      author: 'Emily Chen',
+      rating: 4.0,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+      comment:
+        'A beautiful, thought-provoking read. It gently reminds you to be kinder to yourself and to see the possibilities in everyday moments.',
     },
     {
-      id: 'before-the-coffee-gets-cold',
-      title: 'Before the Coffee Gets Cold',
-      author: 'Toshikazu Kawaguchi',
-      coverUrl: '/assets/books/coffee-cold.jpg',
-      moods: ['Bittersweet', 'Thoughtful', 'Hopeful']
+      id: 2,
+      author: 'Daniel Park',
+      rating: 4.5,
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100',
+      comment:
+        'Imaginative and deeply human. This book stayed with me long after I finished it, and gave me a fresher perspective on my own choices.',
     },
-    {
-      id: 'psalm-wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      coverUrl: '/assets/books/wild-built.jpg',
-      moods: ['Mindful', 'Hopeful', 'Life & Meaning']
-    }
   ];
 
   return (
@@ -116,15 +117,25 @@ export default function BookDetailPage() {
             </Link>
           </li>
           <li className="breadcrumb-item">
-            <Link href="/discover" className="text-secondary text-decoration-none">
+            <Link href="/search" className="text-secondary text-decoration-none">
               Discover
             </Link>
           </li>
-          <li className="breadcrumb-item active text-muted" aria-current="page">
+          <li className="breadcrumb-item active text-muted text-truncate" style={{ maxWidth: '240px' }} aria-current="page">
             {book.title}
           </li>
         </ol>
       </nav>
+
+      {/* Share Toast Feedback */}
+      {copiedLink && (
+        <div
+          className="alert alert-success border-0 rounded-4 px-3 py-2 small shadow-sm d-flex align-items-center gap-2 mb-3"
+          style={{ backgroundColor: '#EBF5EE', color: '#315438' }}
+        >
+          <AiOutlineCheck size={16} /> Link copied to clipboard! Share it with your fellow readers.
+        </div>
+      )}
 
       {/* Main 3-Column Layout */}
       <div className="row g-4 mb-5">
@@ -139,7 +150,7 @@ export default function BookDetailPage() {
                 style={{
                   maxHeight: '380px',
                   objectFit: 'cover',
-                  boxShadow: '0 14px 28px rgba(43, 19, 44, 0.14)'
+                  boxShadow: '0 14px 28px rgba(43, 19, 44, 0.14)',
                 }}
                 onError={(e) => {
                   e.currentTarget.src = '/assets/books/midnight-library.jpg';
@@ -175,56 +186,47 @@ export default function BookDetailPage() {
             className="small fw-bold d-block text-uppercase mb-1"
             style={{ color: '#D96B50', letterSpacing: '0.1em', fontSize: '12px' }}
           >
-            {book.category || 'CONTEMPORARY FICTION'}
+            {book.genre || 'CONTEMPORARY FICTION'}
           </span>
 
-          {/* Book Title */}
+          {/* Book Title & Author */}
           <h1
-            className="display-5 fw-bold mb-1"
-            style={{
-              fontFamily: 'var(--font-editorial)',
-              color: 'var(--rv-ink-plum)',
-              letterSpacing: '-0.02em'
-            }}
+            className="display-6 fw-bold mb-1"
+            style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
           >
             {book.title}
           </h1>
+          <p className="text-muted small mb-3" style={{ fontSize: '1rem' }}>
+            by <span className="text-dark fw-semibold">{book.author}</span>
+          </p>
 
-          {/* Author */}
-          <div className="mb-3">
-            <span className="text-muted">by </span>
-            <span className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
-              {book.author}
-            </span>
-          </div>
-
-          {/* Rating */}
+          {/* Rating & Review Count */}
           <div className="d-flex align-items-center gap-2 mb-3">
-            <div className="d-flex gap-0.5 text-warning" style={{ fontSize: '15px' }}>
-              <AiFillStar />
-              <AiFillStar />
-              <AiFillStar />
-              <AiFillStar />
-              <AiFillStar />
+            <div className="d-flex text-warning gap-0.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <AiFillStar
+                  key={star}
+                  size={16}
+                  style={{ color: star <= Math.round(book.rating || 4.5) ? '#E27D60' : '#E8DED8' }}
+                />
+              ))}
             </div>
-            <span className="fw-bold small ms-1" style={{ color: 'var(--rv-ink-plum)' }}>
-              {book.rating || 4.3}
-            </span>
-            <span className="text-muted small">
-              ({book.reviewCount || '1,248'} reviews)
-            </span>
+            <span className="small fw-bold text-dark">{Number(book.rating || 4.5).toFixed(1)}</span>
+            <span className="text-muted small">·</span>
+            <span className="text-muted small">{book.reviewsCount || 1248} reader reviews</span>
           </div>
 
           {/* Mood Pills */}
           <div className="d-flex flex-wrap gap-2 mb-4">
-            {(book.moods || ['Reflective', 'Hopeful', 'Philosophical']).map((m) => (
+            {(book.moods || ['Cozy', 'Reflective']).map((m) => (
               <span
                 key={m}
-                className="badge rounded-pill px-3 py-1.5 fw-semibold"
+                className="badge rounded-pill px-3 py-1.5 fw-normal"
                 style={{
-                  backgroundColor: m === 'Reflective' ? '#EFE9F4' : m === 'Hopeful' ? '#E7F2EB' : '#F6EDF3',
+                  backgroundColor: '#F4EFF7',
                   color: 'var(--rv-ink-plum)',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  border: '1px solid #E6DCED',
                 }}
               >
                 {m}
@@ -234,35 +236,51 @@ export default function BookDetailPage() {
 
           {/* Description Paragraphs */}
           <div className="text-secondary small mb-4" style={{ fontSize: '14px', lineHeight: 1.7 }}>
-            <p className="mb-3">
-              Nora Seed finds herself in a mysterious library between life and death, where every book contains a version of the life she could have lived. As she steps into different realities, she explores the choices, chances and what truly gives life meaning.
-            </p>
-            <p className="mb-0">
-              A moving and imaginative story about regret, possibility and the quiet power of second chances, reminding us that it’s never too late to find a life worth living.
+            <p className="mb-2">
+              {book.synopsis ||
+                'A moving and imaginative story about regret, possibility, and the quiet power of second chances.'}
             </p>
           </div>
 
           {/* Main Action Buttons */}
           <div className="d-flex flex-wrap align-items-center gap-2.5 mb-4">
-            <button
-              type="button"
-              onClick={handleStartReading}
-              className="btn btn-rv-plum rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
-            >
-              <AiOutlineBook size={18} /> Start reading
-            </button>
+            {isFinished ? (
+              <Link
+                href={`/finished-reads/edit-review?bookId=${book.id}`}
+                className="btn btn-sm rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                style={{ backgroundColor: '#E0EAE1', color: '#2B5E3B' }}
+              >
+                <AiOutlineCheck size={18} /> Finished · Edit review
+              </Link>
+            ) : readingProgress ? (
+              <button
+                type="button"
+                onClick={handleStartOrContinueReading}
+                className="btn btn-rv-plum rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+              >
+                <AiOutlineBook size={18} /> Continue reading (p. {readingProgress.currentPage || 1})
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartOrContinueReading}
+                className="btn btn-rv-plum rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+              >
+                <AiOutlineBook size={18} /> Start reading
+              </button>
+            )}
 
+            {/* Wishlist Button */}
             <button
               type="button"
               onClick={() => {
                 if (inWishlist) {
-                  readVibeStore.removeFromWishlist(book.id);
-                  setInWishlist(false);
+                  removeWishlist(book.id);
                 } else {
                   setIsWishlistModalOpen(true);
                 }
               }}
-              className={`btn rounded-3 px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm transition-all`}
+              className="btn rounded-3 px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm transition-all"
               style={
                 inWishlist
                   ? { backgroundColor: '#D96B50', borderColor: '#D96B50', color: '#FFFFFF' }
@@ -280,15 +298,15 @@ export default function BookDetailPage() {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleShare}
-              className="btn btn-white border rounded-3 p-2.5 text-muted shadow-sm"
-              style={{ backgroundColor: '#FFFFFF', borderColor: '#E0D8CE' }}
-              title="Share"
+            {/* Vibe Card Shortcut */}
+            <Link
+              href={`/vibe-card?bookId=${book.id}`}
+              className="btn btn-white border rounded-3 px-3 py-2.5 text-muted shadow-sm d-inline-flex align-items-center gap-1.5"
+              style={{ backgroundColor: '#FFFFFF', borderColor: '#E0D8CE', color: 'var(--rv-ink-plum)' }}
+              title="Generate Vibe Card"
             >
-              <AiOutlineShareAlt size={18} />
-            </button>
+              <BsStars size={16} style={{ color: '#D96B50' }} /> Vibe Card
+            </Link>
           </div>
 
           {/* Quick Meta Inline */}
@@ -308,27 +326,27 @@ export default function BookDetailPage() {
             <span>&bull;</span>
             <div className="d-flex align-items-center gap-1.5">
               <span>📅</span>
-              <span>{book.year || 2020}</span>
+              <span>{book.year || 2021}</span>
             </div>
             <span>&bull;</span>
             <div className="d-flex align-items-center gap-1.5">
               <span>🏷️</span>
-              <span>Fiction</span>
+              <span>{book.genre || 'Fiction'}</span>
             </div>
           </div>
 
-          {/* Editorial Green Alert Banner */}
-          <div
-            className="p-3 rounded-4 mb-4 d-flex align-items-center gap-2.5"
-            style={{ backgroundColor: '#EBF4ED', color: '#2B5E3B' }}
-          >
-            <span style={{ fontSize: '18px' }}>🌱</span>
-            <span className="small fw-semibold">
-              {book.editorialTip || 'A thoughtful read for a fresh perspective.'}
-            </span>
-          </div>
+          {/* Editorial Banner */}
+          {book.editorialNote && (
+            <div
+              className="p-3 rounded-4 mb-4 d-flex align-items-center gap-2.5"
+              style={{ backgroundColor: '#EBF4ED', color: '#2B5E3B' }}
+            >
+              <span style={{ fontSize: '18px' }}>🌱</span>
+              <span className="small fw-semibold">{book.editorialNote}</span>
+            </div>
+          )}
 
-          {/* Overview / Reader Reviews Tabs (Matching Wishlist Tab Design) */}
+          {/* Overview / Reader Reviews Tabs */}
           <div className="d-flex align-items-center gap-4 border-bottom pb-2 mb-4">
             <button
               type="button"
@@ -337,7 +355,7 @@ export default function BookDetailPage() {
               }`}
               style={{
                 color: activeTab === 'overview' ? 'var(--rv-ink-plum)' : '#6C757D',
-                borderBottom: activeTab === 'overview' ? '2.5px solid #D96B50' : 'none'
+                borderBottom: activeTab === 'overview' ? '2.5px solid #D96B50' : 'none',
               }}
               onClick={() => setActiveTab('overview')}
             >
@@ -350,7 +368,7 @@ export default function BookDetailPage() {
               }`}
               style={{
                 color: activeTab === 'reviews' ? 'var(--rv-ink-plum)' : '#6C757D',
-                borderBottom: activeTab === 'reviews' ? '2.5px solid #D96B50' : 'none'
+                borderBottom: activeTab === 'reviews' ? '2.5px solid #D96B50' : 'none',
               }}
               onClick={() => setActiveTab('reviews')}
             >
@@ -367,21 +385,27 @@ export default function BookDetailPage() {
               About this book
             </h5>
             <p className="text-secondary small mb-2" style={{ lineHeight: 1.65 }}>
-              The Midnight Library is a warm, thought-provoking novel about the infinite paths a single life can take. Through Nora’s journey, Matt Haig explores the weight of the choices we make, the lives we imagine, and the surprising ways hope can be found, even in our darkest moments.
+              {book.synopsis ||
+                `${book.title} is a heartwarming and immersive story written by ${book.author}.`}
             </p>
-            {showFullDesc && (
-              <p className="text-secondary small mb-2 animate__animated animate__fadeIn" style={{ lineHeight: 1.65 }}>
-                Between life and death there is a library, and within that library, the shelves go on forever. Every book provides a chance to try another life you could have lived. To see how things would be if you had made other choices... Would you have done anything different, if you had the chance to undo your regrets?
-              </p>
+            {showFullDesc && book.quote && (
+              <blockquote
+                className="blockquote border-start border-3 ps-3 my-3 fst-italic small text-muted"
+                style={{ borderColor: '#D96B50' }}
+              >
+                &ldquo;{book.quote}&rdquo;
+              </blockquote>
             )}
-            <button
-              type="button"
-              className="btn btn-link p-0 text-decoration-none small fw-semibold text-start"
-              style={{ color: '#D96B50', fontSize: '13px' }}
-              onClick={() => setShowFullDesc(!showFullDesc)}
-            >
-              {showFullDesc ? 'Show less ∧' : 'Read more ∨'}
-            </button>
+            {book.quote && (
+              <button
+                type="button"
+                className="btn btn-link p-0 text-decoration-none small fw-semibold text-start"
+                style={{ color: '#D96B50', fontSize: '13px' }}
+                onClick={() => setShowFullDesc(!showFullDesc)}
+              >
+                {showFullDesc ? 'Show less ∧' : 'Read memorable quote ∨'}
+              </button>
+            )}
           </div>
 
           {/* What readers are saying section */}
@@ -403,57 +427,40 @@ export default function BookDetailPage() {
               </button>
             </div>
 
-            {/* Review Cards Grid (Emily Chen & Daniel Park) */}
+            {/* Review Cards Grid */}
             <div className="row g-3">
-              <div className="col-md-6">
-                <div className="card border-0 rounded-4 shadow-sm p-3.5 bg-white h-100">
-                  <div className="d-flex align-items-center gap-2.5 mb-2">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
-                      alt="Emily Chen"
-                      className="rounded-circle"
-                      style={{ width: '38px', height: '38px', objectFit: 'cover' }}
-                    />
-                    <div>
-                      <div className="fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
-                        Emily Chen
-                      </div>
-                      <div className="d-flex text-warning" style={{ fontSize: '12px' }}>
-                        <AiFillStar /><AiFillStar /><AiFillStar /><AiFillStar /><AiOutlineStar />
-                        <span className="ms-1 text-muted" style={{ fontSize: '11px' }}>4.0</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-secondary small mb-0" style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                    A beautiful, thought-provoking read. It gently reminds you to be kinder to yourself and to see the possibilities in everyday moments.
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-md-6">
-                <div className="card border-0 rounded-4 shadow-sm p-3.5 bg-white h-100">
-                  <div className="d-flex align-items-center gap-2.5 mb-2">
-                    <img
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100"
-                      alt="Daniel Park"
-                      className="rounded-circle"
-                      style={{ width: '38px', height: '38px', objectFit: 'cover' }}
-                    />
-                    <div>
-                      <div className="fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
-                        Daniel Park
-                      </div>
-                      <div className="d-flex text-warning" style={{ fontSize: '12px' }}>
-                        <AiFillStar /><AiFillStar /><AiFillStar /><AiFillStar /><AiFillStar />
-                        <span className="ms-1 text-muted" style={{ fontSize: '11px' }}>4.5</span>
+              {reviews.map((rev) => (
+                <div key={rev.id} className="col-md-6">
+                  <div className="card border-0 rounded-4 shadow-sm p-3.5 bg-white h-100">
+                    <div className="d-flex align-items-center gap-2.5 mb-2">
+                      <img
+                        src={rev.avatar}
+                        alt={rev.author}
+                        className="rounded-circle"
+                        style={{ width: '38px', height: '38px', objectFit: 'cover' }}
+                      />
+                      <div>
+                        <div className="fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
+                          {rev.author}
+                        </div>
+                        <div className="d-flex text-warning" style={{ fontSize: '12px' }}>
+                          <AiFillStar />
+                          <AiFillStar />
+                          <AiFillStar />
+                          <AiFillStar />
+                          <AiFillStar />
+                          <span className="ms-1 text-muted" style={{ fontSize: '11px' }}>
+                            {rev.rating}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <p className="text-secondary small mb-0" style={{ fontSize: '13px', lineHeight: 1.5 }}>
+                      {rev.comment}
+                    </p>
                   </div>
-                  <p className="text-secondary small mb-0" style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                    Imaginative and deeply human. This book stayed with me long after I finished it, and gave me a fresher perspective on my own choices.
-                  </p>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -470,16 +477,16 @@ export default function BookDetailPage() {
             </h6>
             <div className="d-flex flex-column gap-2.5 small text-secondary">
               <div className="d-flex justify-content-between border-bottom pb-2">
-                <span className="text-muted">Publisher</span>
-                <span className="fw-semibold text-dark">{book.publisher || 'Canongate Books'}</span>
+                <span className="text-muted">Genre</span>
+                <span className="fw-semibold text-dark">{book.genre || 'Fiction'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Published</span>
-                <span className="fw-semibold text-dark">{book.year || '2020'}</span>
+                <span className="fw-semibold text-dark">{book.year || '2021'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Format</span>
-                <span className="fw-semibold text-dark">{book.format || 'Paperback'}</span>
+                <span className="fw-semibold text-dark">{book.format || 'Paperback & Digital'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Language</span>
@@ -554,7 +561,7 @@ export default function BookDetailPage() {
                       {rel.author}
                     </div>
                     <div className="d-flex flex-wrap gap-1 mt-1">
-                      {rel.moods.map((m) => (
+                      {(rel.moods || []).slice(0, 2).map((m) => (
                         <span
                           key={m}
                           className="badge rounded-pill"
@@ -562,7 +569,7 @@ export default function BookDetailPage() {
                             backgroundColor: '#F3EEF7',
                             color: 'var(--rv-ink-plum)',
                             fontSize: '9px',
-                            padding: '2px 6px'
+                            padding: '2px 6px',
                           }}
                         >
                           {m}
@@ -582,20 +589,17 @@ export default function BookDetailPage() {
         book={book}
         isOpen={isWishlistModalOpen}
         onClose={() => setIsWishlistModalOpen(false)}
-        onSaved={() => setInWishlist(true)}
+        onSaved={() => {}}
       />
 
       <WriteReviewModal
         book={book}
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        onSubmitted={() => {}}
+        onReviewAdded={() => {}}
       />
 
-      <ReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
+      <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} />
     </div>
   );
 }
