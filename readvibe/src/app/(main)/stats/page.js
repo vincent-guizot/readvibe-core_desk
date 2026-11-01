@@ -15,7 +15,10 @@ import { Progress } from '@/components/ui';
 
 export default function StatsPage() {
   const [year, setYear] = useState('2026');
+  const [showYearMenu, setShowYearMenu] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  const availableYears = ['2026', '2025', 'All Time'];
 
   const { finishedReads } = useReading();
   const { books } = useBooks();
@@ -42,22 +45,35 @@ export default function StatsPage() {
     });
   }, [finishedReads, books]);
 
-  // Derived Core Metrics
-  const totalBooksFinished = enrichedFinishedReads.length;
+  // Filter finished reads according to active year selector
+  const activeYearReads = useMemo(() => {
+    if (year === 'All Time') return enrichedFinishedReads;
+    return enrichedFinishedReads.filter((item) => {
+      if (!item.finishedAt) return true;
+      const d = new Date(item.finishedAt);
+      if (!isNaN(d.getTime())) {
+        return d.getFullYear().toString() === year;
+      }
+      return item.finishedAt.includes(year);
+    });
+  }, [enrichedFinishedReads, year]);
+
+  // Derived Core Metrics for the selected year
+  const totalBooksFinished = activeYearReads.length;
   const totalPages = useMemo(() => {
-    return enrichedFinishedReads.reduce((sum, item) => sum + (item.pages || 0), 0);
-  }, [enrichedFinishedReads]);
+    return activeYearReads.reduce((sum, item) => sum + (item.pages || 0), 0);
+  }, [activeYearReads]);
 
   const avgRating = useMemo(() => {
-    if (enrichedFinishedReads.length === 0) return user?.stats?.avgRating || '4.5';
-    const sum = enrichedFinishedReads.reduce((acc, curr) => acc + curr.rating, 0);
-    return (sum / enrichedFinishedReads.length).toFixed(1);
-  }, [enrichedFinishedReads, user]);
+    if (activeYearReads.length === 0) return '0.0';
+    const sum = activeYearReads.reduce((acc, curr) => acc + curr.rating, 0);
+    return (sum / activeYearReads.length).toFixed(1);
+  }, [activeYearReads]);
 
-  // Dynamic Moods Distribution
+  // Dynamic Moods Distribution for the selected year
   const moodsOnShelf = useMemo(() => {
     const counts = {};
-    enrichedFinishedReads.forEach((item) => {
+    activeYearReads.forEach((item) => {
       const mood = item.primaryMood || 'Cozy';
       counts[mood] = (counts[mood] || 0) + 1;
     });
@@ -82,15 +98,8 @@ export default function StatsPage() {
     }));
 
     list.sort((a, b) => b.count - a.count);
-    return list.length > 0
-      ? list
-      : [
-          { label: 'Cozy', count: 5, color: '#E87A65' },
-          { label: 'Reflective', count: 3, color: '#9786A3' },
-          { label: 'Mindful', count: 2, color: '#88A391' },
-          { label: 'Hopeful', count: 2, color: '#D4C6DC' },
-        ];
-  }, [enrichedFinishedReads]);
+    return list;
+  }, [activeYearReads]);
 
   const topMood = moodsOnShelf[0]?.label || user?.stats?.topMood || 'Cozy';
   const moodEmojis = {
@@ -107,10 +116,10 @@ export default function StatsPage() {
   };
   const topMoodEmoji = moodEmojis[topMood] || '📖';
 
-  // Dynamic Genres Explored
+  // Dynamic Genres Explored for the selected year
   const genresExplored = useMemo(() => {
     const counts = {};
-    enrichedFinishedReads.forEach((item) => {
+    activeYearReads.forEach((item) => {
       let g = item.genre || 'Fiction';
       if (g.toLowerCase().includes('fiction') && !g.toLowerCase().includes('science')) {
         g = 'Fiction';
@@ -141,76 +150,74 @@ export default function StatsPage() {
     }));
 
     list.sort((a, b) => b.count - a.count);
-    return list.length > 0
-      ? list
-      : [
-          { label: 'Fiction', count: 6, color: '#E87A65' },
-          { label: 'Fantasy', count: 3, color: '#9786A3' },
-          { label: 'Nonfiction', count: 3, color: '#88A391' },
-        ];
-  }, [enrichedFinishedReads]);
+    return list;
+  }, [activeYearReads]);
 
-  // Highest Rated Reads
+  // Highest Rated Reads for the selected year
   const highestRatedReads = useMemo(() => {
-    const sorted = [...enrichedFinishedReads].sort(
+    const sorted = [...activeYearReads].sort(
       (a, b) => b.rating - a.rating || (b.pages || 0) - (a.pages || 0)
     );
     const top3 = sorted.slice(0, 3);
-    if (top3.length > 0) {
-      return top3.map((item) => ({
-        id: item.bookId || item.id,
-        title: item.title,
-        author: item.author,
-        rating: Number(item.rating).toFixed(1),
-        coverUrl: item.coverUrl,
-      }));
-    }
-    return [
-      {
-        id: 'comfort-book',
-        title: 'The Comfort Book',
-        author: 'Matt Haig',
-        rating: '5.0',
-        coverUrl: '/assets/books/comfort-book.jpg',
-      },
-      {
-        id: 'little-prince',
-        title: 'The Little Prince',
-        author: 'Antoine de Saint-Exupéry',
-        rating: '5.0',
-        coverUrl: '/assets/books/little-prince.jpg',
-      },
-      {
-        id: 'wild-built',
-        title: 'A Psalm for the Wild-Built',
-        author: 'Becky Chambers',
-        rating: '4.5',
-        coverUrl: '/assets/books/wild-built.jpg',
-      },
-    ];
-  }, [enrichedFinishedReads]);
+    return top3.map((item) => ({
+      id: item.bookId || item.id,
+      title: item.title,
+      author: item.author,
+      rating: Number(item.rating).toFixed(1),
+      coverUrl: item.coverUrl,
+    }));
+  }, [activeYearReads]);
+
+  // Dynamic Monthly Reading Timeline
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const monthlyData = useMemo(() => {
+    const counts = {};
+    monthLabels.forEach((m) => {
+      counts[m] = 0;
+    });
+
+    activeYearReads.forEach((item) => {
+      if (!item.finishedAt) return;
+      const d = new Date(item.finishedAt);
+      let monthStr = '';
+      if (!isNaN(d.getTime())) {
+        monthStr = monthLabels[d.getMonth()];
+      } else {
+        const match = item.finishedAt.match(/[A-Za-z]{3}/);
+        if (match) monthStr = match[0];
+      }
+      if (monthStr && counts[monthStr] !== undefined) {
+        counts[monthStr] += 1;
+      }
+    });
+
+    // In 2026, show Jan-Oct matching design, or all 12 months for All Time
+    const monthsToShow = year === '2026' ? monthLabels.slice(0, 10) : monthLabels;
+    return monthsToShow.map((m) => ({
+      month: m,
+      count: counts[m] || 0,
+    }));
+  }, [activeYearReads, year]);
+
+  const maxMonthCount = useMemo(() => {
+    const max = Math.max(...monthlyData.map((d) => d.count), 1);
+    return max;
+  }, [monthlyData]);
+
+  const peakMonth = useMemo(() => {
+    if (!monthlyData.length) return null;
+    return monthlyData.reduce(
+      (prev, curr) => (curr.count > prev.count ? curr : prev),
+      monthlyData[0]
+    );
+  }, [monthlyData]);
 
   // Reading Goal Calculation
   const readingGoal = user?.readingGoal || { target: 20, completed: 12 };
   const goalCompleted = totalBooksFinished;
   const goalTarget = readingGoal.target || 20;
   const goalPercent = Math.min(Math.round((goalCompleted / goalTarget) * 100), 100);
-
-  // Exact data from reading stats.png (will make fully dynamic in next commit)
-  const monthlyData = [
-    { month: 'Jan', count: 1 },
-    { month: 'Feb', count: 0 },
-    { month: 'Mar', count: 1 },
-    { month: 'Apr', count: 1 },
-    { month: 'May', count: 2 },
-    { month: 'Jun', count: 1 },
-    { month: 'Jul', count: 1 },
-    { month: 'Aug', count: 1 },
-    { month: 'Sep', count: 1 },
-    { month: 'Oct', count: 3 }
-  ];
-
-  const maxMonthCount = 3;
 
   const handleDownloadRecap = () => {
     setDownloading(true);
@@ -323,13 +330,47 @@ export default function StatsPage() {
           </div>
 
           <div className="d-flex align-items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-white border rounded-3 px-3 py-2 fw-semibold text-dark shadow-sm"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <span>{year} ▾</span>
-            </button>
+            <div className="position-relative">
+              <button
+                type="button"
+                onClick={() => setShowYearMenu((prev) => !prev)}
+                className="btn btn-sm btn-white border rounded-3 px-3 py-2 fw-semibold text-dark shadow-sm d-inline-flex align-items-center gap-1.5"
+                style={{ backgroundColor: '#FFFFFF' }}
+                aria-expanded={showYearMenu}
+              >
+                <span>{year}</span>
+                <span className="small text-muted" style={{ fontSize: '10px' }}>▾</span>
+              </button>
+              {showYearMenu && (
+                <div
+                  className="position-absolute end-0 mt-1 py-1 bg-white rounded-3 shadow-lg border"
+                  style={{ zIndex: 1050, minWidth: '120px' }}
+                >
+                  {availableYears.map((y) => (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => {
+                        setYear(y);
+                        setShowYearMenu(false);
+                      }}
+                      className={`dropdown-item px-3 py-1.5 small text-start w-100 d-flex align-items-center justify-content-between ${
+                        year === y ? 'fw-bold' : 'text-dark'
+                      }`}
+                      style={{
+                        color: year === y ? '#D96B50' : 'inherit',
+                        backgroundColor: year === y ? '#FFF5EB' : 'transparent',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>{y}</span>
+                      {year === y && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <button
               type="button"
@@ -473,39 +514,57 @@ export default function StatsPage() {
             <div className="col-md-6">
               <div className="card border-0 rounded-4 shadow-sm p-4 bg-white h-100">
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <h6
-                    className="fw-bold mb-0"
-                    style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
-                  >
-                    Books finished by month
-                  </h6>
-                  <span className="text-muted small" style={{ fontSize: '11px' }}>
-                    Jan – Oct 2026
-                  </span>
+                  <div>
+                    <h6
+                      className="fw-bold mb-0"
+                      style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+                    >
+                      Books finished by month
+                    </h6>
+                    <span className="text-muted small" style={{ fontSize: '11px' }}>
+                      {year === 'All Time' ? 'All recorded reads' : `Jan – Oct ${year}`}
+                    </span>
+                  </div>
+                  {peakMonth && peakMonth.count > 0 && (
+                    <span
+                      className="badge rounded-pill px-2.5 py-1 small fw-semibold"
+                      style={{ backgroundColor: '#FDF0ED', color: '#D96B50', fontSize: '11px' }}
+                    >
+                      Peak: {peakMonth.month} ({peakMonth.count})
+                    </span>
+                  )}
                 </div>
 
                 {/* Bar Chart Container */}
                 <div className="d-flex align-items-end justify-content-between pt-4" style={{ height: '170px' }}>
                   {monthlyData.map((d) => {
                     const heightPercent = d.count === 0 ? 4 : (d.count / maxMonthCount) * 100;
+                    const isPeak = peakMonth && d.month === peakMonth.month && d.count > 0;
                     return (
                       <div
                         key={d.month}
                         className="d-flex flex-column align-items-center flex-grow-1"
                         style={{ height: '100%', justifyContent: 'flex-end' }}
                       >
-                        <span className="text-muted small mb-1" style={{ fontSize: '11px' }}>
+                        <span
+                          className={`small mb-1 ${isPeak ? 'fw-bold' : 'text-muted'}`}
+                          style={{ fontSize: '11px', color: isPeak ? '#D96B50' : undefined }}
+                        >
                           {d.count}
                         </span>
                         <div
                           className="w-75 rounded-2 transition-all"
                           style={{
                             height: `${heightPercent}%`,
-                            backgroundColor: d.count > 0 ? '#E87A65' : '#EAE6E1',
+                            backgroundColor: isPeak ? '#D96B50' : d.count > 0 ? '#E87A65' : '#EAE6E1',
+                            boxShadow: isPeak ? '0 2px 6px rgba(217, 107, 80, 0.35)' : 'none',
                             minHeight: '4px'
                           }}
                         />
-                        <span className="text-muted small mt-2" style={{ fontSize: '11px' }}>
+                        <span
+                          className={`small mt-2 ${isPeak ? 'fw-bold' : 'text-muted'}`}
+                          style={{ fontSize: '11px', color: isPeak ? 'var(--rv-ink-plum)' : undefined }}
+                        >
                           {d.month}
                         </span>
                       </div>
