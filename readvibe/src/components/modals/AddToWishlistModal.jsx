@@ -8,9 +8,11 @@ import {
   AiOutlineInfoCircle
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { useWishlist } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
+  const { addWishlist } = useWishlist();
   const [priority, setPriority] = useState('Soon'); // 'Someday' | 'Soon' | 'Next up'
   const [reason, setReason] = useState('');
   const [referrer, setReferrer] = useState('');
@@ -29,6 +31,13 @@ export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    addWishlist({
+      bookId: book.id,
+      priority,
+      reason,
+      referrer,
+      isPublic
+    });
     readVibeStore.addToWishlist({
       bookId: book.id,
       priority,

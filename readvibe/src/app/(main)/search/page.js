@@ -11,6 +11,7 @@ import {
   AiOutlineCloseCircle
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { useBooks, useWishlist } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 
 function SearchContent() {
@@ -18,16 +19,13 @@ function SearchContent() {
   const router = useRouter();
   const queryParam = searchParams.get('q') || '';
 
+  const { books: allBooks } = useBooks();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+
   const [searchQuery, setSearchQuery] = useState(queryParam);
   const [selectedMoods, setSelectedMoods] = useState([]);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
-  const [allBooks, setAllBooks] = useState([]);
-  const [wishlistVersion, setWishlistVersion] = useState(0);
-
-  useEffect(() => {
-    setAllBooks(readVibeStore.getBooks());
-  }, []);
 
   useEffect(() => {
     setSearchQuery(queryParam);
@@ -56,6 +54,7 @@ function SearchContent() {
   };
 
   const toggleBookmark = (book) => {
+    toggleWishlist(book.id, 'Medium', 'Saved from search results');
     if (readVibeStore.isInWishlist(book.id)) {
       readVibeStore.removeFromWishlist(book.id);
     } else {
@@ -66,7 +65,6 @@ function SearchContent() {
         isPublic: true
       });
     }
-    setWishlistVersion((v) => v + 1);
   };
 
   // Dynamic book filtering
@@ -325,7 +323,7 @@ function SearchContent() {
           ) : viewMode === 'grid' ? (
             <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 mb-4">
               {filteredBooks.map((b) => {
-                const isBookmarked = readVibeStore.isInWishlist(b.id);
+                const isBookmarked = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
                 return (
                   <div className="col" key={b.id}>
                     <div
@@ -419,7 +417,7 @@ function SearchContent() {
           ) : (
             <div className="d-flex flex-column gap-3 mb-4">
               {filteredBooks.map((b) => {
-                const isBookmarked = readVibeStore.isInWishlist(b.id);
+                const isBookmarked = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
                 return (
                   <div
                     key={b.id}

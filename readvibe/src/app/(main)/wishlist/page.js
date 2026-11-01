@@ -13,11 +13,16 @@ import {
   AiOutlineLink
 } from 'react-icons/ai';
 import { BsBookmarks, BsBookmark } from 'react-icons/bs';
+import { useWishlist, useBooks, useReading } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 
 export default function WishlistPage() {
   const router = useRouter();
+  const { wishlist, removeWishlist } = useWishlist();
+  const { books: reduxBooks } = useBooks();
+  const { startBook } = useReading();
+
   const [items, setItems] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
   const [isPrivate, setIsPrivate] = useState(true);
@@ -25,7 +30,7 @@ export default function WishlistPage() {
 
   const reloadWishlist = () => {
     const rawWishlist = readVibeStore.getWishlist();
-    const books = readVibeStore.getBooks();
+    const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : readVibeStore.getBooks();
     const enriched = rawWishlist.map((w) => {
       const book = books.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
         id: w.bookId,
@@ -59,11 +64,13 @@ export default function WishlistPage() {
   }, []);
 
   const handleStartReading = (bookId) => {
+    startBook(bookId);
     readVibeStore.startReadingBook(bookId);
     router.push(`/reader/${bookId}`);
   };
 
   const handleRemoveItem = (bookId) => {
+    removeWishlist(bookId);
     readVibeStore.removeFromWishlist(bookId);
     reloadWishlist();
   };
