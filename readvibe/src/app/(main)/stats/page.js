@@ -1,20 +1,202 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   AiFillStar,
   AiOutlineBook,
   AiOutlineFileText,
   AiOutlineDownload,
-  AiOutlineLock
+  AiOutlineLock,
+  AiOutlineTrophy,
 } from 'react-icons/ai';
+import { useReading, useBooks, useAuth } from '@/hooks';
+import { Progress } from '@/components/ui';
 
 export default function StatsPage() {
   const [year, setYear] = useState('2026');
   const [downloading, setDownloading] = useState(false);
 
-  // Exact data from reading stats.png
+  const { finishedReads } = useReading();
+  const { books } = useBooks();
+  const { user } = useAuth();
+
+  // Combine Redux finished reading history with full book metadata
+  const enrichedFinishedReads = useMemo(() => {
+    return (finishedReads || []).map((read) => {
+      const book = books.find((b) => b.id === read.bookId || b.slug === read.bookId);
+      const moodsList = read.moods && read.moods.length > 0
+        ? read.moods
+        : (book?.moods || ['Cozy']);
+      return {
+        ...read,
+        book,
+        title: book?.title || read.title || 'Untitled Book',
+        author: book?.author || read.author || 'Unknown Author',
+        coverUrl: book?.coverUrl || read.coverUrl || '/assets/books/midnight-library.jpg',
+        genre: book?.genre || 'Fiction',
+        pages: Number(book?.pages) || 250,
+        rating: Number(read.rating || book?.rating || 4.5),
+        primaryMood: moodsList[0] || 'Cozy',
+      };
+    });
+  }, [finishedReads, books]);
+
+  // Derived Core Metrics
+  const totalBooksFinished = enrichedFinishedReads.length;
+  const totalPages = useMemo(() => {
+    return enrichedFinishedReads.reduce((sum, item) => sum + (item.pages || 0), 0);
+  }, [enrichedFinishedReads]);
+
+  const avgRating = useMemo(() => {
+    if (enrichedFinishedReads.length === 0) return user?.stats?.avgRating || '4.5';
+    const sum = enrichedFinishedReads.reduce((acc, curr) => acc + curr.rating, 0);
+    return (sum / enrichedFinishedReads.length).toFixed(1);
+  }, [enrichedFinishedReads, user]);
+
+  // Dynamic Moods Distribution
+  const moodsOnShelf = useMemo(() => {
+    const counts = {};
+    enrichedFinishedReads.forEach((item) => {
+      const mood = item.primaryMood || 'Cozy';
+      counts[mood] = (counts[mood] || 0) + 1;
+    });
+
+    const moodColors = {
+      Cozy: '#E87A65',
+      Reflective: '#9786A3',
+      Mindful: '#88A391',
+      Hopeful: '#D4C6DC',
+      'Warm & Healing': '#E27D60',
+      Thoughtful: '#7C9885',
+      Melancholy: '#5B7065',
+      Bittersweet: '#C2847A',
+      Gentle: '#9BB291',
+      Calm: '#8BAAAD',
+    };
+
+    const list = Object.entries(counts).map(([label, count]) => ({
+      label,
+      count,
+      color: moodColors[label] || '#9786A3',
+    }));
+
+    list.sort((a, b) => b.count - a.count);
+    return list.length > 0
+      ? list
+      : [
+          { label: 'Cozy', count: 5, color: '#E87A65' },
+          { label: 'Reflective', count: 3, color: '#9786A3' },
+          { label: 'Mindful', count: 2, color: '#88A391' },
+          { label: 'Hopeful', count: 2, color: '#D4C6DC' },
+        ];
+  }, [enrichedFinishedReads]);
+
+  const topMood = moodsOnShelf[0]?.label || user?.stats?.topMood || 'Cozy';
+  const moodEmojis = {
+    Cozy: '☕',
+    Reflective: '🌙',
+    Mindful: '🌿',
+    Hopeful: '✨',
+    'Warm & Healing': '💛',
+    Thoughtful: '💭',
+    Melancholy: '🌧️',
+    Bittersweet: '🍂',
+    Gentle: '🌸',
+    Calm: '☁️',
+  };
+  const topMoodEmoji = moodEmojis[topMood] || '📖';
+
+  // Dynamic Genres Explored
+  const genresExplored = useMemo(() => {
+    const counts = {};
+    enrichedFinishedReads.forEach((item) => {
+      let g = item.genre || 'Fiction';
+      if (g.toLowerCase().includes('fiction') && !g.toLowerCase().includes('science')) {
+        g = 'Fiction';
+      } else if (g.toLowerCase().includes('fantasy')) {
+        g = 'Fantasy';
+      } else if (
+        g.toLowerCase().includes('philosophy') ||
+        g.toLowerCase().includes('development') ||
+        g.toLowerCase().includes('nonfiction')
+      ) {
+        g = 'Nonfiction';
+      }
+      counts[g] = (counts[g] || 0) + 1;
+    });
+
+    const genreColors = {
+      Fiction: '#E87A65',
+      Fantasy: '#9786A3',
+      Nonfiction: '#88A391',
+      'Science Fiction': '#5B7065',
+      Philosophy: '#D4C6DC',
+    };
+
+    const list = Object.entries(counts).map(([label, count]) => ({
+      label,
+      count,
+      color: genreColors[label] || '#E87A65',
+    }));
+
+    list.sort((a, b) => b.count - a.count);
+    return list.length > 0
+      ? list
+      : [
+          { label: 'Fiction', count: 6, color: '#E87A65' },
+          { label: 'Fantasy', count: 3, color: '#9786A3' },
+          { label: 'Nonfiction', count: 3, color: '#88A391' },
+        ];
+  }, [enrichedFinishedReads]);
+
+  // Highest Rated Reads
+  const highestRatedReads = useMemo(() => {
+    const sorted = [...enrichedFinishedReads].sort(
+      (a, b) => b.rating - a.rating || (b.pages || 0) - (a.pages || 0)
+    );
+    const top3 = sorted.slice(0, 3);
+    if (top3.length > 0) {
+      return top3.map((item) => ({
+        id: item.bookId || item.id,
+        title: item.title,
+        author: item.author,
+        rating: Number(item.rating).toFixed(1),
+        coverUrl: item.coverUrl,
+      }));
+    }
+    return [
+      {
+        id: 'comfort-book',
+        title: 'The Comfort Book',
+        author: 'Matt Haig',
+        rating: '5.0',
+        coverUrl: '/assets/books/comfort-book.jpg',
+      },
+      {
+        id: 'little-prince',
+        title: 'The Little Prince',
+        author: 'Antoine de Saint-Exupéry',
+        rating: '5.0',
+        coverUrl: '/assets/books/little-prince.jpg',
+      },
+      {
+        id: 'wild-built',
+        title: 'A Psalm for the Wild-Built',
+        author: 'Becky Chambers',
+        rating: '4.5',
+        coverUrl: '/assets/books/wild-built.jpg',
+      },
+    ];
+  }, [enrichedFinishedReads]);
+
+  // Reading Goal Calculation
+  const readingGoal = user?.readingGoal || { target: 20, completed: 12 };
+  const goalCompleted = totalBooksFinished;
+  const goalTarget = readingGoal.target || 20;
+  const goalPercent = Math.min(Math.round((goalCompleted / goalTarget) * 100), 100);
+
+  // Exact data from reading stats.png (will make fully dynamic in next commit)
   const monthlyData = [
     { month: 'Jan', count: 1 },
     { month: 'Feb', count: 0 },
@@ -29,43 +211,6 @@ export default function StatsPage() {
   ];
 
   const maxMonthCount = 3;
-
-  const moodsOnShelf = [
-    { label: 'Cozy', count: 5, color: '#E87A65' },
-    { label: 'Reflective', count: 3, color: '#9786A3' },
-    { label: 'Mindful', count: 2, color: '#88A391' },
-    { label: 'Hopeful', count: 2, color: '#D4C6DC' }
-  ];
-
-  const genresExplored = [
-    { label: 'Fiction', count: 6, color: '#E87A65' },
-    { label: 'Fantasy', count: 3, color: '#9786A3' },
-    { label: 'Nonfiction', count: 3, color: '#88A391' }
-  ];
-
-  const highestRatedReads = [
-    {
-      id: 'the-comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      rating: '5.0',
-      coverUrl: '/assets/books/comfort-book.jpg'
-    },
-    {
-      id: 'the-little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      rating: '5.0',
-      coverUrl: '/assets/books/little-prince.jpg'
-    },
-    {
-      id: 'psalm-wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      rating: '4.5',
-      coverUrl: '/assets/books/wild-built.jpg'
-    }
-  ];
 
   const handleDownloadRecap = () => {
     setDownloading(true);
@@ -213,7 +358,7 @@ export default function StatsPage() {
             </div>
             <div>
               <div className="display-6 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                12
+                {totalBooksFinished}
               </div>
               <div className="text-muted small" style={{ fontSize: '13px' }}>
                 Books finished
@@ -233,7 +378,7 @@ export default function StatsPage() {
             </div>
             <div>
               <div className="display-6 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                3,120
+                {totalPages.toLocaleString()}
               </div>
               <div className="text-muted small" style={{ fontSize: '13px' }}>
                 Pages in finished books
@@ -253,7 +398,7 @@ export default function StatsPage() {
             </div>
             <div>
               <div className="display-6 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                4.5
+                {avgRating}
               </div>
               <div className="text-muted small" style={{ fontSize: '13px' }}>
                 Average rating
@@ -269,11 +414,11 @@ export default function StatsPage() {
               className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
               style={{ width: '48px', height: '48px', backgroundColor: '#FDF0ED', color: '#D96B50', fontSize: '22px' }}
             >
-              ☕
+              {topMoodEmoji}
             </div>
             <div>
               <div className="display-6 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                Cozy
+                {topMood}
               </div>
               <div className="text-muted small" style={{ fontSize: '13px' }}>
                 Most-read mood
@@ -281,6 +426,42 @@ export default function StatsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Reading Goal Progress Banner */}
+      <div className="card border-0 rounded-4 shadow-sm p-4 bg-white mb-4">
+        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-2">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: '44px', height: '44px', backgroundColor: '#FDF0ED', color: '#D96B50' }}
+            >
+              <AiOutlineTrophy size={22} />
+            </div>
+            <div>
+              <h6 className="fw-bold mb-0" style={{ color: 'var(--rv-ink-plum)' }}>
+                {year} Reading Goal
+              </h6>
+              <span className="text-muted small">
+                {goalCompleted} of {goalTarget} books completed ({goalPercent}%)
+              </span>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2">
+            <span
+              className="badge rounded-pill px-3 py-2 fw-semibold"
+              style={{
+                backgroundColor: goalPercent >= 100 ? '#EBF4ED' : '#F4EFF7',
+                color: goalPercent >= 100 ? '#5C826A' : '#775282',
+              }}
+            >
+              {goalTarget - goalCompleted > 0
+                ? `${goalTarget - goalCompleted} books left to reach your goal!`
+                : '🎉 Goal achieved! Super reader!'}
+            </span>
+          </div>
+        </div>
+        <Progress value={goalCompleted} max={goalTarget} height="10px" color="var(--rv-vibe-coral)" />
       </div>
 
       {/* Main Stats Grid */}
@@ -346,29 +527,32 @@ export default function StatsPage() {
                   </h6>
 
                   <div className="d-flex flex-column gap-2.5">
-                    {moodsOnShelf.map((m) => (
-                      <div key={m.label} className="d-flex align-items-center gap-3">
-                        <span className="small text-dark" style={{ minWidth: '70px', fontSize: '13px' }}>
-                          {m.label}
-                        </span>
-                        <div className="flex-grow-1 rounded-pill overflow-hidden bg-light" style={{ height: '14px' }}>
-                          <div
-                            className="h-100 rounded-pill"
-                            style={{
-                              width: `${(m.count / 6) * 100}%`,
-                              backgroundColor: m.color
-                            }}
-                          />
+                    {moodsOnShelf.map((m) => {
+                      const maxCount = Math.max(...moodsOnShelf.map((x) => x.count), 1);
+                      return (
+                        <div key={m.label} className="d-flex align-items-center gap-3">
+                          <span className="small text-dark" style={{ minWidth: '70px', fontSize: '13px' }}>
+                            {m.label}
+                          </span>
+                          <div className="flex-grow-1 rounded-pill overflow-hidden bg-light" style={{ height: '14px' }}>
+                            <div
+                              className="h-100 rounded-pill"
+                              style={{
+                                width: `${(m.count / maxCount) * 100}%`,
+                                backgroundColor: m.color
+                              }}
+                            />
+                          </div>
+                          <span className="small fw-semibold text-muted" style={{ minWidth: '15px' }}>
+                            {m.count}
+                          </span>
                         </div>
-                        <span className="small fw-semibold text-muted" style={{ minWidth: '15px' }}>
-                          {m.count}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="text-end text-muted small mt-2" style={{ fontSize: '12px' }}>
-                    Total: 12
+                    Total: {totalBooksFinished}
                   </div>
                 </div>
 
@@ -392,25 +576,28 @@ export default function StatsPage() {
                 </h6>
 
                 <div className="d-flex flex-column gap-3">
-                  {genresExplored.map((g) => (
-                    <div key={g.label} className="d-flex align-items-center gap-3">
-                      <span className="small text-dark" style={{ minWidth: '75px', fontSize: '13px' }}>
-                        {g.label}
-                      </span>
-                      <div className="flex-grow-1 rounded-pill overflow-hidden bg-light" style={{ height: '14px' }}>
-                        <div
-                          className="h-100 rounded-pill"
-                          style={{
-                            width: `${(g.count / 7) * 100}%`,
-                            backgroundColor: g.color
-                          }}
-                        />
+                  {genresExplored.map((g) => {
+                    const maxGenre = Math.max(...genresExplored.map((x) => x.count), 1);
+                    return (
+                      <div key={g.label} className="d-flex align-items-center gap-3">
+                        <span className="small text-dark" style={{ minWidth: '75px', fontSize: '13px' }}>
+                          {g.label}
+                        </span>
+                        <div className="flex-grow-1 rounded-pill overflow-hidden bg-light" style={{ height: '14px' }}>
+                          <div
+                            className="h-100 rounded-pill"
+                            style={{
+                              width: `${(g.count / maxGenre) * 100}%`,
+                              backgroundColor: g.color
+                            }}
+                          />
+                        </div>
+                        <span className="small fw-semibold text-muted" style={{ minWidth: '15px' }}>
+                          {g.count}
+                        </span>
                       </div>
-                      <span className="small fw-semibold text-muted" style={{ minWidth: '15px' }}>
-                        {g.count}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -471,13 +658,13 @@ export default function StatsPage() {
           >
             <div>
               <div className="text-muted small text-uppercase mb-2 fw-semibold" style={{ fontSize: '12px' }}>
-                Your 2026 reading vibe
+                Your {year} reading vibe
               </div>
               <h2
                 className="display-6 fw-bold mb-3"
                 style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', lineHeight: 1.15 }}
               >
-                Cozy &amp; curious
+                {topMood} &amp; {moodsOnShelf[1]?.label ? moodsOnShelf[1].label.toLowerCase() : 'curious'}
               </h2>
 
               <img
