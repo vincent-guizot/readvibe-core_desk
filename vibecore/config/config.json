@@ -2,7 +2,7 @@
   "development": {
     "username": "postgres",
     "password": "admin",
-    "database": "library_ms",
+    "database": "readvibe",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
