@@ -52,10 +52,62 @@ const readingSlice = createSlice({
       };
 
       if (existingIndex !== -1) {
-        state.finishedReads[existingIndex] = finishedEntry;
+        state.finishedReads[existingIndex] = {
+          ...state.finishedReads[existingIndex],
+          ...finishedEntry,
+          finishedAt: state.finishedReads[existingIndex].finishedAt || finishedEntry.finishedAt,
+        };
       } else {
         state.finishedReads.unshift(finishedEntry);
       }
+    },
+    updateFinishedRead: (state, action) => {
+      const {
+        bookId,
+        rating,
+        reviewTitle,
+        reviewContent,
+        favoriteQuote,
+        moods,
+        privateNotes,
+        vibeCardTheme,
+        containsSpoilers,
+        visibility,
+      } = action.payload;
+
+      const existingIndex = state.finishedReads.findIndex((item) => item.bookId === bookId);
+      if (existingIndex !== -1) {
+        state.finishedReads[existingIndex] = {
+          ...state.finishedReads[existingIndex],
+          ...(rating !== undefined && { rating: Number(rating) }),
+          ...(reviewTitle !== undefined && { reviewTitle }),
+          ...(reviewContent !== undefined && { reviewContent }),
+          ...(favoriteQuote !== undefined && { favoriteQuote }),
+          ...(moods !== undefined && { moods }),
+          ...(privateNotes !== undefined && { privateNotes }),
+          ...(vibeCardTheme !== undefined && { vibeCardTheme }),
+          ...(containsSpoilers !== undefined && { containsSpoilers }),
+          ...(visibility !== undefined && { visibility }),
+        };
+      } else {
+        state.finishedReads.unshift({
+          bookId,
+          finishedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          rating: Number(rating) || 5,
+          reviewTitle: reviewTitle || '',
+          reviewContent: reviewContent || '',
+          favoriteQuote: favoriteQuote || '',
+          moods: moods || ['Cozy'],
+          privateNotes: privateNotes || '',
+          vibeCardTheme: vibeCardTheme || 'Paper',
+          containsSpoilers: containsSpoilers || false,
+          visibility: visibility || 'public',
+        });
+      }
+    },
+    removeFinishedRead: (state, action) => {
+      const { bookId } = action.payload;
+      state.finishedReads = state.finishedReads.filter((item) => item.bookId !== bookId);
     },
     removeReading: (state, action) => {
       const { bookId } = action.payload;
@@ -64,5 +116,12 @@ const readingSlice = createSlice({
   },
 });
 
-export const { startReading, updateProgress, finishReading, removeReading } = readingSlice.actions;
+export const {
+  startReading,
+  updateProgress,
+  finishReading,
+  updateFinishedRead,
+  removeFinishedRead,
+  removeReading,
+} = readingSlice.actions;
 export default readingSlice.reducer;
