@@ -1,0 +1,317 @@
+/* ========================================================
+   READVIBE REUSABLE COMPONENT CLASSES (SHADCN PATTERN + BOOTSTRAP)
+   ======================================================== */
+
+/* Editorial Typography */
+h1, h2, h3, .rv-editorial {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  color: var(--rv-ink-plum);
+  letter-spacing: -0.01em;
+}
+
+/* Accessibility Focus States */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--rv-vibe-coral) !important;
+  outline-offset: 2px !important;
+}
+
+/* Reusable Button Variants (Shadcn-like primitives with Bootstrap) */
+.rv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  border-radius: var(--rv-radius-md);
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  font-size: 0.925rem;
+  line-height: 1.4;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.rv-btn:disabled,
+.rv-btn.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Button Variants */
+.rv-btn-primary,
+.btn-rv-plum {
+  background-color: var(--rv-ink-plum);
+  border-color: var(--rv-ink-plum);
+  color: #ffffff;
+}
+
+.rv-btn-primary:hover,
+.btn-rv-plum:hover {
+  background-color: #24162c;
+  border-color: #24162c;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: var(--rv-shadow-md);
+}
+
+.rv-btn-coral,
+.btn-rv-coral {
+  background-color: var(--rv-vibe-coral);
+  border-color: var(--rv-vibe-coral);
+  color: #ffffff;
+}
+
+.rv-btn-coral:hover,
+.btn-rv-coral:hover {
+  background-color: #e06456;
+  border-color: #e06456;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: var(--rv-shadow-glow-coral);
+}
+
+.rv-btn-outline {
+  background-color: transparent;
+  border-color: var(--rv-border);
+  color: var(--rv-ink-plum);
+}
+
+.rv-btn-outline:hover {
+  background-color: var(--rv-soft-lilac);
+  border-color: var(--rv-ink-plum);
+  color: var(--rv-ink-plum);
+}
+
+.rv-btn-ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--rv-ink-plum);
+}
+
+.rv-btn-ghost:hover {
+  background-color: var(--rv-soft-lilac);
+  color: var(--rv-vibe-coral);
+}
+
+.rv-btn-soft {
+  background-color: var(--rv-soft-lilac);
+  border-color: transparent;
+  color: var(--rv-ink-plum);
+}
+
+.rv-btn-soft:hover {
+  background-color: #dfd4ea;
+  color: var(--rv-ink-plum);
+}
+
+/* Button Sizes */
+.rv-btn-sm {
+  padding: 5px 12px;
+  font-size: 0.825rem;
+  border-radius: var(--rv-radius-sm);
+}
+
+.rv-btn-lg {
+  padding: 12px 24px;
+  font-size: 1.05rem;
+  border-radius: var(--rv-radius-lg);
+}
+
+/* Reusable Card Primitive */
+.rv-card {
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-md);
+  box-shadow: var(--rv-shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.rv-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rv-shadow-md);
+  border-color: rgba(53, 35, 63, 0.2);
+}
+
+.rv-card-interactive {
+  cursor: pointer;
+}
+
+/* Form Inputs */
+.rv-input,
+.rv-textarea {
+  background-color: #ffffff;
+  border: 1.5px solid var(--rv-border);
+  border-radius: var(--rv-radius-md);
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: var(--rv-ink-plum);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.rv-input:focus,
+.rv-textarea:focus {
+  border-color: var(--rv-vibe-coral);
+  box-shadow: 0 0 0 3px rgba(239, 120, 107, 0.18);
+  outline: none;
+}
+
+/* Badges & Mood Pills */
+.rv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--rv-radius-full);
+  line-height: 1.2;
+}
+
+.rv-mood-pill {
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: var(--rv-radius-full);
+  border: 1px solid var(--rv-border);
+  background: #ffffff;
+  color: var(--rv-ink-plum);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rv-mood-pill:hover {
+  background: var(--rv-soft-lilac);
+  border-color: var(--rv-ink-plum);
+  transform: scale(1.03);
+}
+
+.rv-mood-pill.active {
+  background: var(--rv-ink-plum);
+  color: #ffffff;
+  border-color: var(--rv-ink-plum);
+  box-shadow: var(--rv-shadow-glow-plum);
+}
+
+/* Tabs */
+.rv-tab-list {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--rv-border);
+  padding-bottom: 2px;
+}
+
+.rv-tab-trigger {
+  padding: 8px 16px;
+  border-radius: var(--rv-radius-sm);
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  font-size: 0.925rem;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rv-tab-trigger:hover {
+  color: var(--rv-ink-plum);
+  background: var(--rv-soft-lilac);
+}
+
+.rv-tab-trigger.active {
+  color: var(--rv-ink-plum);
+  background: #ffffff;
+  box-shadow: var(--rv-shadow-sm);
+  border: 1px solid var(--rv-border);
+}
+
+/* Vibe Card 9:16 Aspect Ratio */
+.rv-vibe-card-9-16 {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 9 / 16;
+  background: linear-gradient(165deg, var(--rv-ink-plum) 0%, #201327 100%);
+  color: #ffffff;
+  border-radius: var(--rv-radius-lg);
+  padding: 32px 24px;
+  box-shadow: 0 20px 40px rgba(53, 35, 63, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.rv-vibe-card-9-16::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(239, 120, 107, 0.35) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Modal Backdrop & Dialog */
+.rv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 36, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.rv-modal-content {
+  background: #ffffff;
+  border-radius: var(--rv-radius-lg);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--rv-border);
+  width: 100%;
+  max-width: 540px;
+  overflow: hidden;
+}
+
+/* Navbar */
+.rv-navbar {
+  background: rgba(255, 248, 240, 0.94);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rv-border);
+  transition: all 0.2s ease;
+}
+
+.rv-nav-link {
+  color: var(--rv-ink-plum);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: var(--rv-radius-sm);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.rv-nav-link:hover,
+.rv-nav-link.active {
+  color: var(--rv-vibe-coral);
+  background: var(--rv-soft-lilac);
+}

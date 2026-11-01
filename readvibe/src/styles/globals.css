@@ -1,0 +1,24 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "./variables.css";
+@import "./animations.css";
+@import "./components.css";
+
+/* Base Body Styles */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--rv-background);
+  color: var(--rv-text-main);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Digital Preview Container */
+.rv-preview-container {
+  background: #ffffff;
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-md);
+  overflow: hidden;
+  min-height: 500px;
+}
