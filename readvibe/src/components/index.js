@@ -6,6 +6,7 @@ export * from './ui';
 export { default as Navbar } from './layout/Navbar';
 export { default as Footer } from './layout/Footer';
 export { default as BookCard } from './books/BookCard';
+export { default as VibeCardPreview } from './books/VibeCardPreview';
 export { default as AddToWishlistModal } from './modals/AddToWishlistModal';
 export { default as AuthModal } from './modals/AuthModal';
 export { default as DigitalPreviewModal } from './modals/DigitalPreviewModal';
