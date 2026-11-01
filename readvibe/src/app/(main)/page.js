@@ -10,7 +10,6 @@ import {
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 import { useBooks, useWishlist } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
 
 export default function HomePage() {
   const router = useRouter();
@@ -89,16 +88,6 @@ export default function HomePage() {
   const toggleBookmark = (b) => {
     const bookId = b.id || b.slug;
     toggleWishlist(bookId, 'High', `Discovered under ${activeMood} vibe on home page`);
-    if (readVibeStore.isInWishlist(bookId)) {
-      readVibeStore.removeFromWishlist(bookId);
-    } else {
-      readVibeStore.addToWishlist({
-        bookId: bookId,
-        priority: 'High',
-        reason: `Discovered under ${activeMood} vibe on home page`,
-        isPublic: true
-      });
-    }
   };
 
   return (
@@ -260,7 +249,7 @@ export default function HomePage() {
             <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
               {booksToDisplay.map((b) => {
                 const bookId = b.id || b.slug;
-                const isBookmarked = isWishlisted(bookId) || readVibeStore.isInWishlist(bookId);
+                const isBookmarked = isWishlisted(bookId);
                 return (
                   <div className="col" key={bookId}>
                     <div

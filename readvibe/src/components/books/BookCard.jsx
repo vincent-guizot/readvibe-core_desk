@@ -1,26 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { AiFillStar, AiOutlineBook } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { useWishlist } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 import AddToWishlistModal from './AddToWishlistModal';
 
 export default function BookCard({ book, onWishlistChange }) {
-  const [inWishlist, setInWishlist] = useState(false);
+  const { isInWishlist, removeWishlist } = useWishlist();
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
 
-  useEffect(() => {
-    setInWishlist(readVibeStore.isInWishlist(book.id));
-  }, [book.id]);
+  const inWishlist = book ? isInWishlist(book.id) || readVibeStore.isInWishlist(book.id) : false;
 
   const handleWishlistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (inWishlist) {
+      removeWishlist(book.id);
       readVibeStore.removeFromWishlist(book.id);
-      setInWishlist(false);
       if (onWishlistChange) onWishlistChange();
     } else {
       setIsWishlistModalOpen(true);
