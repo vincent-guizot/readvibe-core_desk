@@ -9,17 +9,14 @@ import {
   AiOutlineBook
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { useBooks, useWishlist } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 
 export default function HomePage() {
   const router = useRouter();
-  const [books, setBooks] = useState([]);
+  const { books: reduxBooks } = useBooks();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const [activeMood, setActiveMood] = useState('Cozy');
-  const [wishlistVersion, setWishlistVersion] = useState(0);
-
-  useEffect(() => {
-    setBooks(readVibeStore.getBooks());
-  }, []);
 
   const moodPills = [
     { key: 'Cozy', label: 'Cozy', icon: '🏠' },
@@ -30,7 +27,7 @@ export default function HomePage() {
     { key: 'Need a laugh', label: 'Need a laugh', icon: '😊' }
   ];
 
-  const allAvailableBooks = books.length > 0 ? books : [
+  const allAvailableBooks = reduxBooks && reduxBooks.length > 0 ? reduxBooks : [
     {
       id: 'midnight-library',
       title: 'The Midnight Library',
@@ -91,6 +88,7 @@ export default function HomePage() {
 
   const toggleBookmark = (b) => {
     const bookId = b.id || b.slug;
+    toggleWishlist(bookId, 'High', `Discovered under ${activeMood} vibe on home page`);
     if (readVibeStore.isInWishlist(bookId)) {
       readVibeStore.removeFromWishlist(bookId);
     } else {
@@ -101,7 +99,6 @@ export default function HomePage() {
         isPublic: true
       });
     }
-    setWishlistVersion((v) => v + 1);
   };
 
   return (
@@ -263,7 +260,7 @@ export default function HomePage() {
             <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
               {booksToDisplay.map((b) => {
                 const bookId = b.id || b.slug;
-                const isBookmarked = readVibeStore.isInWishlist(bookId);
+                const isBookmarked = isWishlisted(bookId) || readVibeStore.isInWishlist(bookId);
                 return (
                   <div className="col" key={bookId}>
                     <div

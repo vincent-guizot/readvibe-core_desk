@@ -10,27 +10,27 @@ import {
   AiOutlineBarChart,
   AiOutlineSetting,
   AiOutlineLogout,
-  AiOutlineCheckCircle
+  AiOutlineCheckCircle,
 } from 'react-icons/ai';
-import { readVibeStore } from '../../lib/store';
+import { useAuth, useNotifications } from '@/hooks';
+import { readVibeStore } from '@/lib/store';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState(null);
-  const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
+  // Redux hooks
+  const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
+
   useEffect(() => {
-    setUser(readVibeStore.getUser());
-    setNotifications(readVibeStore.getNotifications());
-    readVibeStore.syncWithVibeCore().then(() => {
-      setUser(readVibeStore.getUser());
-    });
+    // Sync with live VibeCore on mount
+    readVibeStore.syncWithVibeCore();
 
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -54,23 +54,20 @@ export default function Navbar() {
   };
 
   const unreadNotifications = notifications.filter((n) => !n.read);
-  const unreadCount = unreadNotifications.length;
 
   const handleMarkAllRead = () => {
-    const updated = readVibeStore.markAllNotificationsRead();
-    setNotifications(updated);
+    unreadNotifications.forEach((n) => markAsRead(n.id));
+    readVibeStore.markAllNotificationsRead();
   };
 
   const handleNotificationClick = (notif) => {
-    const updated = readVibeStore.deleteNotification(notif.id);
-    setNotifications(updated);
+    markAsRead(notif.id);
+    readVibeStore.deleteNotification(notif.id);
     setIsNotifOpen(false);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('readvibe_token');
-    localStorage.removeItem('readvibe_user');
-    setUser(null);
+    logout();
     setIsProfileOpen(false);
     router.push('/login');
   };
@@ -213,7 +210,7 @@ export default function Navbar() {
                             className="p-1 rounded-circle flex-shrink-0 mt-1"
                             style={{
                               backgroundColor: '#FFEBE6',
-                              color: '#D96B50'
+                              color: '#D96B50',
                             }}
                           >
                             <AiOutlineCheckCircle size={14} />
