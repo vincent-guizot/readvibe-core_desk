@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   AiOutlineBook,
@@ -11,105 +11,66 @@ import {
   AiOutlineLock
 } from 'react-icons/ai';
 import { BsBookmarks, BsStars } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { useNotifications } from '@/hooks';
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread'
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'book',
-      title: 'A wishlist book just joined the catalog',
-      description: 'Before the Coffee Gets Cold is now available to explore.',
-      time: '12 min ago',
-      thumbnail: '/assets/books/coffee-gets-cold.jpg',
-      section: 'today',
-      unread: true,
-      iconBg: '#7A9A8B',
-      iconColor: '#FFFFFF',
-      link: '/books/before-the-coffee-gets-cold'
-    },
-    {
-      id: 2,
-      type: 'sparkle',
-      title: 'Fresh picks for your Reflective mood',
-      description: 'Your new curated collection is ready to discover.',
-      time: '1 hour ago',
-      thumbnail: '/assets/illustrations/themes.png',
-      thumbCrop: 'center 50%',
-      section: 'today',
-      unread: true,
-      iconBg: '#9B8CB4',
-      iconColor: '#FFFFFF',
-      link: '/search?mood=Reflective'
-    },
-    {
-      id: 3,
-      type: 'recap',
-      title: 'Your October reading recap is ready',
-      description: 'Take a look at the stories and moods you explored.',
-      time: '3 hours ago',
-      thumbnail: '/assets/illustrations/themes.png',
-      thumbCrop: 'center 0%',
-      section: 'today',
-      unread: true,
-      iconBg: '#E27D60',
-      iconColor: '#FFFFFF',
-      link: '/stats'
-    },
-    {
-      id: 4,
-      type: 'bookmark',
-      title: 'Your next read is waiting',
-      description: 'Revisit the books you saved for later.',
-      time: 'Yesterday',
-      section: 'earlier',
-      unread: false,
-      iconBg: '#EAF3EC',
-      iconColor: '#4A7C59',
-      link: '/wishlist'
-    },
-    {
-      id: 5,
-      type: 'shield',
-      title: 'Your report has been reviewed',
-      description: 'Our moderation team has reviewed your content report.',
-      time: 'Yesterday',
-      section: 'earlier',
-      unread: false,
-      iconBg: '#EFE9F4',
-      iconColor: '#6B4C82',
-      link: '#'
-    },
-    {
-      id: 6,
-      type: 'welcome',
-      title: 'Welcome to ReadVibe',
-      description: 'Find your next book, follow your mood, and make yourself at home.',
-      time: '27 Oct',
-      section: 'earlier',
-      unread: false,
-      iconBg: '#FFEBE6',
-      iconColor: '#D96B50',
-      link: '/discover'
-    }
-  ]);
+  const { notifications: reduxNotifications, markAsRead, clearAll } = useNotifications();
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
-  const allCount = notifications.length;
+  const normalizedNotifications = useMemo(() => {
+    return (reduxNotifications || []).map((notif, idx) => {
+      const isRead = notif.read === true;
+      const desc = notif.description || notif.message || '';
+      let type = notif.type;
+      let iconBg = notif.iconBg;
+      let iconColor = notif.iconColor || '#FFFFFF';
+
+      if (!type) {
+        const lowerTitle = (notif.title || '').toLowerCase();
+        if (lowerTitle.includes('milestone') || lowerTitle.includes('recap')) {
+          type = 'recap';
+          iconBg = '#E27D60';
+        } else if (lowerTitle.includes('vibe') || lowerTitle.includes('pick')) {
+          type = 'sparkle';
+          iconBg = '#9B8CB4';
+        } else if (lowerTitle.includes('wishlist') || lowerTitle.includes('catalog')) {
+          type = 'book';
+          iconBg = '#7A9A8B';
+        } else if (lowerTitle.includes('saved') || lowerTitle.includes('read') || lowerTitle.includes('collection')) {
+          type = 'bookmark';
+          iconBg = '#EAF3EC';
+          iconColor = '#4A7C59';
+        } else {
+          type = 'book';
+          iconBg = '#7A9A8B';
+        }
+      }
+
+      return {
+        ...notif,
+        id: notif.id,
+        type,
+        title: notif.title,
+        description: desc,
+        time: notif.time || 'Recently',
+        unread: !isRead,
+        section: idx < 3 ? 'today' : 'earlier',
+        iconBg: iconBg || '#7A9A8B',
+        iconColor,
+        link: notif.link || '/my-reading'
+      };
+    });
+  }, [reduxNotifications]);
+
+  const unreadCount = normalizedNotifications.filter((n) => n.unread).length;
+  const allCount = normalizedNotifications.length;
 
   const handleMarkAllRead = () => {
-    readVibeStore.markAllNotificationsRead();
-    setNotifications(notifications.map((n) => ({ ...n, unread: false })));
-  };
-
-  const handleDismiss = (id) => {
-    setNotifications(notifications.filter((n) => n.id !== id));
-    readVibeStore.deleteNotification(id);
+    normalizedNotifications.filter((n) => n.unread).forEach((n) => markAsRead(n.id));
   };
 
   const filteredNotifications =
-    activeTab === 'unread' ? notifications.filter((n) => n.unread) : notifications;
+    activeTab === 'unread' ? normalizedNotifications.filter((n) => n.unread) : normalizedNotifications;
 
   const todayList = filteredNotifications.filter((n) => n.section === 'today');
   const earlierList = filteredNotifications.filter((n) => n.section === 'earlier');
@@ -153,18 +114,20 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleMarkAllRead}
-          className="btn btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
-          style={{
-            border: '1px solid #D96B50',
-            color: '#D96B50',
-            backgroundColor: '#FFFFFF'
-          }}
-        >
-          <AiOutlineCheck size={14} /> Mark all as read
-        </button>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            onClick={handleMarkAllRead}
+            className="btn btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+            style={{
+              border: '1px solid #D96B50',
+              color: '#D96B50',
+              backgroundColor: '#FFFFFF'
+            }}
+          >
+            <AiOutlineCheck size={14} /> Mark all as read
+          </button>
+        )}
       </div>
 
       <div className="row g-4">
@@ -214,6 +177,21 @@ export default function NotificationsPage() {
               </button>
             </div>
 
+            {/* Empty State */}
+            {filteredNotifications.length === 0 && (
+              <div className="py-5 text-center text-muted">
+                <span style={{ fontSize: '2.5rem' }}>🍃</span>
+                <h6 className="fw-bold mt-3 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
+                  {activeTab === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                </h6>
+                <p className="small text-muted mb-0">
+                  {activeTab === 'unread'
+                    ? "You're completely caught up with all reading updates."
+                    : 'Updates and milestone notices will appear here.'}
+                </p>
+              </div>
+            )}
+
             {/* Section: Today */}
             {todayList.length > 0 && (
               <div className="mb-4">
@@ -225,6 +203,7 @@ export default function NotificationsPage() {
                     <Link
                       key={notif.id}
                       href={notif.link}
+                      onClick={() => markAsRead(notif.id)}
                       className="d-flex align-items-center justify-content-between p-3 rounded-4 text-decoration-none transition-all"
                       style={{
                         backgroundColor: notif.unread ? '#F7F3FA' : '#FAF7F2'
@@ -297,6 +276,7 @@ export default function NotificationsPage() {
                     <Link
                       key={notif.id}
                       href={notif.link}
+                      onClick={() => markAsRead(notif.id)}
                       className="d-flex align-items-center justify-content-between p-3 rounded-4 text-decoration-none border-bottom"
                       style={{ backgroundColor: '#FFFFFF' }}
                     >
@@ -325,6 +305,17 @@ export default function NotificationsPage() {
                         <span className="text-muted" style={{ fontSize: '12px' }}>
                           {notif.time}
                         </span>
+
+                        {notif.unread && (
+                          <span
+                            className="rounded-circle"
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              backgroundColor: '#D96B50'
+                            }}
+                          />
+                        )}
                       </div>
                     </Link>
                   ))}

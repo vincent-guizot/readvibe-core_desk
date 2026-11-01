@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,17 +10,24 @@ import {
   AiOutlineAppstore
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { useAuth, useWishlist, useBooks } from '@/hooks';
 
 export default function PublicWishlistPage() {
   const params = useParams();
   const username = params?.username || 'adminreadvibe';
 
-  const [savedBookIds, setSavedBookIds] = useState(['morisaki-bookshop']);
+  const { user } = useAuth();
+  const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
+  const { books: allBooks } = useBooks();
+
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Exact 4 books from public wishlist.png
-  const publicBooks = [
+  const isCurrent = user && (user.username === username || username === 'adminreadvibe');
+  const profileName = isCurrent && user?.name ? user.name : (username === 'adminreadvibe' ? 'Admin ReadVibe' : username);
+  const profileAvatar = isCurrent && user?.avatar ? user.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150';
+
+  // Fallback 4 curated public books
+  const defaultPublicBooks = [
     {
       id: 'the-comfort-book',
       title: 'The Comfort Book',
@@ -57,7 +64,7 @@ export default function PublicWishlistPage() {
     {
       id: 'the-little-prince',
       title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupery',
+      author: 'Antoine de Saint-Exupéry',
       coverUrl: '/assets/books/little-prince.jpg',
       priority: 'Low priority',
       priorityBadgeColor: '#EBE7E1',
@@ -67,12 +74,36 @@ export default function PublicWishlistPage() {
     }
   ];
 
-  const toggleSaveWishlist = (id) => {
-    if (savedBookIds.includes(id)) {
-      setSavedBookIds(savedBookIds.filter((bId) => bId !== id));
-    } else {
-      setSavedBookIds([...savedBookIds, id]);
+  const publicBooks = useMemo(() => {
+    if (isCurrent && wishlist && wishlist.length > 0) {
+      return wishlist.map((w) => {
+        const book = allBooks.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
+          id: w.bookId,
+          title: w.bookId,
+          author: 'Unknown Author',
+          coverUrl: '/assets/books/midnight-library.jpg',
+          moods: ['Cozy']
+        };
+        const isHigh = w.priority === 'High' || w.priority === 'Next up';
+        const isLow = w.priority === 'Low' || w.priority === 'Someday';
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          coverUrl: book.coverUrl,
+          priority: `${w.priority || 'Medium'} priority`,
+          priorityBadgeColor: isHigh ? '#FEECE8' : isLow ? '#EBE7E1' : '#F3EEF7',
+          priorityTextColor: isHigh ? '#D96B50' : isLow ? '#666666' : '#7A5B87',
+          note: w.reason || 'Saved to reading wishlist.',
+          moods: book.moods || ['Cozy']
+        };
+      });
     }
+    return defaultPublicBooks;
+  }, [isCurrent, wishlist, allBooks]);
+
+  const handleToggleSave = (bookId) => {
+    toggleWishlist(bookId, 'Medium', 'Saved from shared public shelf');
   };
 
   const handleShare = () => {
@@ -98,7 +129,7 @@ export default function PublicWishlistPage() {
           </li>
           <li className="breadcrumb-item">
             <Link href={`/u/${username}`} className="text-secondary text-decoration-none">
-              Admin ReadVibe
+              {profileName}
             </Link>
           </li>
           <li className="breadcrumb-item active text-muted" aria-current="page">
@@ -113,14 +144,17 @@ export default function PublicWishlistPage() {
         <div>
           <div className="d-flex align-items-center gap-3 mb-2">
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150"
-              alt="Admin ReadVibe"
+              src={profileAvatar}
+              alt={profileName}
               className="rounded-circle shadow-sm"
               style={{ width: '56px', height: '56px', objectFit: 'cover' }}
+              onError={(e) => {
+                e.currentTarget.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=vincent';
+              }}
             />
             <div>
               <h4 className="fw-bold mb-0" style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}>
-                Admin ReadVibe
+                {profileName}
               </h4>
               <div className="d-flex align-items-center gap-2">
                 <span className="text-muted small">@{username}</span>
@@ -142,7 +176,7 @@ export default function PublicWishlistPage() {
             A few books on my someday shelf.
           </h1>
           <p className="text-muted small mb-0" style={{ fontSize: '1.05rem' }}>
-            Explore the stories Admin ReadVibe is looking forward to reading.
+            Explore the stories {profileName} is looking forward to reading.
           </p>
         </div>
 
@@ -181,7 +215,7 @@ export default function PublicWishlistPage() {
 
       {/* Main Grid */}
       <div className="row g-4">
-        {/* ================= LEFT COLUMN: 18 BOOKS TO DISCOVER ================= */}
+        {/* ================= LEFT COLUMN: BOOKS TO DISCOVER ================= */}
         <div className="col-lg-8">
           {/* Controls Bar */}
           <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-3">
@@ -189,7 +223,7 @@ export default function PublicWishlistPage() {
               className="fw-bold mb-0"
               style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
             >
-              18 books to discover
+              {publicBooks.length} books to discover
             </h5>
 
             <div className="d-flex align-items-center gap-2">
@@ -230,7 +264,7 @@ export default function PublicWishlistPage() {
           {/* Book Cards List */}
           <div className="d-flex flex-column gap-3 mb-4">
             {publicBooks.map((item) => {
-              const isSaved = savedBookIds.includes(item.id);
+              const isSaved = isWishlisted(item.id);
               return (
                 <div
                   key={item.id}
@@ -312,7 +346,7 @@ export default function PublicWishlistPage() {
                     <div className="col-12 col-md-auto d-flex flex-column align-items-md-end justify-content-between gap-3">
                       <button
                         type="button"
-                        onClick={() => toggleSaveWishlist(item.id)}
+                        onClick={() => handleToggleSave(item.id)}
                         className={`btn btn-sm rounded-3 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 ${
                           isSaved
                             ? 'btn-success text-white shadow-sm'
@@ -330,10 +364,10 @@ export default function PublicWishlistPage() {
 
                       <Link
                         href={`/books/${item.id}`}
-                        className="text-decoration-none small fw-semibold d-inline-flex align-items-center gap-1"
-                        style={{ color: '#D96B50', fontSize: '13px' }}
+                        className="small text-muted text-decoration-none fw-semibold"
+                        style={{ fontSize: '12px' }}
                       >
-                        View book →
+                        View book details →
                       </Link>
                     </div>
                   </div>
@@ -342,109 +376,78 @@ export default function PublicWishlistPage() {
             })}
           </div>
 
-          {/* Bottom Pagination */}
-          <div className="d-flex flex-column align-items-center gap-2 pt-2">
+          <div className="text-center pt-2">
             <span className="text-muted small" style={{ fontSize: '13px' }}>
-              Showing 4 of 18 books
+              Showing {publicBooks.length} of {publicBooks.length} books
             </span>
-            <button
-              type="button"
-              className="btn btn-sm btn-white border rounded-pill px-4 py-2 fw-semibold text-muted shadow-sm"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              Load more books ▾
-            </button>
           </div>
         </div>
 
         {/* ================= RIGHT COLUMN: SIDEBAR WIDGETS ================= */}
         <div className="col-lg-4">
-          {/* Widget 1: A shared shelf, a little inspiration */}
-          <div
-            className="card border-0 rounded-4 shadow-sm p-4 mb-4 position-relative overflow-hidden text-center"
-            style={{ backgroundColor: '#F4EFF7', borderColor: '#E6DCED' }}
-          >
-            <h5
-              className="fw-bold mb-2 text-start"
-              style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)', lineHeight: 1.25 }}
-            >
-              A shared shelf,
-              <br />
-              a little inspiration.
-            </h5>
-            <p className="text-muted small mb-3 text-start" style={{ fontSize: '13px' }}>
-              Find something you love? Save it to your own reading list.
-            </p>
-
-            <img
-              src="/assets/illustrations/book-stack-with-flower-vase.png"
-              alt="Book stack"
-              className="img-fluid mx-auto my-2"
-              style={{ maxHeight: '140px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.currentTarget.src = '/assets/illustrations/books.png';
-              }}
-            />
-
-            <div className="text-start mt-2">
-              <Link
-                href="/discover"
-                className="text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1"
-                style={{ color: '#D96B50' }}
-              >
-                Explore more books →
-              </Link>
-            </div>
-          </div>
-
-          {/* Widget 2: Wishlist moods */}
-          <div className="card border-0 rounded-4 shadow-sm p-4 bg-white mb-4">
-            <h6
-              className="fw-bold mb-1"
-              style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
-            >
-              Wishlist moods
-            </h6>
-            <p className="text-muted small mb-3" style={{ fontSize: '12px' }}>
-              The feelings behind these reads.
-            </p>
-            <div className="d-flex flex-wrap gap-2">
-              {['Cozy', 'Reflective', 'Hopeful', 'Mindful'].map((m) => (
-                <span
-                  key={m}
-                  className="badge rounded-pill px-3 py-1.5"
-                  style={{
-                    backgroundColor: m === 'Cozy' ? '#FEECE8' : m === 'Reflective' ? '#F3EEF7' : m === 'Hopeful' ? '#EBF4ED' : '#EAF2F2',
-                    color: m === 'Cozy' ? '#D96B50' : m === 'Reflective' ? 'var(--rv-ink-plum)' : '#2B5E3B',
-                    fontSize: '12px'
-                  }}
-                >
-                  {m}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Widget 3: Shared by choice */}
-          <div
-            className="card border-0 rounded-4 shadow-sm p-4 position-relative overflow-hidden"
-            style={{ backgroundColor: '#EBF2EC', borderColor: '#D7E5D9' }}
-          >
-            <div className="position-absolute bottom-0 end-0 p-3 opacity-30" style={{ fontSize: '3.5rem' }}>
-              🍃
-            </div>
-            <div className="d-flex align-items-center gap-2 mb-2">
-              <span style={{ fontSize: '20px' }}>🌐</span>
-              <h5
-                className="fw-bold mb-0"
+          <div className="d-flex flex-column gap-4">
+            {/* Widget 1: About this list */}
+            <div className="card border-0 rounded-4 shadow-sm p-4 bg-white">
+              <h6
+                className="fw-bold mb-3"
                 style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
               >
-                Shared by choice
-              </h5>
+                About this list
+              </h6>
+              <div className="d-flex flex-column gap-3 small">
+                <div className="d-flex align-items-center gap-3">
+                  <span style={{ fontSize: '18px' }}>📖</span>
+                  <div>
+                    <span className="fw-bold text-dark me-1">{publicBooks.length}</span>
+                    <span className="text-muted">curated titles</span>
+                  </div>
+                </div>
+                <div className="d-flex align-items-center gap-3">
+                  <span style={{ fontSize: '18px' }}>🚩</span>
+                  <div>
+                    <span className="fw-bold text-dark me-1">
+                      {publicBooks.filter((b) => b.priority?.toLowerCase().includes('high')).length}
+                    </span>
+                    <span className="text-muted">high priority picks</span>
+                  </div>
+                </div>
+                <div className="d-flex align-items-center gap-3">
+                  <span style={{ fontSize: '18px' }}>✨</span>
+                  <div>
+                    <span className="fw-bold text-dark me-1">
+                      {new Set(publicBooks.flatMap((b) => b.moods || [])).size}
+                    </span>
+                    <span className="text-muted">reading vibes</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-muted small mb-0" style={{ maxWidth: '240px' }}>
-              Only books and notes made public by this reader appear here.
-            </p>
+
+            {/* Widget 2: Start your own list */}
+            <div
+              className="card border-0 rounded-4 shadow-sm p-4 position-relative overflow-hidden"
+              style={{ backgroundColor: '#F4EFF7', borderColor: '#E6DCED' }}
+            >
+              <div className="position-absolute top-0 end-0 p-3 opacity-25" style={{ fontSize: '3rem' }}>
+                🌿
+              </div>
+              <h5
+                className="fw-bold mb-1"
+                style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
+              >
+                Build your own wishlist
+              </h5>
+              <p className="text-muted small mb-3">
+                Save the books that speak to you and keep your next chapters within reach.
+              </p>
+              <Link
+                href="/wishlist"
+                className="btn btn-sm btn-rv-plum text-white rounded-3 px-3 py-2 fw-semibold shadow-sm text-center"
+                style={{ width: 'fit-content' }}
+              >
+                Go to my wishlist →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

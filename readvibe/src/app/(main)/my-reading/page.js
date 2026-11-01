@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -9,41 +9,26 @@ import {
   AiOutlineCheck,
   AiOutlineFileText,
   AiOutlineSearch,
-  AiOutlineLock
+  AiOutlineLock,
 } from 'react-icons/ai';
 import { BsBookmarks } from 'react-icons/bs';
-import { useReading, useBooks, useAuth } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
+import { useReading, useBooks, useAuth, useWishlist } from '@/hooks';
 import UpdateProgressModal from '@/components/UpdateProgressModal';
 import FinishBookModal from '@/components/FinishBookModal';
 
 export default function MyReadingPage() {
   const router = useRouter();
   const { currentReading, finishedReads } = useReading();
-  const { books: reduxBooks } = useBooks();
-  const { user: reduxUser } = useAuth();
+  const { books: allBooks } = useBooks();
+  const { user } = useAuth();
+  const { wishlist } = useWishlist();
 
-  const [currentList, setCurrentList] = useState([]);
-  const [finishedList, setFinishedList] = useState([]);
-  const [allBooks, setAllBooks] = useState([]);
-  const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('recently');
 
   const [selectedBookForProgress, setSelectedBookForProgress] = useState(null);
   const [selectedProgressItem, setSelectedProgressItem] = useState(null);
   const [selectedBookForFinish, setSelectedBookForFinish] = useState(null);
-
-  const reloadData = () => {
-    const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : readVibeStore.getBooks();
-    setAllBooks(books);
-    setCurrentList(currentReading && currentReading.length > 0 ? currentReading : readVibeStore.getCurrentReading());
-    setFinishedList(finishedReads && finishedReads.length > 0 ? finishedReads : readVibeStore.getFinishedReads());
-    setUser(reduxUser || readVibeStore.getUser());
-  };
-
-  useEffect(() => {
-    reloadData();
-  }, [currentReading, finishedReads, reduxBooks, reduxUser]);
 
   const handleOpenProgress = (book, readingItem) => {
     setSelectedBookForProgress(book);
@@ -54,13 +39,45 @@ export default function MyReadingPage() {
     setSelectedBookForFinish(book);
   };
 
-  const filteredList = currentList.filter((item) => {
-    const book = allBooks.find((b) => b.id === item.bookId);
-    if (!book) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
-  });
+  // Filter and sort active reading list
+  const filteredList = useMemo(() => {
+    let list = (currentReading || []).filter((item) => {
+      const book = allBooks.find((b) => b.id === item.bookId || b.slug === item.bookId);
+      if (!book) return false;
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
+    });
+
+    if (sortBy === 'title') {
+      list.sort((a, b) => {
+        const bookA = allBooks.find((x) => x.id === a.bookId) || {};
+        const bookB = allBooks.find((x) => x.id === b.bookId) || {};
+        return (bookA.title || '').localeCompare(bookB.title || '');
+      });
+    } else if (sortBy === 'progress') {
+      list.sort((a, b) => {
+        const bookA = allBooks.find((x) => x.id === a.bookId) || {};
+        const bookB = allBooks.find((x) => x.id === b.bookId) || {};
+        const pA = (a.currentPage || 0) / (bookA.pages || 300);
+        const pB = (b.currentPage || 0) / (bookB.pages || 300);
+        return pB - pA;
+      });
+    }
+    return list;
+  }, [currentReading, allBooks, searchQuery, sortBy]);
+
+  // Derived reading moods from current shelf
+  const currentShelfMoods = useMemo(() => {
+    const set = new Set();
+    currentReading.forEach((item) => {
+      const b = allBooks.find((x) => x.id === item.bookId);
+      if (b?.moods) {
+        b.moods.forEach((m) => set.add(m));
+      }
+    });
+    return Array.from(set).slice(0, 4);
+  }, [currentReading, allBooks]);
 
   return (
     <div className="container py-4 pb-5">
@@ -116,9 +133,11 @@ export default function MyReadingPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                {currentList.length}
+                {currentReading.length}
               </div>
-              <small className="text-muted" style={{ fontSize: '13px' }}>Currently reading</small>
+              <small className="text-muted" style={{ fontSize: '13px' }}>
+                Currently reading
+              </small>
             </div>
           </div>
         </div>
@@ -133,9 +152,11 @@ export default function MyReadingPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                {finishedList.length}
+                {finishedReads.length}
               </div>
-              <small className="text-muted" style={{ fontSize: '13px' }}>Finished this year</small>
+              <small className="text-muted" style={{ fontSize: '13px' }}>
+                Finished this year
+              </small>
             </div>
           </div>
         </div>
@@ -150,9 +171,11 @@ export default function MyReadingPage() {
             </div>
             <div>
               <div className="fs-3 fw-bold lh-1" style={{ color: 'var(--rv-ink-plum)' }}>
-                18
+                {wishlist.length}
               </div>
-              <small className="text-muted" style={{ fontSize: '13px' }}>On your wishlist</small>
+              <small className="text-muted" style={{ fontSize: '13px' }}>
+                On your wishlist
+              </small>
             </div>
           </div>
         </div>
@@ -168,23 +191,26 @@ export default function MyReadingPage() {
             style={{
               color: 'var(--rv-ink-plum)',
               borderBottom: '2.5px solid #D96B50',
-              paddingBottom: '8px'
+              paddingBottom: '8px',
             }}
           >
-            Currently reading ({currentList.length})
+            Currently reading ({currentReading.length})
           </button>
           <Link
             href="/finished-reads"
             className="text-decoration-none text-muted fw-semibold"
             style={{ paddingBottom: '8px' }}
           >
-            Finished ({finishedList.length})
+            Finished ({finishedReads.length})
           </Link>
         </div>
 
         {/* Right Search & Sort */}
         <div className="d-flex align-items-center gap-2">
-          <div className="input-group input-group-sm rounded-pill bg-white border px-2 py-1" style={{ maxWidth: '240px' }}>
+          <div
+            className="input-group input-group-sm rounded-pill bg-white border px-2 py-1"
+            style={{ maxWidth: '240px' }}
+          >
             <span className="input-group-text bg-transparent border-0 text-muted p-0 me-1">
               <AiOutlineSearch size={14} />
             </span>
@@ -203,7 +229,8 @@ export default function MyReadingPage() {
             <select
               className="form-select form-select-sm border bg-white rounded-pill py-1 px-2"
               style={{ fontSize: '12px', width: 'auto' }}
-              defaultValue="recently"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="recently">Recently updated</option>
               <option value="title">Title</option>
@@ -220,23 +247,29 @@ export default function MyReadingPage() {
           <div className="d-flex flex-column gap-3">
             {filteredList.length === 0 ? (
               <div className="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
-                <p className="text-muted mb-3">No active reads matching your search.</p>
+                <div className="fs-1 mb-2">📖</div>
+                <h5 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+                  No active reads on your shelf
+                </h5>
+                <p className="text-muted mb-3 small">
+                  Ready to pick up a new story? Explore our curated books or your wishlist.
+                </p>
                 <div>
-                  <Link href="/discover" className="btn btn-rv-plum rounded-pill px-4 py-2 fw-semibold">
+                  <Link href="/search" className="btn btn-rv-plum rounded-pill px-4 py-2 fw-semibold">
                     Explore books
                   </Link>
                 </div>
               </div>
             ) : (
               filteredList.map((item) => {
-                const book = allBooks.find((b) => b.id === item.bookId) || {
+                const book = allBooks.find((b) => b.id === item.bookId || b.slug === item.bookId) || {
                   title: 'The Midnight Library',
                   author: 'Matt Haig',
                   coverUrl: '/assets/books/midnight-library.jpg',
                   pages: 304,
-                  moods: ['Reflective', 'Hopeful']
+                  moods: ['Reflective', 'Hopeful'],
                 };
-                const totalPages = book.pages || 300;
+                const totalPages = book.pages || item.totalPages || 300;
                 const percent = Math.min(100, Math.round(((item.currentPage || 0) / totalPages) * 100));
 
                 return (
@@ -248,100 +281,91 @@ export default function MyReadingPage() {
                           <img
                             src={book.coverUrl}
                             alt={book.title}
-                            className="img-fluid rounded-2 shadow-sm"
-                            style={{ maxHeight: '110px', objectFit: 'cover' }}
+                            className="rounded-2 shadow-sm img-fluid"
+                            style={{ maxHeight: '115px', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                            }}
                           />
                         </Link>
                       </div>
 
-                      {/* Info & Progress */}
-                      <div className="col-9 col-sm-10">
-                        <div className="d-flex justify-content-between align-items-start mb-1">
-                          <div>
-                            <Link href={`/reader/${book.id}`} className="text-decoration-none">
-                              <h5
-                                className="fw-bold mb-0"
-                                style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
-                              >
-                                {book.title}
-                              </h5>
-                            </Link>
-                            <small className="text-muted">{book.author}</small>
-                          </div>
-                          <span className="text-muted" style={{ cursor: 'pointer' }}>···</span>
-                        </div>
-
-                        {/* Mood Pills */}
-                        <div className="d-flex flex-wrap gap-1 mb-2">
-                          {book.moods?.map((m) => (
-                            <span
-                              key={m}
-                              className="badge rounded-pill fw-normal"
-                              style={{ backgroundColor: '#EFE9F4', color: 'var(--rv-ink-plum)', fontSize: '11px', padding: '3px 8px' }}
-                            >
-                              {m}
-                            </span>
-                          ))}
-                        </div>
-
-                        <small className="text-muted d-block mb-1" style={{ fontSize: '11px' }}>
-                          Started {item.startedAt || 'Oct 20, 2026'}
-                        </small>
-
-                        {/* Progress Bar */}
-                        <div className="mb-3">
-                          <div
-                            className="progress rounded-pill mb-1"
-                            style={{ height: '6px', backgroundColor: '#F0ECE6' }}
+                      {/* Details & Progress */}
+                      <div className="col-9 col-sm-7">
+                        <Link href={`/books/${book.id}`} className="text-decoration-none">
+                          <h5
+                            className="fw-bold mb-1"
+                            style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
                           >
+                            {book.title}
+                          </h5>
+                        </Link>
+                        <p className="text-muted small mb-2">{book.author}</p>
+
+                        {/* Progress bar */}
+                        <div className="mb-2">
+                          <div className="d-flex justify-content-between small text-muted mb-1" style={{ fontSize: '11px' }}>
+                            <span>
+                              Page {item.currentPage || 0} of {totalPages}
+                            </span>
+                            <span className="fw-semibold">{percent}%</span>
+                          </div>
+                          <div className="progress rounded-pill" style={{ height: '6px', backgroundColor: '#F0ECE6' }}>
                             <div
                               className="progress-bar rounded-pill"
                               style={{
                                 width: `${percent}%`,
-                                backgroundColor: 'var(--rv-ink-plum)'
+                                backgroundColor: '#E27D60',
+                                transition: 'width 0.4s ease',
                               }}
                             />
                           </div>
-                          <div className="d-flex justify-content-between align-items-center" style={{ fontSize: '11px' }}>
-                            <span className="text-muted">
-                              Page {item.currentPage} of {totalPages}
-                            </span>
-                            <div className="d-flex align-items-center gap-3">
-                              <span className="fw-bold text-dark">{percent}%</span>
-                              <span className="text-muted">Updated today</span>
-                            </div>
+                        </div>
+
+                        {item.notes && (
+                          <div
+                            className="p-2 rounded-3 small text-muted mb-1 fst-italic"
+                            style={{ backgroundColor: '#FAF7F2', fontSize: '11px' }}
+                          >
+                            &ldquo;{item.notes}&rdquo;
                           </div>
+                        )}
+
+                        <div className="text-muted small" style={{ fontSize: '11px' }}>
+                          Last read: {item.lastRead || 'Recently'}
                         </div>
+                      </div>
 
-                        {/* Action Buttons */}
-                        <div className="d-flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenProgress(book, item)}
-                            className="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold text-white d-inline-flex align-items-center gap-1.5 shadow-sm"
-                            style={{ backgroundColor: 'var(--rv-ink-plum)', fontSize: '12px' }}
-                          >
-                            <AiOutlineEdit size={14} /> Update progress
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenFinish(book)}
-                            className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
-                            style={{ borderColor: '#EADFD5', color: 'var(--rv-ink-plum)', fontSize: '12px', background: '#FFFFFF' }}
-                          >
-                            <AiOutlineCheck size={14} /> Mark as finished
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/reader/${book.id}`)}
-                            className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
-                            style={{ borderColor: '#EADFD5', color: 'var(--rv-ink-plum)', fontSize: '12px', background: '#FFFFFF' }}
-                          >
-                            <AiOutlineFileText size={14} /> Notes
-                          </button>
-                        </div>
+                      {/* Action buttons */}
+                      <div className="col-12 col-sm-3 d-flex flex-sm-column gap-2 justify-content-end">
+                        <Link
+                          href={`/reader/${book.id}`}
+                          className="btn btn-sm btn-rv-plum rounded-pill py-1.5 px-3 fw-semibold text-center text-white"
+                          style={{ fontSize: '12px' }}
+                        >
+                          Read now
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenProgress(book, item)}
+                          className="btn btn-sm btn-outline-secondary rounded-pill py-1.5 px-3 fw-semibold d-inline-flex align-items-center justify-content-center gap-1"
+                          style={{
+                            borderColor: '#EADFD5',
+                            color: 'var(--rv-ink-plum)',
+                            fontSize: '12px',
+                            background: '#FFFFFF',
+                          }}
+                        >
+                          <AiOutlineEdit size={14} /> Update page
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenFinish(book)}
+                          className="btn btn-sm btn-outline-success rounded-pill py-1.5 px-3 fw-semibold d-inline-flex align-items-center justify-content-center gap-1"
+                          style={{ borderColor: '#D9ECE0', color: '#3A6349', fontSize: '12px', background: '#F4FAF6' }}
+                        >
+                          <AiOutlineCheck size={14} /> Finish
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -359,7 +383,7 @@ export default function MyReadingPage() {
               className="card border-0 rounded-4 p-4 position-relative overflow-hidden"
               style={{
                 backgroundColor: '#EAEFE9',
-                backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.3) 0%, transparent 65%)'
+                backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.3) 0%, transparent 65%)',
               }}
             >
               <h4
@@ -384,24 +408,17 @@ export default function MyReadingPage() {
               <small className="text-muted d-block mb-3">Based on your current shelf.</small>
 
               <div className="d-flex flex-wrap gap-2">
-                <span
-                  className="badge rounded-pill px-3 py-2 fw-normal"
-                  style={{ backgroundColor: '#FFEBE6', color: '#D96B50', fontSize: '12px' }}
-                >
-                  Cozy
-                </span>
-                <span
-                  className="badge rounded-pill px-3 py-2 fw-normal"
-                  style={{ backgroundColor: '#EFE9F4', color: 'var(--rv-ink-plum)', fontSize: '12px' }}
-                >
-                  Reflective
-                </span>
-                <span
-                  className="badge rounded-pill px-3 py-2 fw-normal"
-                  style={{ backgroundColor: '#EAF3EC', color: '#4A7C59', fontSize: '12px' }}
-                >
-                  Mindful
-                </span>
+                {(currentShelfMoods.length > 0 ? currentShelfMoods : ['Cozy', 'Reflective', 'Mindful']).map(
+                  (m) => (
+                    <span
+                      key={m}
+                      className="badge rounded-pill px-3 py-2 fw-normal"
+                      style={{ backgroundColor: '#FFEBE6', color: '#D96B50', fontSize: '12px' }}
+                    >
+                      {m}
+                    </span>
+                  )
+                )}
               </div>
             </div>
 
@@ -410,7 +427,8 @@ export default function MyReadingPage() {
               className="card border-0 rounded-4 p-4 position-relative overflow-hidden"
               style={{
                 backgroundColor: '#F3EEF7',
-                backgroundImage: 'radial-gradient(circle at 100% 100%, rgba(188, 168, 203, 0.25) 0%, transparent 60%)'
+                backgroundImage:
+                  'radial-gradient(circle at 100% 100%, rgba(188, 168, 203, 0.25) 0%, transparent 60%)',
               }}
             >
               <div
@@ -425,9 +443,7 @@ export default function MyReadingPage() {
               >
                 Ready for your next chapter?
               </h5>
-              <p className="text-muted small mb-3">
-                Keep your next read close.
-              </p>
+              <p className="text-muted small mb-3">Keep your next read close.</p>
               <Link
                 href="/wishlist"
                 className="fw-semibold text-decoration-none small d-inline-flex align-items-center gap-1"
@@ -438,7 +454,10 @@ export default function MyReadingPage() {
             </div>
 
             {/* Privacy note */}
-            <div className="d-flex align-items-center justify-content-center gap-1.5 text-muted small" style={{ fontSize: '12px' }}>
+            <div
+              className="d-flex align-items-center justify-content-center gap-1.5 text-muted small"
+              style={{ fontSize: '12px' }}
+            >
               <AiOutlineLock size={14} /> Your progress and personal notes are private.
             </div>
           </div>
@@ -456,17 +475,17 @@ export default function MyReadingPage() {
             setSelectedBookForProgress(null);
             setSelectedProgressItem(null);
           }}
-          onProgressUpdated={reloadData}
-          onUpdated={reloadData}
+          onUpdated={() => {}}
         />
       )}
 
       {selectedBookForFinish && (
         <FinishBookModal
+          key={selectedBookForFinish.id}
           book={selectedBookForFinish}
           isOpen={!!selectedBookForFinish}
           onClose={() => setSelectedBookForFinish(null)}
-          onBookFinished={reloadData}
+          onFinished={() => {}}
         />
       )}
     </div>

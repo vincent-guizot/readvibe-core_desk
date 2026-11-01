@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,14 +13,27 @@ import {
   AiOutlineCheck
 } from 'react-icons/ai';
 import { BsBookmarks } from 'react-icons/bs';
-import { readVibeStore } from '@/lib/store';
+import { useAuth, useReading, useWishlist } from '@/hooks';
 
 export default function PublicProfilePage() {
   const params = useParams();
   const username = params?.username || 'adminreadvibe';
 
+  const { user } = useAuth();
+  const { finishedReads } = useReading();
+  const { wishlist } = useWishlist();
+
   const [activeTab, setActiveTab] = useState('overview');
   const [copied, setCopied] = useState(false);
+
+  const isCurrent = user && (user.username === username || username === 'adminreadvibe');
+  const profileName = isCurrent && user?.name ? user.name : (username === 'adminreadvibe' ? 'Admin ReadVibe' : username);
+  const profileBio = isCurrent && user?.bio ? user.bio : 'Finding good stories between coffee breaks and lines of code.';
+  const profileLocation = isCurrent && user?.location ? user.location : 'Jakarta, Indonesia';
+  const profileAvatar = isCurrent && user?.avatar ? user.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  const finishedCount = isCurrent ? (finishedReads?.length || 12) : 12;
+  const reviewsCount = isCurrent ? (finishedReads?.filter((f) => f.review || f.notes)?.length || 8) : 8;
+  const wishlistCount = isCurrent ? (wishlist?.length || 18) : 18;
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -30,51 +43,78 @@ export default function PublicProfilePage() {
     }
   };
 
-  const storiesFromShelf = [
-    {
-      id: 'comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      rating: 4.5,
-      moods: ['Cozy', 'Hopeful', 'Reflective']
-    },
-    {
-      id: 'little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      coverUrl: '/assets/books/little-prince.jpg',
-      rating: 5.0,
-      moods: ['Reflective', 'Mindful', 'Hopeful']
-    },
-    {
-      id: 'psalm-for-wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      coverUrl: '/assets/books/wild-built.jpg',
-      rating: 4.0,
-      moods: ['Mindful', 'Cozy', 'Hopeful']
+  const storiesFromShelf = useMemo(() => {
+    if (isCurrent && finishedReads && finishedReads.length > 0) {
+      return finishedReads.slice(0, 3).map((f) => ({
+        id: f.id || f.bookId,
+        title: f.title || f.bookTitle || 'Finished Story',
+        author: f.author || 'Author',
+        coverUrl: f.coverUrl || '/assets/books/comfort-book.jpg',
+        rating: f.rating || 5,
+        moods: f.moods || ['Reflective']
+      }));
     }
-  ];
+    return [
+      {
+        id: 'comfort-book',
+        title: 'The Comfort Book',
+        author: 'Matt Haig',
+        coverUrl: '/assets/books/comfort-book.jpg',
+        rating: 4.5,
+        moods: ['Cozy', 'Hopeful', 'Reflective']
+      },
+      {
+        id: 'little-prince',
+        title: 'The Little Prince',
+        author: 'Antoine de Saint-Exupéry',
+        coverUrl: '/assets/books/little-prince.jpg',
+        rating: 5.0,
+        moods: ['Reflective', 'Mindful', 'Hopeful']
+      },
+      {
+        id: 'psalm-for-wild-built',
+        title: 'A Psalm for the Wild-Built',
+        author: 'Becky Chambers',
+        coverUrl: '/assets/books/wild-built.jpg',
+        rating: 4.0,
+        moods: ['Mindful', 'Cozy', 'Hopeful']
+      }
+    ];
+  }, [isCurrent, finishedReads]);
 
-  const readerReflections = [
-    {
-      id: 'comfort-book',
-      title: 'The Comfort Book',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      rating: 4.5,
-      date: 'May 14, 2026',
-      content: "A gentle reminder that it's okay to be a work in progress, and that small joys can carry us through harder days."
-    },
-    {
-      id: 'little-prince',
-      title: 'The Little Prince',
-      coverUrl: '/assets/books/little-prince.jpg',
-      rating: 5.0,
-      date: 'Mar 2, 2026',
-      content: 'A simple yet profound story that always finds a new meaning, no matter how many times I return to it.'
+  const readerReflections = useMemo(() => {
+    if (isCurrent && finishedReads && finishedReads.length > 0) {
+      const withReviews = finishedReads.filter((f) => f.review || f.notes);
+      if (withReviews.length > 0) {
+        return withReviews.slice(0, 3).map((f) => ({
+          id: f.id || f.bookId,
+          title: f.title || f.bookTitle,
+          coverUrl: f.coverUrl || '/assets/books/comfort-book.jpg',
+          rating: f.rating || 5,
+          date: f.dateFinished || 'Recently',
+          content: f.review || f.notes
+        }));
+      }
     }
-  ];
+    return [
+      {
+        id: 'comfort-book',
+        title: 'The Comfort Book',
+        coverUrl: '/assets/books/comfort-book.jpg',
+        rating: 4.5,
+        date: 'May 14, 2026',
+        content: "A gentle reminder that it's okay to be a work in progress, and that small joys can carry us through harder days."
+      },
+      {
+        id: 'little-prince',
+        title: 'The Little Prince',
+        coverUrl: '/assets/books/little-prince.jpg',
+        rating: 5.0,
+        date: 'Mar 2, 2026',
+        content: 'A simple yet profound story that always finds a new meaning, no matter how many times I return to it.'
+      }
+    ];
+  }, [isCurrent, finishedReads]);
 
   return (
     <div className="container py-4 pb-5">
@@ -90,7 +130,7 @@ export default function PublicProfilePage() {
             <span className="text-secondary">Readers</span>
           </li>
           <li className="breadcrumb-item active text-muted" aria-current="page">
-            Admin ReadVibe
+            {profileName}
           </li>
         </ol>
       </nav>
@@ -107,8 +147,8 @@ export default function PublicProfilePage() {
           {/* Avatar and info */}
           <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-4">
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"
-              alt="Admin ReadVibe"
+              src={profileAvatar}
+              alt={profileName}
               className="rounded-4 object-fit-cover shadow-sm"
               style={{ width: '105px', height: '105px' }}
               onError={(e) => {
@@ -121,17 +161,17 @@ export default function PublicProfilePage() {
                   className="fw-bold mb-0"
                   style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
                 >
-                  Admin ReadVibe
+                  {profileName}
                 </h2>
               </div>
-              <p className="text-muted small mb-2">@adminreadvibe</p>
+              <p className="text-muted small mb-2">@{username}</p>
               <p className="text-dark mb-2 small" style={{ maxWidth: '520px' }}>
-                Finding good stories between coffee breaks and lines of code.
+                {profileBio}
               </p>
 
               <div className="d-flex flex-wrap align-items-center gap-3 text-muted small" style={{ fontSize: '12px' }}>
                 <span className="d-flex align-items-center gap-1">
-                  <span style={{ color: '#D96B50' }}>📍</span> Jakarta, Indonesia
+                  <span style={{ color: '#D96B50' }}>📍</span> {profileLocation}
                 </span>
                 <span className="d-flex align-items-center gap-1">
                   <span style={{ color: '#D96B50' }}>📅</span> Joined October 2026
@@ -177,7 +217,7 @@ export default function PublicProfilePage() {
         <div className="col-md-4">
           <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
             <div className="fs-3 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-              12
+              {finishedCount}
             </div>
             <small className="text-muted" style={{ fontSize: '13px' }}>Shared finished reads</small>
           </div>
@@ -186,7 +226,7 @@ export default function PublicProfilePage() {
         <div className="col-md-4">
           <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
             <div className="fs-3 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-              8
+              {reviewsCount}
             </div>
             <small className="text-muted" style={{ fontSize: '13px' }}>Public reviews</small>
           </div>
@@ -195,7 +235,7 @@ export default function PublicProfilePage() {
         <div className="col-md-4">
           <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
             <div className="fs-3 fw-bold lh-1 mb-1" style={{ color: 'var(--rv-ink-plum)' }}>
-              18
+              {wishlistCount}
             </div>
             <small className="text-muted" style={{ fontSize: '13px' }}>Wishlist books</small>
           </div>
@@ -376,7 +416,7 @@ export default function PublicProfilePage() {
               <h5 className="fw-bold mb-3" style={{ color: 'var(--rv-ink-plum)' }}>
                 Public Reviews
               </h5>
-              <p className="text-muted small">8 public reflections shared by this reader.</p>
+              <p className="text-muted small">{reviewsCount} public reflections shared by this reader.</p>
             </div>
           )}
 

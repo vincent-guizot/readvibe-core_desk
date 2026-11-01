@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,8 +13,7 @@ import {
   AiOutlineLink
 } from 'react-icons/ai';
 import { BsBookmarks, BsBookmark } from 'react-icons/bs';
-import { useWishlist, useBooks, useReading } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
+import { useWishlist, useBooks, useReading, useAuth } from '@/hooks';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 
 export default function WishlistPage() {
@@ -22,16 +21,16 @@ export default function WishlistPage() {
   const { wishlist, removeWishlist } = useWishlist();
   const { books: reduxBooks } = useBooks();
   const { startBook } = useReading();
+  const { user } = useAuth();
 
-  const [items, setItems] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
   const [isPrivate, setIsPrivate] = useState(true);
   const [selectedBookForEdit, setSelectedBookForEdit] = useState(null);
 
-  const reloadWishlist = () => {
-    const rawWishlist = readVibeStore.getWishlist();
-    const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : readVibeStore.getBooks();
-    const enriched = rawWishlist.map((w) => {
+  const items = useMemo(() => {
+    const rawWishlist = wishlist || [];
+    const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : [];
+    return rawWishlist.map((w) => {
       const book = books.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
         id: w.bookId,
         title: w.bookId,
@@ -56,23 +55,15 @@ export default function WishlistPage() {
         dateAdded: w.addedAt || 'Recently'
       };
     });
-    setItems(enriched);
-  };
-
-  useEffect(() => {
-    reloadWishlist();
-  }, []);
+  }, [wishlist, reduxBooks]);
 
   const handleStartReading = (bookId) => {
     startBook(bookId);
-    readVibeStore.startReadingBook(bookId);
     router.push(`/reader/${bookId}`);
   };
 
   const handleRemoveItem = (bookId) => {
     removeWishlist(bookId);
-    readVibeStore.removeFromWishlist(bookId);
-    reloadWishlist();
   };
 
   const allCount = items.length;
@@ -85,6 +76,8 @@ export default function WishlistPage() {
     if (activeTab === 'Recent') return true;
     return true;
   });
+
+  const usernameParam = user?.username || 'adminreadvibe';
 
   return (
     <div className="container py-4 pb-5">
@@ -144,7 +137,7 @@ export default function WishlistPage() {
 
               {/* Share Wishlist button */}
               <Link
-                href="/u/adminreadvibe/wishlist"
+                href={`/u/${usernameParam}/wishlist`}
                 className={`btn btn-sm rounded-3 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 ${
                   isPrivate ? 'btn-light text-muted border opacity-75' : 'btn-rv-plum text-white shadow-sm'
                 }`}
@@ -471,10 +464,7 @@ export default function WishlistPage() {
           book={selectedBookForEdit}
           isOpen={true}
           onClose={() => setSelectedBookForEdit(null)}
-          onSaved={() => {
-            setSelectedBookForEdit(null);
-            reloadWishlist();
-          }}
+          onSaved={() => setSelectedBookForEdit(null)}
         />
       )}
     </div>

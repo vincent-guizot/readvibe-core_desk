@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
-  const { updateProfile } = useAuth();
+  const { user: authUser, updateProfile } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -16,14 +16,14 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
 
   useEffect(() => {
     if (isOpen) {
-      const u = readVibeStore.getUser();
+      const u = authUser || readVibeStore.getUser();
       setName(u.name || '');
       setUsername(u.username || '');
       setBio(u.bio || '');
       setLocation(u.location || 'Jakarta, Indonesia');
       setAvatar(u.avatar || '');
     }
-  }, [isOpen]);
+  }, [isOpen, authUser]);
 
   if (!isOpen) return null;
 
