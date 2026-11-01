@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
+import { useAuth } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
+  const { updateProfile } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -29,6 +31,13 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
     e.preventDefault();
     setIsSaving(true);
     try {
+      updateProfile({
+        name,
+        username,
+        bio,
+        location,
+        avatar
+      });
       const updated = readVibeStore.updateUser({
         name,
         username,

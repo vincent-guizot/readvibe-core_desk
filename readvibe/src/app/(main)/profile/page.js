@@ -18,11 +18,17 @@ import {
   AiFillStar
 } from 'react-icons/ai';
 import { BsBookmarks } from 'react-icons/bs';
+import { useAuth, useReading, useWishlist, useBooks } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 import EditProfileModal from '@/components/EditProfileModal';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(null);
+  const { user: reduxUser } = useAuth();
+  const { currentReading: reduxReading, finishedReads: reduxFinished } = useReading();
+  const { wishlist: reduxWishlist } = useWishlist();
+  const { books: reduxBooks } = useBooks();
+
+  const [user, setUser] = useState(reduxUser || null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [currentReading, setCurrentReading] = useState([]);
@@ -31,12 +37,12 @@ export default function ProfilePage() {
   const [allBooks, setAllBooks] = useState([]);
 
   useEffect(() => {
-    setUser(readVibeStore.getUser());
-    setCurrentReading(readVibeStore.getCurrentReading());
-    setFinishedReads(readVibeStore.getFinishedReads());
-    setWishlist(readVibeStore.getWishlist());
-    setAllBooks(readVibeStore.getBooks());
-  }, []);
+    setUser(reduxUser || readVibeStore.getUser());
+    setCurrentReading(reduxReading && reduxReading.length > 0 ? reduxReading : readVibeStore.getCurrentReading());
+    setFinishedReads(reduxFinished && reduxFinished.length > 0 ? reduxFinished : readVibeStore.getFinishedReads());
+    setWishlist(reduxWishlist && reduxWishlist.length > 0 ? reduxWishlist : readVibeStore.getWishlist());
+    setAllBooks(reduxBooks && reduxBooks.length > 0 ? reduxBooks : readVibeStore.getBooks());
+  }, [reduxUser, reduxReading, reduxFinished, reduxWishlist, reduxBooks]);
 
   if (!user) return null;
 

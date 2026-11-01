@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
+import { useReading } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function UpdateProgressModal({
@@ -12,6 +13,7 @@ export default function UpdateProgressModal({
   onUpdated,
   onProgressUpdated
 }) {
+  const { updateBookProgress } = useReading();
   const [currentPage, setCurrentPage] = useState(currentReading?.currentPage || 0);
   const [notes, setNotes] = useState(currentReading?.notes || '');
 
@@ -29,6 +31,7 @@ export default function UpdateProgressModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    updateBookProgress(book.id, currentPage, notes);
     readVibeStore.updateReadingProgress(book.id, currentPage, notes);
     if (onUpdated) onUpdated();
     if (onProgressUpdated) onProgressUpdated();

@@ -12,12 +12,17 @@ import {
   AiOutlineLock
 } from 'react-icons/ai';
 import { BsBookmarks } from 'react-icons/bs';
+import { useReading, useBooks, useAuth } from '@/hooks';
 import { readVibeStore } from '@/lib/store';
 import UpdateProgressModal from '@/components/UpdateProgressModal';
 import FinishBookModal from '@/components/FinishBookModal';
 
 export default function MyReadingPage() {
   const router = useRouter();
+  const { currentReading, finishedReads } = useReading();
+  const { books: reduxBooks } = useBooks();
+  const { user: reduxUser } = useAuth();
+
   const [currentList, setCurrentList] = useState([]);
   const [finishedList, setFinishedList] = useState([]);
   const [allBooks, setAllBooks] = useState([]);
@@ -29,16 +34,16 @@ export default function MyReadingPage() {
   const [selectedBookForFinish, setSelectedBookForFinish] = useState(null);
 
   const reloadData = () => {
-    const books = readVibeStore.getBooks();
+    const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : readVibeStore.getBooks();
     setAllBooks(books);
-    setCurrentList(readVibeStore.getCurrentReading());
-    setFinishedList(readVibeStore.getFinishedReads());
-    setUser(readVibeStore.getUser());
+    setCurrentList(currentReading && currentReading.length > 0 ? currentReading : readVibeStore.getCurrentReading());
+    setFinishedList(finishedReads && finishedReads.length > 0 ? finishedReads : readVibeStore.getFinishedReads());
+    setUser(reduxUser || readVibeStore.getUser());
   };
 
   useEffect(() => {
     reloadData();
-  }, []);
+  }, [currentReading, finishedReads, reduxBooks, reduxUser]);
 
   const handleOpenProgress = (book, readingItem) => {
     setSelectedBookForProgress(book);

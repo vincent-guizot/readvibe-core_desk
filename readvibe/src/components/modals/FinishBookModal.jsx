@@ -10,10 +10,12 @@ import {
   AiOutlineCalendar,
   AiOutlineLock
 } from 'react-icons/ai';
+import { useReading } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function FinishBookModal({ book, isOpen, onClose, onFinished, onBookFinished }) {
   const router = useRouter();
+  const { finishBook } = useReading();
   const [rating, setRating] = useState(4);
   const [hoverRating, setHoverRating] = useState(0);
   const [finishedDate, setFinishedDate] = useState('2026-10-29');
@@ -42,6 +44,13 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    finishBook({
+      bookId: book.id,
+      rating,
+      favoriteQuote,
+      moods: selectedMoods,
+      privateNotes: personalNotes
+    });
     readVibeStore.markBookAsFinished({
       bookId: book.id,
       rating,
