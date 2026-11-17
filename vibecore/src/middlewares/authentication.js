@@ -18,7 +18,7 @@ export const authentication = async (req, res, next) => {
       include: [{ model: db.profile, as: 'profile' }],
     });
 
-    if (!user) {
+    if (!user || user.status === 'Suspended') {
       return next(AppError.unauthorized('Pengguna tidak ditemukan atau token tidak valid.', ErrorCodes.UNAUTHORIZED));
     }
 
