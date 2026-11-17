@@ -63,3 +63,6 @@ Akses di: [http://localhost:3360](http://localhost:3360)
 | **VibeCore** | `http://localhost:3360` | - | `http://localhost:3350`, `http://localhost:3355` |
 
 Untuk informasi arsitektur dan skema database, lihat direktori [Documentations/](Documentations/README.md).
+
+Panduan VibeDesk yang mencakup struktur frontend, halaman, Redux, hooks, API,
+styling Bootstrap, animasi, dan deployment tersedia di [vibedesk/README.md](vibedesk/README.md).

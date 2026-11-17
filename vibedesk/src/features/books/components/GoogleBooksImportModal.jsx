@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AiOutlineArrowLeft, AiOutlineCloudDownload, AiOutlineSearch } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineCheckCircle, AiOutlineCloudDownload, AiOutlineSearch } from 'react-icons/ai';
 import { booksApi, getApiErrorMessage, googleBooksApi } from '../../../services/catalog-api';
 
 const findMatchingId = (items, names, nameSelector) => {
@@ -103,7 +103,7 @@ export default function GoogleBooksImportModal({ isOpen, onClose, onImportSucces
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }} role="dialog" aria-modal="true" aria-labelledby="google-books-import-title">
-      <div className="modal-dialog modal-dialog-centered modal-lg">
+      <div className="modal-dialog modal-dialog-centered modal-xl">
         <div className="modal-content shadow-lg border-0" style={{ borderRadius: 'var(--vd-radius-md)' }}>
           <div className="modal-header border-bottom py-3">
             <h5 id="google-books-import-title" className="modal-title fw-bold d-flex align-items-center gap-2" style={{ color: 'var(--vd-desk-navy)' }}>
@@ -114,10 +114,16 @@ export default function GoogleBooksImportModal({ isOpen, onClose, onImportSucces
           </div>
 
           <div className="modal-body p-4">
+            <ol className="vd-import-steps" aria-label="Tahapan import Google Books">
+              <li className={!selectedBook ? 'is-active' : 'is-complete'}><span>{selectedBook ? <AiOutlineCheckCircle /> : '1'}</span><div><strong>Cari buku</strong><small>Google Books</small></div></li>
+              <li className={selectedBook ? 'is-active' : ''}><span>2</span><div><strong>Tinjau metadata</strong><small>Validasi katalog</small></div></li>
+              <li><span>3</span><div><strong>Lengkapi detail</strong><small>Stok & mood</small></div></li>
+              <li><span>4</span><div><strong>Konfirmasi</strong><small>Simpan ke katalog</small></div></li>
+            </ol>
             {displayMessage}
             {!selectedBook ? (
               <>
-                <p className="text-muted small">Cari berdasarkan judul, penulis, atau ISBN. Data belum masuk katalog sampai Anda meninjau dan mengonfirmasinya.</p>
+                <div className="vd-import-intro"><div><span className="vd-section-kicker">Google Books integration</span><h6>Cari buku untuk diimpor</h6><p>Data tidak akan masuk ke katalog sebelum ditinjau dan dikonfirmasi oleh staf.</p></div><img src="/assets/illustrations/books.png" alt="" /></div>
                 <form onSubmit={handleSearch} className="mb-4">
                   <div className="input-group">
                     <input type="text" className="form-control" placeholder="Contoh: Atomic Habits atau 9780735211292" value={query} onChange={(event) => setQuery(event.target.value)} required disabled={isSearching} />
@@ -130,7 +136,7 @@ export default function GoogleBooksImportModal({ isOpen, onClose, onImportSucces
                 {results.length > 0 && (
                   <div className="d-flex flex-column gap-3 overflow-auto" style={{ maxHeight: '420px' }}>
                     {results.map((item) => (
-                      <article key={item.googleBooksId} className="p-3 border rounded d-flex justify-content-between align-items-center gap-3 bg-light">
+                      <article key={item.googleBooksId} className="vd-import-result p-3 d-flex justify-content-between align-items-center gap-3">
                         <div className="d-flex gap-3 align-items-center min-w-0">
                           <img src={item.image || 'https://via.placeholder.com/60x90'} alt="" className="rounded" style={{ width: '45px', height: '65px', objectFit: 'cover' }} />
                           <div>
@@ -151,6 +157,7 @@ export default function GoogleBooksImportModal({ isOpen, onClose, onImportSucces
                 <button type="button" className="btn btn-link btn-sm p-0 mb-3 text-decoration-none" onClick={() => { setSelectedBook(null); setMessage(null); }} disabled={isImporting}>
                   <AiOutlineArrowLeft className="me-1" /> Kembali ke hasil pencarian
                 </button>
+                <div className="vd-import-review-heading"><span className="vd-section-kicker">Step 2 of 4</span><h6>Review & lengkapi detail katalog</h6><p>Periksa metadata dari Google Books dan pilih relasinya pada katalog internal.</p></div>
                 <div className="row g-3">
                   <div className="col-md-3">
                     <img src={selectedBook.image || 'https://via.placeholder.com/160x240'} alt={`Cover ${selectedBook.title}`} className="rounded border w-100" style={{ aspectRatio: '2 / 3', objectFit: 'cover' }} />
