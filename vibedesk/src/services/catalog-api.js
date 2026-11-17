@@ -13,6 +13,9 @@ export const authorsApi = createCrudClient('/api/authors');
 export const categoriesApi = createCrudClient('/api/categories');
 export const moodsApi = createCrudClient('/api/moods');
 export const editorialPicksApi = createCrudClient('/api/editorial');
+export const googleBooksApi = {
+  search: (query) => http.get('/api/integrations/google-books/search', { params: { query } }),
+};
 
 export const getApiErrorMessage = (error, fallback = 'Permintaan tidak dapat diproses.') =>
   error?.message || fallback;

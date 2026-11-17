@@ -251,10 +251,12 @@ export default function App() {
 
       {/* Google Books 1-Click Import Modal */}
       <GoogleBooksImportModal
+        key={`google-import-${isImportModalOpen}`}
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        token={token}
-        apiUrl={API_URL}
+        authors={authors}
+        categories={categories}
+        moods={moods}
         onImportSuccess={() => {
           showToast('Buku berhasil diimpor dari Google Books!');
           loadAllData();
