@@ -3,6 +3,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import AppRoutes from './routes';
 import GoogleBooksImportModal from './features/books/components/GoogleBooksImportModal';
 import ManualAddBookModal from './features/books/components/ManualAddBookModal';
+import { booksApi, getApiErrorMessage } from './services/catalog-api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3360';
 
@@ -29,6 +30,7 @@ export default function App() {
   // Modals
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState(null);
 
   // Initialize
   useEffect(() => {
@@ -164,16 +166,11 @@ export default function App() {
   const handleDeleteBook = async (id, title) => {
     if (!window.confirm(`Yakin ingin menghapus buku "${title}" dari katalog?`)) return;
     try {
-      const res = await fetch(`${API_URL}/api/books/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        showToast(`Buku "${title}" berhasil dihapus.`);
-        loadAllData();
-      }
-    } catch (e) {
-      console.error(e);
+      await booksApi.remove(id);
+      showToast(`Buku "${title}" berhasil dihapus.`);
+      loadAllData();
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Buku gagal dihapus.'));
     }
   };
 
@@ -231,7 +228,14 @@ export default function App() {
         flaggedReviews={flaggedReviews}
         members={members}
         onOpenImport={() => setIsImportModalOpen(true)}
-        onOpenAddBook={() => setIsAddBookModalOpen(true)}
+        onOpenAddBook={() => {
+          setEditingBook(null);
+          setIsAddBookModalOpen(true);
+        }}
+        onEditBook={(book) => {
+          setEditingBook(book);
+          setIsAddBookModalOpen(true);
+        }}
         onDeleteBook={handleDeleteBook}
         onRefresh={loadAllData}
         onModerate={handleModeration}
@@ -247,10 +251,12 @@ export default function App() {
 
       {/* Google Books 1-Click Import Modal */}
       <GoogleBooksImportModal
+        key={`google-import-${isImportModalOpen}`}
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        token={token}
-        apiUrl={API_URL}
+        authors={authors}
+        categories={categories}
+        moods={moods}
         onImportSuccess={() => {
           showToast('Buku berhasil diimpor dari Google Books!');
           loadAllData();
@@ -260,17 +266,23 @@ export default function App() {
 
       {/* Manual Add Book Modal */}
       <ManualAddBookModal
+        key={`${editingBook?.id || 'new'}-${isAddBookModalOpen}`}
         isOpen={isAddBookModalOpen}
-        onClose={() => setIsAddBookModalOpen(false)}
+        onClose={() => {
+          setIsAddBookModalOpen(false);
+          setEditingBook(null);
+        }}
         token={token}
         apiUrl={API_URL}
         authors={authors}
         categories={categories}
         moods={moods}
+        book={editingBook}
         onAddSuccess={() => {
-          showToast('Buku manual berhasil ditambahkan.');
+          showToast(editingBook ? 'Buku berhasil diperbarui.' : 'Buku manual berhasil ditambahkan.');
           loadAllData();
           setIsAddBookModalOpen(false);
+          setEditingBook(null);
         }}
       />
     </DashboardLayout>

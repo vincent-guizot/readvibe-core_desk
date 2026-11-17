@@ -9,9 +9,9 @@ const router = Router();
 
 router.get('/search', authentication, authorization(['Admin', 'Librarian']), async (req, res, next) => {
   try {
-    const { query } = req.query;
-    if (!query) {
-      return ApiResponse.error(res, 'Query parameter is required', 400);
+    const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    if (query.length < 2) {
+      return ApiResponse.error(res, 'Kata kunci pencarian minimal dua karakter.', 400, 'VALIDATION_ERROR');
     }
     const volumes = await GoogleBooksClient.searchVolumes(query);
     const results = volumes.map(BookMetadataMapper.toDomain);
