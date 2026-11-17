@@ -2,6 +2,7 @@ import { CandidateSelector } from './candidate-selector';
 import { Ranker } from './ranker';
 import { ExplanationGenerator } from './explanation-generator';
 import { toBookResource } from '../../contracts/resources/book.resource';
+import { SettingsService } from '../settings/settings.service';
 
 export class RecommendationService {
   static async getVibeRecommendations(moodTags = [], queryText = '') {
@@ -12,10 +13,13 @@ export class RecommendationService {
     }
 
     // 2. Ranking Algorithm
-    const ranked = Ranker.rank(candidates, moodTags, queryText);
+    const settings = await SettingsService.getSettings();
+    const ranked = Ranker.rank(candidates, moodTags, queryText, settings);
 
     // 3. Empathetic Explanation Generation (Gemini AI or Heuristic)
-    const explained = await ExplanationGenerator.generate({ moodTags, queryText }, ranked);
+    const explained = settings.enableGeminiExplanations
+      ? await ExplanationGenerator.generate({ moodTags, queryText }, ranked)
+      : ranked.map((item) => ({ ...item, reason: item.defaultReason }));
 
     return explained.map((item) => ({
       book: toBookResource(item.book),
