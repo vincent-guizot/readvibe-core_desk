@@ -109,6 +109,16 @@ export class BookService {
       }
     }
 
+    if (googleBooksId) {
+      const existing = await db.book.findOne({ where: { googleBooksId } });
+      if (existing) {
+        throw AppError.conflict(
+          `Buku dari Google Books ini sudah terdaftar: "${existing.title}"`,
+          ErrorCodes.RESOURCE_ALREADY_EXISTS
+        );
+      }
+    }
+
     const book = await db.book.create({
       title,
       description,
@@ -166,6 +176,13 @@ export class BookService {
       const existing = await db.book.findOne({ where: { isbn } });
       if (existing && existing.id !== book.id) {
         throw AppError.conflict(`ISBN ${isbn} sudah digunakan oleh buku lain.`, ErrorCodes.RESOURCE_ALREADY_EXISTS);
+      }
+    }
+
+    if (googleBooksId && googleBooksId !== book.googleBooksId) {
+      const existing = await db.book.findOne({ where: { googleBooksId } });
+      if (existing && existing.id !== book.id) {
+        throw AppError.conflict('Google Books ID sudah digunakan oleh buku lain.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
       }
     }
 
