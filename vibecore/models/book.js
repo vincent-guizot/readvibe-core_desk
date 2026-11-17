@@ -25,6 +25,13 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       description: DataTypes.TEXT,
+      subtitle: DataTypes.STRING(255),
+      publisher: DataTypes.STRING(255),
+      edition: DataTypes.STRING(100),
+      language: DataTypes.STRING(100),
+      format: DataTypes.STRING(50),
+      widthCm: { type: DataTypes.DECIMAL(8, 2), validate: { min: 0.01, max: 999999.99 } },
+      heightCm: { type: DataTypes.DECIMAL(8, 2), validate: { min: 0.01, max: 999999.99 } },
       year: DataTypes.INTEGER,
       page: DataTypes.INTEGER,
       stock: {
