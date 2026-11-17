@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ENV } from '../../config/env';
-import { logger } from '../../utils/logger';
+import { AppError } from '../../errors/app-error';
 
 export class GoogleBooksClient {
   static async searchVolumes(query, maxResults = 8) {
@@ -11,9 +11,7 @@ export class GoogleBooksClient {
       const response = await axios.get(url, { timeout: 8000 });
       return response.data.items || [];
     } catch (err) {
-      logger.error('Google Books API search error:', err.message);
-      // Fallback: If rate-limited (429), network error, or Google API issue, return empty array gracefully
-      return [];
+      throw new AppError(err.response?.status === 429 ? 'Kuota Google Books tercapai. Coba kembali nanti.' : 'Google Books tidak dapat dihubungi. Coba kembali nanti.', 502, 'GOOGLE_BOOKS_ERROR');
     }
   }
 }

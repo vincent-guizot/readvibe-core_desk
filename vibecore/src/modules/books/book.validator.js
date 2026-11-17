@@ -1,6 +1,9 @@
+import { validateBookMetadata } from './book.metadata';
+
 const isNonNegativeInteger = (value) => Number.isInteger(Number(value)) && Number(value) >= 0;
 
-const validateBookFields = ({ title, stock, year, page }, { requireTitle }) => {
+const validateBookFields = (payload, { requireTitle }) => {
+  const { title, stock, year, page } = payload;
   if (requireTitle && (!title || typeof title !== 'string' || title.trim() === '')) {
     return 'Judul buku wajib diisi.';
   }
@@ -10,7 +13,7 @@ const validateBookFields = ({ title, stock, year, page }, { requireTitle }) => {
   if (stock !== undefined && !isNonNegativeInteger(stock)) return 'Stok buku harus berupa angka bulat nol atau lebih.';
   if (year !== undefined && !isNonNegativeInteger(year)) return 'Tahun terbit harus berupa angka bulat nol atau lebih.';
   if (page !== undefined && !isNonNegativeInteger(page)) return 'Jumlah halaman harus berupa angka bulat nol atau lebih.';
-  return null;
+  return validateBookMetadata(payload);
 };
 
 export const validateBookPayload = (req) => validateBookFields(req.body, { requireTitle: true });

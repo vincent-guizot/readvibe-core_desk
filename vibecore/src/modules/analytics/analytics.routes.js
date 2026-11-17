@@ -9,6 +9,8 @@ router.use(authentication);
 router.use(authorization(['Admin', 'Librarian']));
 
 router.get('/overview', AnalyticsController.getOverview);
+router.get('/wishlist-intelligence', AnalyticsController.wishlistIntelligence);
+router.get('/reading', AnalyticsController.readingAnalytics);
 router.get('/top-wishlisted', AnalyticsController.getTopWishlisted);
 router.get('/mood-distribution', AnalyticsController.getMoodDistribution);
 

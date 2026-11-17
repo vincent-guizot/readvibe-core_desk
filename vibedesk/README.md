@@ -1,85 +1,98 @@
-# VibeDesk — CMS & Backoffice ReadVibe
+# VibeDesk — CMS & Backoffice
 
-VibeDesk digunakan staf untuk mengelola katalog, taksonomi, kurasi, dan komunitas
-ReadVibe. Aplikasi ini adalah frontend mandiri dalam repositori ReadVibe Ecosystem;
-data dan otorisasi dilayani oleh VibeCore REST API.
+VibeDesk adalah aplikasi operasional ReadVibe untuk Admin dan Librarian. React 19,
+React Router 7, Vite, Bootstrap 5.3, Axios, Redux Toolkit, Recharts, dan JavaScript
+digunakan tanpa TypeScript atau TanStack Query. Backend VibeCore memakai Express,
+Sequelize, dan PostgreSQL.
 
-## Teknologi
+## Menjalankan
 
-- React 19 dan Vite 8.
-- React Router 7 untuk routing, route guard, dan lazy loading halaman.
-- Redux Toolkit dan React Redux untuk state resource katalog/analytics.
-- Bootstrap 5.3 untuk layout, grid, form, button, table, alert, modal, dan utility.
-- Axios untuk layanan HTTP katalog/workspace.
-- Recharts untuk grafik analytics; React Icons untuk ikon.
-- Oxlint untuk pemeriksaan source.
-
-Dependency dan versi lengkap tersedia di [package.json](package.json).
-
-## Persiapan dan menjalankan aplikasi
-
-Gunakan Node.js yang didukung Vite 8 (20.19+ atau 22.12+) dan npm.
-Seluruh perintah berikut dijalankan dari direktori `vibedesk/`.
+Dari `vibedesk/`:
 
 ```bash
 npm ci
 ```
 
-Salin environment example. Pada PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Pada Bash:
-
-```bash
-cp .env.example .env
-```
-
-Konfigurasi frontend:
+Salin `.env.example` ke `.env`, lalu tetapkan:
 
 ```env
 VITE_API_URL=http://localhost:3360
 ```
 
-Jalankan:
-
 ```bash
 npm run dev
 ```
 
-- VibeDesk: http://localhost:3355
-- VibeCore: http://localhost:3360
-- ReadVibe: http://localhost:3350
+VibeDesk tersedia di `http://localhost:3355`. Jalankan VibeCore dan PostgreSQL
+terlebih dahulu. Backend harus mengizinkan origin frontend melalui CORS. Jalankan
+migrasi backend sampai `20261117120000-add-backoffice-settings-and-moderation-audit.js`.
+Lihat [README VibeCore](../vibecore/README.md).
 
-VibeCore dan database PostgreSQL perlu tersedia untuk login dan operasi data.
-Ikuti [README VibeCore](../vibecore/README.md) untuk konfigurasi backend,
-migration, dan seed. CORS backend harus mengizinkan origin VibeDesk.
+Google Books key, Gemini key, JWT secret, dan kredensial database berada di server.
+Variabel `VITE_*` masuk ke browser; isilah hanya konfigurasi publik. JWT_SECRET wajib
+dikonfigurasi di VibeCore. Frontend tidak melakukan login otomatis dengan akun seed.
 
-Port Vite ditentukan oleh script dan `vite.config.js`; `PORT` pada
-`.env.example` tidak mengubah port Vite secara otomatis. Untuk port lain:
+Untuk deployment, sajikan `dist/` dengan fallback halaman ke `index.html` agar deep
+link React Router bekerja. Ubah `VITE_API_URL` sebelum build untuk mengganti API.
 
-```bash
-npm run dev -- --port 3356
-```
+## 31 halaman
 
-Semua variabel berawalan `VITE_` dapat masuk ke bundle browser.
-Simpan Google Books API key, Gemini API key, dan secret lainnya hanya di backend.
+| No. | Route | Fungsi |
+| --- | --- | --- |
+| 1 | `/login` | Login staf, ingat sesi, tampil/sembunyi password, loading/error |
+| 2 | `/` | KPI aktual, perubahan katalog terbaru, alert stok/moderasi, quick actions |
+| 3 | `/books` | Search judul/penulis/ISBN, filter kategori/penulis/mood/stok, sorting, pagination server, CRUD |
+| 4 | `/books/new` | Form tambah buku, relasi, metadata dan cover |
+| 5 | `/books/:id/edit` | Form bersama, nilai tersimpan, update dan hapus dengan konfirmasi |
+| 6 | `/books/:id` | Sampul, metadata, stok, sinopsis, ulasan publik, kurasi dan profil penulis terkait |
+| 7 | `/books/import` | Wizard empat tahap: cari, preview, mapping lokal, review dan konfirmasi |
+| 8 | `/authors` | Search/sort, biografi, jumlah buku, detail/edit/hapus |
+| 9 | `/authors/new` | Tambah nama pena dan biografi |
+| 10 | `/authors/:id/edit` | Edit profil penulis |
+| 11 | `/authors/:id` | Profil, biografi, jumlah dan tautan buku terkait |
+| 12 | `/categories` | Search/sort, deskripsi, jumlah buku, edit/hapus |
+| 13 | `/categories/new` | Tambah kategori |
+| 14 | `/categories/:id/edit` | Edit kategori; konflik relasi ditampilkan dari API |
+| 15 | `/moods` | Search/sort, warna HEX, deskripsi, jumlah buku, edit/hapus |
+| 16 | `/moods/new` | Tambah mood dengan preview warna |
+| 17 | `/moods/:id/edit` | Edit mood dan tampilkan konflik relasi |
+| 18 | `/editorial-picks` | Search, filter aktif, sorting bobot/judul, catatan kurator, edit/hapus |
+| 19 | `/editorial-picks/new` | Pilih buku, tagline, catatan, bobot 50–100%, status aktif |
+| 20 | `/editorial-picks/:id/edit` | Update buku dan informasi kurasi |
+| 21 | `/wishlist-intel` | Agregat permintaan, stok/defisit, prioritas pengadaan, periode/kategori/sort |
+| 22 | `/reading-analytics` | Penyelesaian, rating, mood/genre, tren bulanan, buku rating tertinggi |
+| 23 | `/moderation` | Daftar ulasan publik, laporan, alasan, tanggal, filter status |
+| 24 | `/moderation/:id` | Review konteks, alasan keputusan, approve/reject/remove dan konfirmasi |
+| 25 | `/members` | Search, filter status, pagination server, avatar dan jumlah aktivitas |
+| 26 | `/members/:id` | Informasi akun, jumlah aktivitas/selesai/wishlist, suspend/aktifkan |
+| 27 | `/staff` | Daftar/search staf, permission matrix, tambah/edit/hapus |
+| 28 | `/staff/new` | Nama, username, email, password awal, role dan status |
+| 29 | `/staff/:id/edit` | Update role/status dengan konfirmasi |
+| 30 | `/recommendation-settings` | Slider/nilai bobot, preview urutan aktual, save/cancel, waktu simpan |
+| 31 | `/settings` | Health API/database/Google Books, retry dan konfigurasi integrasi aman |
 
-## Perintah pengembangan
+Form metadata dan Editorial memakai route tersendiri. Tidak ada modal CRUD atau
+modal import. Penghapusan/keputusan memakai konfirmasi browser. Belum ada alur
+draft/publish buku; status ketersediaan diturunkan dari stok.
 
-| Perintah | Fungsi |
-| --- | --- |
-| `npm ci` | Install dependency sesuai lockfile |
-| `npm run dev` | Development server di port 3355 |
-| `npm run lint` | Pemeriksaan source dengan Oxlint |
-| `npm run build` | Build produksi ke `dist/` |
-| `npm run preview` | Preview hasil build di port 3355 |
+## Akses dan sesi
 
-Untuk hosting produksi, layani hasil `dist/` dan arahkan URL halaman seperti
-`/books` ke `index.html` agar BrowserRouter dapat menangani deep link.
-`VITE_API_URL` dibaca saat build; ubah nilainya lalu rebuild jika target API berubah.
+| Modul | Admin | Librarian | Member |
+| --- | --- | --- | --- |
+| Dashboard, katalog, metadata, editorial, analytics, moderasi | Ya | Ya | Tidak |
+| Members, Staff, Recommendation Settings, System Settings | Ya | Tidak | Tidak |
+
+Backend membaca role dan status akun dari database untuk setiap request yang
+memerlukan autentikasi. Route guard frontend hanya membantu navigasi.
+Registrasi publik selalu membuat Member. Akun suspend ditolak saat login dan saat
+menggunakan token yang sudah diterbitkan. Admin tidak dapat menghapus,
+menonaktifkan, atau menurunkan perannya sendiri; minimal satu Admin aktif dijaga.
+
+Tanpa “Ingat sesi”, token/user berada di `sessionStorage`; dengan pilihan tersebut
+digunakan `localStorage`. Logout dan respons 401 membersihkan sesi serta workspace.
+Sesi tersimpan dibaca dengan aman dan dikonfirmasi melalui `GET /api/auth/me`.
+Token tidak ditampilkan dalam UI. Detail member hanya memuat informasi akun dan
+jumlah agregat; catatan, kutipan, daftar wishlist serta bacaan pribadi tidak dikirim.
 
 ## Struktur source
 
@@ -87,146 +100,120 @@ Untuk hosting produksi, layani hasil `dist/` dan arahkan URL halaman seperti
 src/
 ├── app/
 │   ├── App.jsx
-│   ├── provider/           # Redux Provider dan BrowserRouter
-│   ├── routes/             # Route definitions, auth/permission guards
-│   └── store/              # Perakitan Redux store
+│   ├── provider/           # Redux Provider + BrowserRouter
+│   ├── routes/             # Lazy routes + auth/permission guards
+│   └── store/              # Redux Toolkit
 ├── components/
-│   ├── layouts/            # Shell dashboard, sidebar, dan topbar
-│   ├── shared/             # PageHeader, StatCard, CrudStatusAlert
+│   ├── layouts/            # Sidebar, topbar, drawer, profile/logout
+│   ├── shared/             # PageHeader, StatCard, EmptyState, Pagination
 │   └── ui/                 # Button, AsyncStatus, BarChart
-├── constants/             # API URL dan default page size
 ├── features/
-│   ├── books/components/  # Form modal buku dan import Google Books
-│   └── workspace/         # Redux slice dan async thunks
-├── helpers/               # Fungsi murni, misalnya normalisasi pencarian
-├── hooks/                 # Search, filter, sorting, pagination, breadcrumbs
-├── pages/                 # Halaman yang dirender router
-├── services/              # HTTP client, API errors, CRUD dan workspace API
-├── styles/
-│   ├── index.css          # Urutan import Bootstrap dan CSS pendamping
-│   ├── variable.css       # Brand tokens dan Bootstrap variable overrides
-│   ├── components.css     # Styling khusus identitas VibeDesk
-│   └── animation.css      # Entrance motion dan reduced-motion
-└── main.jsx               # Entry point
+│   ├── auth/               # Session storage helpers
+│   ├── books/              # Redux, form, cover upload, detail/save hooks
+│   ├── catalog/            # Shared metadata list/editor + author detail
+│   ├── editorial/          # Routed list/editor
+│   ├── community/          # Members + moderation views
+│   ├── staff/              # Staff list/editor
+│   ├── settings/           # Persisted settings forms and preview
+│   └── workspace/          # Shared resources + loading/error state
+├── constants/              # API configuration and asset registry
+├── helpers/
+├── hooks/                  # API query, debounce, search/filter/sort/page/breadcrumbs
+├── pages/                  # Dashboard, Books, import, analytics, settings, login
+├── services/               # Centralized Axios, errors, CRUD/workspace clients
+├── styles/                 # Tokens, Bootstrap supplements, animation, Books, assets
+└── main.jsx
 ```
 
-Gambar yang diakses melalui URL berada di `public/assets/`.
-Sumber desain bersama berada di `../Assets/`; screenshot referensi ada di
-`../Assets/screenshots/vibedesk/`. Direktori `src/assets/` digunakan hanya bila
-ada aset yang benar-benar diimpor dari source; aset starter Vite sudah dihapus.
+Redux tetap digunakan untuk resource bersama serta detail/save/remove Books.
+Setiap resource memiliki `data`, `loading`, `error`, dan request ID. Daftar terfilter
+dan detail lokal menggunakan `useApiQuery`: respons lama dibatalkan/diabaikan dan
+data lama tidak ditampilkan sebagai hasil query baru. Form menyimpan field dan
+status mutasi secara lokal; tombol mutasi dinonaktifkan selama request.
 
-## Halaman dan fungsi
+Search menggunakan debounce 300ms. Pagination Books dan Members bekerja pada
+server, bukan pada cache workspace yang dibatasi 100 buku. Authors/Categories/Moods
+memakai search/sort lokal atas endpoint metadata lengkap. Refresh setelah mutasi
+dilakukan eksplisit. Axios mempunyai timeout 15 detik dan normalisasi API error.
 
-| URL | Halaman | Fungsi yang tersedia |
-| --- | --- | --- |
-| `/login` | Login | Login staf melalui VibeCore |
-| `/` | Control Center | Ringkasan katalog dan shortcut operasional |
-| `/books` | Books Catalog | CRUD buku, search, filter kategori/penulis/mood/stok, sorting, pagination |
-| `/authors` | Authors | Tambah, baca, ubah, hapus penulis |
-| `/categories` | Categories & Genres | CRUD kategori buku |
-| `/moods` | Mood Tags | CRUD mood, warna aksen, pencarian |
-| `/editorial-picks` | Editorial Picks | CRUD kurasi, bobot, tagline, dan status aktif |
-| `/wishlist-intel` | Wishlist Intelligence | Grafik permintaan buku dari wishlist |
-| `/reading-analytics` | Reading Analytics | Grafik distribusi mood |
-| `/moderation` | Content Moderation | Tinjau dan moderasi ulasan |
-| `/members` | Members | Daftar member dan perubahan role |
-| `/staff` | Staff & Permissions | Daftar dan tambah staf; route dibatasi untuk Admin |
-| `/recommendation-settings` | Recommendation Settings | Pengaturan bobot rekomendasi |
-| `/settings` | System Settings | Informasi layanan dan konfigurasi |
+## API utama
 
-Form tambah/edit buku dan Google Books Import dibuka melalui modal dari katalog
-atau Control Center. Import mencari melalui VibeCore, kemudian meminta review
-metadata, pemilihan penulis/kategori, stok, dan mood sebelum penyimpanan.
-
-## State dan aliran data
-
-Alur resource bersama:
-
-```text
-App → dispatch refreshWorkspace/fetchResource
-    → services/workspace-api → Axios HTTP → VibeCore
-    → Redux workspace slice → halaman
-```
-
-Setiap resource workspace memiliki:
-
-```js
-{
-  data: [],          // null untuk resource berbentuk object sebelum dimuat
-  loading: false,
-  error: null,
-  requestId: null
-}
-```
-
-- Pending mengaktifkan loading dan membersihkan error sebelumnya.
-- Fulfilled menyimpan data dan mematikan loading.
-- Rejected menyimpan pesan error, mematikan loading, dan mempertahankan data lama.
-- Request ID menjaga hasil agar sesuai request yang sedang dilacak.
-- Request kedua untuk resource yang masih loading dicegah oleh thunk condition.
-- `AsyncStatus` menampilkan loading/error dan retry melalui refresh workspace.
-- Form CRUD mempertahankan state form, saving, dan pesan validasi secara lokal.
-- Staff dan recommendation settings masih menggunakan fetch/state lokal.
-- TanStack Query tidak digunakan; cache otomatis dan invalidation tidak tersedia.
-  Mutation yang sukses meminta refresh secara eksplisit.
-
-Books Catalog menggunakan hooks `useSearch`, `useFilter`, `useSorting`,
-dan `usePagination` secara berurutan. Hooks tersebut memproses data yang sudah
-dimuat di browser. Request buku workspace saat ini menggunakan `limit=100`,
-sehingga pagination katalog berlaku pada koleksi yang sudah dimuat, bukan
-seluruh record server. `useBreadcrumbs` membaca lokasi dari React Router.
-
-## Layanan API yang digunakan frontend
-
-| Resource | Endpoint / operasi |
+| Resource | Endpoint |
 | --- | --- |
-| Login | `POST /api/auth/login` |
-| Books | `/api/books`, `/api/books/:id` |
-| Authors | `/api/authors`, `/api/authors/:id` |
-| Categories | `/api/categories`, `/api/categories/:id` |
-| Moods | `/api/moods`, `/api/moods/:id` |
-| Editorial | `/api/editorial`, `/api/editorial/:id` |
-| Google Books | `GET /api/integrations/google-books/search?query=...` |
-| Overview | `GET /api/analytics/overview` |
-| Wishlist | `GET /api/analytics/top-wishlisted` |
-| Mood distribution | `GET /api/analytics/mood-distribution` |
-| Moderation | `GET /api/moderation/reviews?status=Flagged`, `PATCH /api/moderation/reviews/:id` |
-| Members / staff | `GET /api/members`, `GET/POST /api/staff`, `PATCH /api/staff/:id/role` |
-| Recommendation settings | `GET/PUT /api/settings` |
+| Auth | `POST /api/auth/login`, `GET /api/auth/me` |
+| Books CRUD | `GET/POST /api/books`, `GET/PUT/DELETE /api/books/:id` |
+| Cover | `POST /api/books/covers`, `GET /api/books/covers/:filename` |
+| Authors CRUD | `GET/POST /api/authors`, `GET/PUT/DELETE /api/authors/:id` |
+| Categories CRUD | `GET/POST /api/categories`, `GET/PUT/DELETE /api/categories/:id` |
+| Moods CRUD | `GET/POST /api/moods`, `GET/PUT/DELETE /api/moods/:id` |
+| Editorial | `GET/POST /api/editorial`, `PUT/DELETE /api/editorial/:id` |
+| Import search | `GET /api/integrations/google-books/search?query=...` |
+| Dashboard | `GET /api/analytics/overview` |
+| Wishlist | `GET /api/analytics/wishlist-intelligence` |
+| Reading | `GET /api/analytics/reading` |
+| Moderation | `GET /api/moderation/reviews`, `GET/PATCH /api/moderation/reviews/:id` |
+| Members | `GET /api/members`, `GET /api/members/:id`, `PATCH /api/members/:id/status` |
+| Staff | `GET/POST /api/staff`, `GET/PUT/DELETE /api/staff/:id` |
+| Settings | `GET/PUT /api/settings`, `GET /api/settings/health`, `POST /api/settings/preview` |
 
-CRUD clients menyediakan GET list/detail, POST create, PUT update, dan DELETE.
-Lihat `services/catalog-api.js` dan `services/workspace-api.js` untuk kontrak
-pemanggilan frontend. Backend tetap menjadi sumber kebenaran untuk validasi dan izin.
-HTTP client katalog menggunakan timeout 15 detik dan menambahkan Bearer token dari
-`localStorage.vibedesk_token`. Session user disimpan di `vibedesk_user`.
+Books query: `search`, `genreId`, `authorId`, `moodId`, `stock=available|low|empty`,
+`sort=newest|title|stock`, `page`, `limit`. Pagination dibatasi maksimum 100 item.
+Analytics query: `period=30|90|365|all`, `genreId`; wishlist juga menerima
+`sort=demand|deficit`. Semua analytics berupa agregat tanpa identitas member.
+Defisit wishlist adalah indikator permintaan dikurangi stok, bukan pesanan otomatis.
+Rating rata-rata bernilai kosong saat belum ada rating; metrik tidak direkayasa.
 
-## Pedoman styling dan komponen
+Google Books dipanggil hanya melalui VibeCore. Wizard memeriksa ISBN/Google Books ID
+sebelum mapping; backend memeriksa kembali sebelum create. Gangguan provider
+ditampilkan sebagai error, bukan disamarkan menjadi hasil kosong. Status Google
+Books pada settings adalah hasil probe, bukan jaminan sisa kuota.
 
-1. Gunakan grid, spacing, flex, typography, dan utility Bootstrap terlebih dahulu.
-2. Gunakan `components/ui/` untuk presentasi reusable, tanpa aturan bisnis.
-3. Tambahkan CSS custom hanya untuk brand, dimensi khusus, atau layout yang belum
-   diwakili Bootstrap. Contoh: ilustrasi header dan warna status.
-4. Card memakai kelas `card`; `vd-card` hanya menambah bayangan khas VibeDesk.
-5. Button brand menggunakan variabel `--bs-btn-*` agar hover, focus, active,
-   dan disabled tetap ditangani Bootstrap.
-6. CSS diimpor hanya dari `styles/index.css`. Hindari CSS template dan duplikasi
-   helper seperti spacing/warna yang sudah disediakan Bootstrap.
-7. Animasi satu kali diterapkan pada halaman, form panel, statistik, modal, dan alert.
-   `prefers-reduced-motion: reduce` menonaktifkan animasi custom tersebut.
-8. Letakkan request baru di services, state domain di features, dan komposisi di app.
+## Buku dan upload cover
 
-## Batas implementasi dan QA
+Form bersama menyimpan title, ISBN, author/category, synopsis, year/page, stock,
+price, image dan mood IDs. Metadata opsional: `subtitle`/`publisher` (255 karakter),
+`edition`/`language` (100), `format` (50), `widthCm`/`heightCm` (>0 sampai 999999.99,
+maksimum dua desimal). Input opsional kosong dikirim sebagai `null`; field yang
+tidak dikirim klien lama dipertahankan oleh update backend.
 
-Build yang berhasil memverifikasi kompilasi, bukan kesesuaian visual seluruh halaman
-atau keberhasilan integrasi backend. Lakukan QA dengan backend aktif untuk login,
-CRUD, relasi katalog, kegagalan request/retry, import, role access, serta tampilan
-desktop dan mobile.
+Cover menerima JPG/PNG/WebP maksimum 5 MB melalui pilihan file atau drag-and-drop.
+Preview lokal tidak langsung mengunggah file. Saat Simpan, upload dijalankan sebelum
+POST/PUT buku. Kegagalan upload menghentikan save. Retry save setelah upload sukses
+memakai URL sebelumnya untuk file yang sama. URL manual tetap tersedia.
+Object URL dilepas ketika pilihan diganti/dibatalkan atau form dilepas.
 
-Beberapa tampilan dashboard/analytics masih memiliki angka, insight, atau status
-statis. Global search/notifikasi pada shell belum memiliki alur lengkap. Login
-saat ini juga memiliki quick login akun seed untuk pengembangan. Bagian tersebut
-perlu ditinjau sebelum penggunaan produksi; jangan menganggap semua indikator
-sebagai hasil monitoring layanan langsung.
+VibeCore memeriksa isi gambar, maksimum 20 megapiksel, menormalkan menjadi WebP,
+dan menyimpan nama UUID. Konfigurasikan volume persisten `BOOK_COVER_STORAGE_DIR`
+di server; backup file bersama database. File yatim belum dibersihkan otomatis
+karena penghapusan harus memeriksa referensi buku terlebih dahulu.
 
-Repository belum memiliki script test frontend otomatis. Gunakan build/lint sebagai
-pemeriksaan teknis awal dan verifikasi interaksi melalui browser untuk perubahan UI.
+## Design dan assets
+
+Manrope digunakan untuk seluruh aplikasi. Bootstrap mengatur grid, form, table,
+button dan states; CSS custom melengkapi brand, ukuran, drawer dan ilustrasi.
+Warna tombol utama digelapkan sedikit dari teal brand untuk kontras teks putih.
+Focus keyboard terlihat; drawer mendukung Escape, focus trap dan pengembalian fokus.
+Motion menghormati `prefers-reduced-motion`.
+
+Sidebar dapat diciutkan pada desktop dan menjadi drawer pada tablet/mobile. Topbar
+memiliki breadcrumb, antrean moderasi melalui notifikasi, serta profile/logout.
+Nama file aset dipertahankan; dua ilustrasi utama diimpor langsung dari
+`../Assets/illustrations/` tanpa salinan baru. Build memaketkan aset tersebut.
+Lihat [Asset Usage Report](ASSET_USAGE_REPORT.md).
+
+## Pemeriksaan
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+Fixture browser: `http://localhost:3355/tests/books-preview.html?route=/books`.
+Gunakan `&empty`, `&error=api`, atau `&role=Librarian` untuk kondisi berbeda.
+Fixture bertanda QA, memakai API in-memory, tidak menyimpan sesi, dan tidak masuk
+build produksi. Semua API produksi tetap melalui VibeCore.
+
+Lihat [QA Report](QA_REPORT.md) untuk bukti yang dijalankan dan batas verifikasinya.
+Periksa ulang health provider pada environment deployment. Migrasi dan pengujian
+lokal tidak membuktikan konfigurasi, storage, atau kuota layanan di production.

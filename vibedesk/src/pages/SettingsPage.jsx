@@ -1,39 +1,69 @@
-import React from 'react';
 import PageHeader from '../components/shared/PageHeader';
-
-export default function SettingsPage({ apiUrl }) {
+import AsyncStatus from '../components/ui/AsyncStatus';
+import SettingsForm from '../features/settings/SettingsForm';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { API_URL } from '../constants/api';
+export default function SettingsPage() {
+  const query = useApiQuery('/api/settings');
+  const health = useApiQuery('/api/settings/health');
   return (
-    <div>
-      <PageHeader eyebrow="Sistem / Settings" title="System Settings" description="Pantau status koneksi dan konfigurasi ekosistem VibeDesk." />
-
-      <div className="card vd-card p-4 mb-4">
-        <h5 className="fw-bold mb-3">Status Koneksi Layanan</h5>
-        <div className="p-3 bg-light rounded d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <strong>VibeCore REST API Service</strong>
-            <p className="text-muted small mb-0">{apiUrl}/api</p>
-          </div>
-          <span className="badge bg-success">Online & Terhubung (Port 3360)</span>
+    <>
+      <PageHeader
+        title="System Settings"
+        description="Status layanan aktual dan konfigurasi aplikasi yang aman."
+      />
+      <AsyncStatus
+        loading={query.loading}
+        error={query.error}
+        onRetry={query.retry}
+      />
+      <section className="card vd-card p-4 mb-4">
+        <div className="d-flex justify-content-between gap-3 mb-3">
+          <h2 className="h5">Koneksi layanan</h2>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            disabled={health.loading}
+            onClick={health.retry}
+          >
+            Periksa ulang
+          </button>
         </div>
-
-        <div className="p-3 bg-light rounded d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Client ReadVibe (Next.js)</strong>
-            <p className="text-muted small mb-0">http://localhost:3350</p>
-          </div>
-          <span className="badge bg-primary">Origin CORS Diizinkan</span>
-        </div>
-      </div>
-
-      <div className="card vd-card p-4">
-        <h5 className="fw-bold mb-3">Dokumentasi Algoritma Kurasi & Bobot Editorial</h5>
-        <p className="small text-muted mb-2">
-          Setiap buku yang ditetapkan sebagai <strong>Editorial Pick</strong> memiliki bobot kurasi antara 50% hingga 100%.
-        </p>
-        <p className="small text-muted mb-0">
-          Dalam algoritma <strong>AI Vibe Matcher</strong>, buku pilihan editor mendapatkan penambahan skor bobot prioritas (+15%) sehingga selalu mendapat sorotan utama pada hasil kurasi suasana hati pembaca.
-        </p>
-      </div>
-    </div>
+        <p className="small text-break">VibeCore: {API_URL}</p>
+        <AsyncStatus
+          loading={health.loading}
+          error={health.error}
+          onRetry={health.retry}
+        />
+        {health.data && (
+          <>
+            <dl>
+              {[
+                ['api', 'API'],
+                ['database', 'Database'],
+                ['googleBooks', 'Google Books'],
+              ].map(([key, label]) => (
+                <div
+                  className="d-flex justify-content-between border-bottom py-2"
+                  key={key}
+                >
+                  <dt>{label}</dt>
+                  <dd className="mb-0">{health.data[key]}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="small text-secondary">
+              Diperiksa:{' '}
+              {new Date(health.data.checkedAt).toLocaleString('id-ID')}. Google
+              Books{' '}
+              {health.data.googleBooksKeyConfigured
+                ? 'memiliki konfigurasi key di server'
+                : 'menggunakan akses publik tanpa key'}
+              ; keterjangkauan tidak menjamin sisa kuota.
+            </p>
+          </>
+        )}
+      </section>
+      {query.data && <SettingsForm initial={query.data} />}
+    </>
   );
 }

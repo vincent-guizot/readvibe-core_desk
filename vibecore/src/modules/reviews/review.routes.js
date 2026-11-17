@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ReviewController } from './review.controller';
 import { validateRequest } from '../../middlewares/validate-request';
-import { validateReviewPayload } from './review.validator';
+import { validateReviewPayload, validateReviewReport } from './review.validator';
 import { authentication } from '../../middlewares/authentication';
 
 const router = Router();
@@ -11,6 +11,6 @@ router.get('/book/:bookId', ReviewController.getBookReviews);
 
 // Protected: submit review & report
 router.post('/', authentication, validateRequest(validateReviewPayload), ReviewController.submitReview);
-router.post('/:id/report', authentication, ReviewController.reportReview);
+router.post('/:id/report', authentication, validateRequest(validateReviewReport), ReviewController.reportReview);
 
 export default router;

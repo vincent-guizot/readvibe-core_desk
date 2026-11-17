@@ -1,7 +1,1 @@
-export const validateMemberStatus = (req) => {
-  const { status } = req.body;
-  if (!status) {
-    return 'Status wajib diisi.';
-  }
-  return null;
-};
+export const validateMemberStatus = (req) => ['Active', 'Suspended'].includes(req.body.status) ? null : 'Status harus Active atau Suspended.';

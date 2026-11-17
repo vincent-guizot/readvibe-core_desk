@@ -1,9 +1,9 @@
 export const validateCategoryPayload = (req) => {
   const { name } = req.body;
-  if (!name || name.trim() === '') {
+  if (typeof name !== 'string' || name.trim() === '' || name.length > 255) {
     return 'Nama kategori/genre wajib diisi.';
   }
-  return null;
+  return validateCategoryUpdatePayload(req);
 };
 
 export const validateCategoryUpdatePayload = (req) => {
