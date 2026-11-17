@@ -40,7 +40,7 @@ export default function LoginPage({ onLoginSuccess, apiUrl }) {
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100" style={{ background: 'var(--vd-soft-sand)' }}>
-      <div className="vd-card p-4 p-md-5" style={{ width: '100%', maxWidth: '420px' }}>
+      <div className="card vd-card p-4 p-md-5" style={{ width: '100%', maxWidth: '420px' }}>
         <div className="text-center mb-4">
           <img
             src="/assets/logos/vibedesk-horizontal-color.png"

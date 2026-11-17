@@ -1,20 +1,20 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import PermissionGuard from './PermissionGuard';
-import DashboardPage from '../features/dashboard/DashboardPage';
-import BooksPage from '../features/books/BooksPage';
-import AuthorsPage from '../features/authors/AuthorsPage';
-import CategoriesPage from '../features/categories/CategoriesPage';
-import MoodsPage from '../features/moods/MoodsPage';
-import EditorialPicksPage from '../features/editorial/EditorialPicksPage';
-import AnalyticsPage from '../features/analytics/AnalyticsPage';
-import ModerationPage from '../features/moderation/ModerationPage';
-import MembersPage from '../features/members/MembersPage';
-import StaffPage from '../features/staff/StaffPage';
-import RecommendationSettingsPage from '../features/recommendation-settings/RecommendationSettingsPage';
-import SettingsPage from '../features/settings/SettingsPage';
-import LoginPage from '../features/auth/LoginPage';
+const DashboardPage = lazy(() => import('../../pages/DashboardPage'));
+const BooksPage = lazy(() => import('../../pages/BooksPage'));
+const AuthorsPage = lazy(() => import('../../pages/AuthorsPage'));
+const CategoriesPage = lazy(() => import('../../pages/CategoriesPage'));
+const MoodsPage = lazy(() => import('../../pages/MoodsPage'));
+const EditorialPicksPage = lazy(() => import('../../pages/EditorialPicksPage'));
+const AnalyticsPage = lazy(() => import('../../pages/AnalyticsPage'));
+const ModerationPage = lazy(() => import('../../pages/ModerationPage'));
+const MembersPage = lazy(() => import('../../pages/MembersPage'));
+const StaffPage = lazy(() => import('../../pages/StaffPage'));
+const RecommendationSettingsPage = lazy(() => import('../../pages/RecommendationSettingsPage'));
+const SettingsPage = lazy(() => import('../../pages/SettingsPage'));
+const LoginPage = lazy(() => import('../../pages/LoginPage'));
 
 export default function AppRoutes({
   user,
@@ -40,7 +40,7 @@ export default function AppRoutes({
   apiUrl,
 }) {
   return (
-    <Routes>
+    <Suspense fallback={<div role="status" className="py-4 text-muted">Memuat halaman...</div>}><Routes>
       <Route
         path="/login"
         element={<LoginPage onLoginSuccess={onLoginSuccess} apiUrl={apiUrl} />}
@@ -66,6 +66,9 @@ export default function AppRoutes({
           <ProtectedRoute user={user}>
             <BooksPage
               books={books}
+              authors={authors}
+              categories={categories}
+              moods={moods}
               onOpenImport={onOpenImport}
               onOpenAddBook={onOpenAddBook}
               onDeleteBook={onDeleteBook}
@@ -115,7 +118,7 @@ export default function AppRoutes({
         path="/wishlist-intel"
         element={
           <ProtectedRoute user={user}>
-            <AnalyticsPage wishlistData={wishlistIntelligence?.topWishlistBooks} readingData={readingTrends} />
+            <AnalyticsPage wishlistData={wishlistIntelligence?.topWishlistBooks} readingData={readingTrends} variant="wishlist" />
           </ProtectedRoute>
         }
       />
@@ -124,7 +127,7 @@ export default function AppRoutes({
         path="/reading-analytics"
         element={
           <ProtectedRoute user={user}>
-            <AnalyticsPage wishlistData={wishlistIntelligence?.topWishlistBooks} readingData={readingTrends} />
+            <AnalyticsPage wishlistData={wishlistIntelligence?.topWishlistBooks} readingData={readingTrends} variant="reading" />
           </ProtectedRoute>
         }
       />
@@ -177,6 +180,6 @@ export default function AppRoutes({
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </Routes></Suspense>
   );
 }

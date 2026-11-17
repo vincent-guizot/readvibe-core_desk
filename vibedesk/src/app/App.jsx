@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './layouts/DashboardLayout';
-import AppRoutes from './routes';
-import GoogleBooksImportModal from './features/books/components/GoogleBooksImportModal';
-import ManualAddBookModal from './features/books/components/ManualAddBookModal';
-import { booksApi, getApiErrorMessage } from './services/catalog-api';
+import DashboardLayout from '../components/layouts/DashboardLayout';
+import AppRoutes from './routes/index';
+import GoogleBooksImportModal from '../features/books/components/GoogleBooksImportModal';
+import ManualAddBookModal from '../features/books/components/ManualAddBookModal';
+import { booksApi, getApiErrorMessage } from '../services/catalog-api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3360';
+import { useDispatch, useSelector } from 'react-redux';
+import { refreshWorkspace } from '../features/workspace/workspaceSlice';
+import { API_URL } from '../constants/api';
+import AsyncStatus from '../components/ui/AsyncStatus';
 
 export default function App() {
   // Auth State
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
-  // Global Data State
-  const [dashboardData, setDashboardData] = useState(null);
-  const [books, setBooks] = useState([]);
-  const [authors, setAuthors] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [moods, setMoods] = useState([]);
-  const [editorialPicks, setEditorialPicks] = useState([]);
-  const [wishlistIntelligence, setWishlistIntelligence] = useState(null);
-  const [readingTrends, setReadingTrends] = useState(null);
-  const [flaggedReviews, setFlaggedReviews] = useState([]);
-  const [members, setMembers] = useState([]);
+  const dispatch = useDispatch();
+  const resources = useSelector((state) => state.workspace);
+  const { dashboardData, books, authors, categories, moods, editorialPicks, wishlistIntelligence, readingTrends, flaggedReviews, members } = Object.fromEntries(
+    Object.entries(resources).map(([key, resource]) => [key, resource.data]),
+  );
+  const loading = Object.values(resources).some((resource) => resource.loading);
+  const errors = Object.entries(resources).filter(([, resource]) => resource.error);
 
   // Toast / Alert
   const [toast, setToast] = useState('');
@@ -75,93 +74,7 @@ export default function App() {
     }
   };
 
-  const loadAllData = async () => {
-    try {
-      const headers = { Authorization: `Bearer ${token}` };
-
-      // 1. Books
-      fetch(`${API_URL}/api/books?limit=100`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setBooks(res.data);
-        })
-        .catch(console.error);
-
-      // 2. Authors
-      fetch(`${API_URL}/api/authors`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setAuthors(res.data);
-        })
-        .catch(console.error);
-
-      // 3. Categories
-      fetch(`${API_URL}/api/categories`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setCategories(res.data);
-        })
-        .catch(console.error);
-
-      // 4. Moods
-      fetch(`${API_URL}/api/moods`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setMoods(res.data);
-        })
-        .catch(console.error);
-
-      // 5. Editorial Picks
-      fetch(`${API_URL}/api/editorial`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setEditorialPicks(res.data);
-        })
-        .catch(console.error);
-
-      // 6. Analytics Overview
-      fetch(`${API_URL}/api/analytics/overview`, { headers })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setDashboardData(res.data);
-        })
-        .catch(console.error);
-
-      // 7. Wishlist Top
-      fetch(`${API_URL}/api/analytics/top-wishlisted`, { headers })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setWishlistIntelligence({ topWishlistBooks: res.data });
-        })
-        .catch(console.error);
-
-      // 8. Mood distribution
-      fetch(`${API_URL}/api/analytics/mood-distribution`, { headers })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setReadingTrends({ moodTrends: res.data });
-        })
-        .catch(console.error);
-
-      // 9. Moderation
-      fetch(`${API_URL}/api/moderation/reviews?status=Flagged`, { headers })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setFlaggedReviews(res.data);
-        })
-        .catch(console.error);
-
-      // 10. Members
-      fetch(`${API_URL}/api/members`, { headers })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.data) setMembers(res.data);
-        })
-        .catch(console.error);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    }
-  };
+  const loadAllData = () => dispatch(refreshWorkspace());
 
   const handleDeleteBook = async (id, title) => {
     if (!window.confirm(`Yakin ingin menghapus buku "${title}" dari katalog?`)) return;
@@ -214,6 +127,7 @@ export default function App() {
 
   return (
     <DashboardLayout user={user} onQuickLogin={handleQuickLogin} toast={toast}>
+      {token && <AsyncStatus loading={loading} error={errors.length ? errors.map(([key, resource]) => `${key}: ${resource.error}`).join(' · ') : null} onRetry={loadAllData} />}
       <AppRoutes
         user={user}
         token={token}

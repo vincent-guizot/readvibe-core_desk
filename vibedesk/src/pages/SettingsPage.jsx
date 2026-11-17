@@ -1,13 +1,12 @@
 import React from 'react';
+import PageHeader from '../components/shared/PageHeader';
 
 export default function SettingsPage({ apiUrl }) {
   return (
     <div>
-      <h2 className="fw-bold mb-4" style={{ color: 'var(--vd-desk-navy)' }}>
-        Pengaturan & Status Sistem Ekosistem
-      </h2>
+      <PageHeader eyebrow="Sistem / Settings" title="System Settings" description="Pantau status koneksi dan konfigurasi ekosistem VibeDesk." />
 
-      <div className="vd-card p-4 mb-4">
+      <div className="card vd-card p-4 mb-4">
         <h5 className="fw-bold mb-3">Status Koneksi Layanan</h5>
         <div className="p-3 bg-light rounded d-flex justify-content-between align-items-center mb-3">
           <div>
@@ -26,7 +25,7 @@ export default function SettingsPage({ apiUrl }) {
         </div>
       </div>
 
-      <div className="vd-card p-4">
+      <div className="card vd-card p-4">
         <h5 className="fw-bold mb-3">Dokumentasi Algoritma Kurasi & Bobot Editorial</h5>
         <p className="small text-muted mb-2">
           Setiap buku yang ditetapkan sebagai <strong>Editorial Pick</strong> memiliki bobot kurasi antara 50% hingga 100%.
