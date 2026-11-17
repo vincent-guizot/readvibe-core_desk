@@ -1,13 +1,12 @@
 import React from 'react';
+import PageHeader from '../components/shared/PageHeader';
 
 export default function MembersPage({ members, onUpdateRole }) {
   return (
     <div>
-      <h2 className="fw-bold mb-4" style={{ color: 'var(--vd-desk-navy)' }}>
-        Manajemen Akun Member & Staf
-      </h2>
+      <PageHeader eyebrow="Komunitas / Members" title="Members" description="Kelola akun pembaca dan hak akses komunitas." />
 
-      <div className="vd-card p-4">
+      <div className="card vd-card p-4">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="table-light">

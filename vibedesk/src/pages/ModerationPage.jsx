@@ -1,17 +1,13 @@
 import React from 'react';
 import { AiOutlineSafety, AiOutlineCheck, AiOutlineClose, AiOutlineDelete } from 'react-icons/ai';
+import PageHeader from '../components/shared/PageHeader';
 
 export default function ModerationPage({ reviews, onModerate }) {
   return (
     <div>
-      <h2 className="fw-bold mb-1" style={{ color: 'var(--vd-desk-navy)' }}>
-        Antrean Moderasi Konten & Ulasan
-      </h2>
-      <p className="text-muted small mb-4">
-        Tinjau laporan ulasan publik yang ditandai sebagai spam atau mengandung spoiler tanpa peringatan.
-      </p>
+      <PageHeader eyebrow="Komunitas / Content Moderation" title="Content Moderation" description="Tinjau laporan ulasan publik yang ditandai sebagai spam atau spoiler." />
 
-      <div className="vd-card p-4">
+      <div className="card vd-card p-4">
         {reviews.length === 0 ? (
           <div className="text-center py-4 text-muted">
             <AiOutlineSafety size={40} className="text-success mb-2" />

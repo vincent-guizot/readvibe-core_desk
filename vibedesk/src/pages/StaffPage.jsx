@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AiOutlineSafetyCertificate, AiOutlineTeam, AiOutlineUserAdd } from 'react-icons/ai';
+import PageHeader from '../components/shared/PageHeader';
+import StatCard from '../components/shared/StatCard';
 
 export default function StaffPage({ apiUrl, token }) {
   const [staffList, setStaffList] = useState([]);
@@ -8,7 +11,7 @@ export default function StaffPage({ apiUrl, token }) {
   const [role, setRole] = useState('Librarian');
   const [fullname, setFullname] = useState('');
 
-  const loadStaff = async () => {
+  const loadStaff = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/staff`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -18,11 +21,11 @@ export default function StaffPage({ apiUrl, token }) {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [apiUrl, token]);
 
   useEffect(() => {
     loadStaff();
-  }, [apiUrl, token]);
+  }, [loadStaff]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -52,18 +55,28 @@ export default function StaffPage({ apiUrl, token }) {
 
   return (
     <div>
-      <h2 className="fw-bold mb-4" style={{ color: 'var(--vd-desk-navy)' }}>
-        Manajemen Akun Staf & Hak Akses
-      </h2>
+      <PageHeader
+        eyebrow="Komunitas / Staff & Permissions"
+        title="Staff & Permissions"
+        description="Kelola akses tim kurasi dan peran operasional VibeDesk."
+        actions={<button type="button" className="btn btn-vd-primary" onClick={() => document.getElementById('staff-fullname')?.focus()}><AiOutlineUserAdd /> Tambah Staf</button>}
+      />
+
+      <div className="row g-3 mb-4">
+        <div className="col-md-4"><StatCard icon={<AiOutlineTeam />} value={staffList.length} label="Total Staf" /></div>
+        <div className="col-md-4"><StatCard icon={<AiOutlineSafetyCertificate />} value={staffList.filter((staff) => staff.role === 'Admin').length} label="Administrator" tone="coral" /></div>
+        <div className="col-md-4"><StatCard icon={<AiOutlineSafetyCertificate />} value={staffList.filter((staff) => staff.role === 'Librarian').length} label="Librarian" tone="gold" /></div>
+      </div>
 
       <div className="row g-4">
         <div className="col-md-4">
-          <div className="vd-card p-4">
-            <h5 className="fw-bold mb-3">Tambah Staf Baru</h5>
+          <div className="card vd-card p-4 vd-form-panel">
+            <span className="vd-section-kicker">Invite staff</span><h5 className="mb-3">Tambah Staf Baru</h5>
             <form onSubmit={handleCreate}>
               <div className="mb-3">
                 <label className="form-label small fw-semibold">Nama Lengkap</label>
                 <input
+                  id="staff-fullname"
                   type="text"
                   className="form-control"
                   value={fullname}
@@ -119,11 +132,11 @@ export default function StaffPage({ apiUrl, token }) {
         </div>
 
         <div className="col-md-8">
-          <div className="vd-card p-4">
-            <h5 className="fw-bold mb-3">Daftar Akun Staf Aktif ({staffList.length})</h5>
+          <div className="card vd-card p-0 overflow-hidden">
+            <div className="vd-table-toolbar px-4 py-3"><div><span className="vd-section-kicker">Access roster</span><h5 className="mb-0">Daftar Akun Staf <span className="text-muted fw-normal">({staffList.length})</span></h5></div><span className="vd-status-pill vd-status-pill--success">Semua aktif</span></div>
             <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
+              <table className="table vd-data-table align-middle mb-0">
+                <thead>
                   <tr>
                     <th>Staf</th>
                     <th>Email</th>
@@ -140,12 +153,12 @@ export default function StaffPage({ apiUrl, token }) {
                       </td>
                       <td>{s.email}</td>
                       <td>
-                        <span className={`badge ${s.role === 'Admin' ? 'bg-danger' : 'bg-info'}`}>
+                        <span className={`vd-role-pill ${s.role === 'Admin' ? 'vd-role-pill--admin' : 'vd-role-pill--librarian'}`}>
                           {s.role}
                         </span>
                       </td>
                       <td>
-                        <span className="badge bg-success-subtle text-success">Aktif</span>
+                        <span className="vd-status-pill vd-status-pill--success">Aktif</span>
                       </td>
                     </tr>
                   ))}
