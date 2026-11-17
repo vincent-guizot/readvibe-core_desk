@@ -1,0 +1,39 @@
+/* Bootstrap controls the grid and forms; these rules are book-specific dimensions. */
+.vd-book-cover {
+  width: 180px;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
+.vd-book-form-footer {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 5;
+  box-shadow: var(--vd-shadow-card);
+}
+
+.vd-preserve-lines {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vd-cover-dropzone {
+  border: 1px dashed var(--vd-curator-teal);
+  background: var(--bs-tertiary-bg);
+}
+
+.vd-cover-dropzone:focus-within {
+  outline: 3px solid var(--vd-curator-teal);
+  outline-offset: 2px;
+}
+
+.vd-cover-dropzone label {
+  cursor: pointer;
+}
+
+@media (max-width: 575.98px) {
+  .vd-book-form-footer {
+    position: static;
+  }
+}
