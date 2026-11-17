@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { AiFillStar, AiOutlineStar, AiOutlineClose } from 'react-icons/ai';
+import { useReading } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded }) {
+  const { finishBook } = useReading();
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [mood, setMood] = useState('');
+  const [mood, setMood] = useState('Cozy');
   const [content, setContent] = useState('');
   const [isSpoiler, setIsSpoiler] = useState(false);
 
@@ -26,6 +28,13 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    finishBook({
+      bookId: book.id,
+      rating,
+      moods: [mood || 'Cozy'],
+      privateNotes: content,
+      containsSpoilers: isSpoiler,
+    });
     readVibeStore.addReview({
       bookId: book.id,
       rating,

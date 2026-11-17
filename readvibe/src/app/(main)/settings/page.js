@@ -18,12 +18,14 @@ import {
   AiOutlineExport
 } from 'react-icons/ai';
 import { readVibeStore } from '@/lib/store';
+import { useAuth } from '@/hooks';
 import EditProfileModal from '@/components/EditProfileModal';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { user: authUser, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(authUser);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   // Password state
@@ -40,12 +42,17 @@ export default function SettingsPage() {
   const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
-    const u = readVibeStore.getUser();
-    setUser(u);
-    if (u) {
-      setEmailInput(u.email || 'admin@example.com');
+    if (authUser) {
+      setUser(authUser);
+      setEmailInput(authUser.email || 'admin@example.com');
+    } else {
+      const u = readVibeStore.getUser();
+      setUser(u);
+      if (u) {
+        setEmailInput(u.email || 'admin@example.com');
+      }
     }
-  }, []);
+  }, [authUser]);
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
@@ -54,6 +61,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = () => {
+    logout();
     localStorage.removeItem('readvibe_token');
     localStorage.removeItem('readvibe_user');
     router.push('/login');
@@ -61,6 +69,7 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = () => {
     if (window.confirm('Are you sure you want to permanently delete your account and reading data? This action cannot be undone.')) {
+      logout();
       localStorage.clear();
       router.push('/register');
     }
@@ -241,8 +250,9 @@ export default function SettingsPage() {
                           type="button"
                           className="btn btn-sm btn-rv-plum"
                           onClick={() => {
+                            updateProfile({ email: emailInput });
                             readVibeStore.updateUser({ email: emailInput });
-                            setUser({ ...user, email: emailInput });
+                            setUser((prev) => ({ ...prev, email: emailInput }));
                             setIsEditingEmail(false);
                           }}
                         >

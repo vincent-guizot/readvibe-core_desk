@@ -12,7 +12,6 @@ import {
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 import { useBooks, useWishlist } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -55,16 +54,6 @@ function SearchContent() {
 
   const toggleBookmark = (book) => {
     toggleWishlist(book.id, 'Medium', 'Saved from search results');
-    if (readVibeStore.isInWishlist(book.id)) {
-      readVibeStore.removeFromWishlist(book.id);
-    } else {
-      readVibeStore.addToWishlist({
-        bookId: book.id,
-        priority: 'Medium',
-        reason: 'Saved from search results',
-        isPublic: true
-      });
-    }
   };
 
   // Dynamic book filtering
@@ -323,7 +312,7 @@ function SearchContent() {
           ) : viewMode === 'grid' ? (
             <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 mb-4">
               {filteredBooks.map((b) => {
-                const isBookmarked = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
+                const isBookmarked = isWishlisted(b.id);
                 return (
                   <div className="col" key={b.id}>
                     <div
@@ -417,7 +406,7 @@ function SearchContent() {
           ) : (
             <div className="d-flex flex-column gap-3 mb-4">
               {filteredBooks.map((b) => {
-                const isBookmarked = isWishlisted(b.id) || readVibeStore.isInWishlist(b.id);
+                const isBookmarked = isWishlisted(b.id);
                 return (
                   <div
                     key={b.id}

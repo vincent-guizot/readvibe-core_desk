@@ -7,41 +7,76 @@ import {
   AiFillStar,
   AiOutlineStar,
   AiOutlineArrowLeft,
-  AiOutlineCheck
+  AiOutlineCheck,
+  AiOutlineDelete,
 } from 'react-icons/ai';
-import { readVibeStore } from '@/lib/store';
+import { BsStars, BsChatQuote } from 'react-icons/bs';
+import { useReading, useBooks } from '@/hooks';
 
 function EditReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const bookIdParam = searchParams?.get('bookId') || 'midnight-library';
+  const bookIdParam = searchParams?.get('bookId') || 'comfort-book';
 
-  const [book, setBook] = useState(null);
-  const [rating, setRating] = useState(4);
+  const { books } = useBooks();
+  const { getFinishedDetail, updateFinishedRead, removeFinishedRead } = useReading();
+
+  // Find book and existing review from Redux
+  const book = books.find((b) => b.id === bookIdParam || b.slug === bookIdParam) || books[0];
+  const finishedRecord = getFinishedDetail(book?.id || bookIdParam);
+
+  const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("A gentle reminder of life's possibilities");
   const [content, setContent] = useState(
     "I loved how this story turns regret into a chance to see life differently. The quiet moments stayed with me long after the final page.\n\nThoughtful, hopeful, and easy to get lost in — a lovely read for a reflective weekend."
   );
-  const [containsSpoilers, setContainsSpoilers] = useState(true);
-  const [selectedMoods, setSelectedMoods] = useState(['Reflective', 'Hopeful']);
+  const [favoriteQuote, setFavoriteQuote] = useState(
+    'Nothing is stronger than a small hope that doesn’t give up.'
+  );
+  const [containsSpoilers, setContainsSpoilers] = useState(false);
+  const [selectedMoods, setSelectedMoods] = useState(['Cozy', 'Hopeful']);
   const [visibility, setVisibility] = useState('public');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+  // Sync state when book or finished record is loaded
   useEffect(() => {
-    const b = readVibeStore.getBookById(bookIdParam) || readVibeStore.getBooks()[0];
-    setBook(b);
-  }, [bookIdParam]);
+    if (finishedRecord) {
+      if (finishedRecord.rating) setRating(Number(finishedRecord.rating));
+      if (finishedRecord.reviewTitle) setTitle(finishedRecord.reviewTitle);
+      if (finishedRecord.reviewContent) setContent(finishedRecord.reviewContent);
+      else if (finishedRecord.privateNotes) setContent(finishedRecord.privateNotes);
+      if (finishedRecord.favoriteQuote) setFavoriteQuote(finishedRecord.favoriteQuote);
+      else if (book?.quote) setFavoriteQuote(book.quote);
+      if (finishedRecord.moods && finishedRecord.moods.length > 0) {
+        setSelectedMoods(finishedRecord.moods);
+      }
+      if (finishedRecord.containsSpoilers !== undefined) {
+        setContainsSpoilers(finishedRecord.containsSpoilers);
+      }
+      if (finishedRecord.visibility) setVisibility(finishedRecord.visibility);
+    } else if (book) {
+      if (book.rating) setRating(Math.round(book.rating));
+      if (book.quote) setFavoriteQuote(book.quote);
+      if (book.moods) setSelectedMoods(book.moods.slice(0, 2));
+    }
+  }, [finishedRecord, book]);
 
   const moodsList = [
-    { name: 'Reflective', icon: '❤️' },
-    { name: 'Hopeful', icon: '🌱' },
-    { name: 'Comforted', icon: '☁' },
-    { name: 'Inspired', icon: '☀️' }
+    { name: 'Cozy', icon: '☕' },
+    { name: 'Reflective', icon: '🌙' },
+    { name: 'Hopeful', icon: '✨' },
+    { name: 'Mindful', icon: '🌿' },
+    { name: 'Warm & Healing', icon: '💛' },
+    { name: 'Thoughtful', icon: '💭' },
+    { name: 'Bittersweet', icon: '🍂' },
   ];
 
   const toggleMood = (moodName) => {
     if (selectedMoods.includes(moodName)) {
-      setSelectedMoods(selectedMoods.filter((m) => m !== moodName));
+      if (selectedMoods.length > 1) {
+        setSelectedMoods(selectedMoods.filter((m) => m !== moodName));
+      }
     } else {
       setSelectedMoods([...selectedMoods, moodName]);
     }
@@ -49,26 +84,39 @@ function EditReviewContent() {
 
   const handleSave = (e) => {
     e.preventDefault();
+    const bookId = book?.id || bookIdParam;
+    updateFinishedRead({
+      bookId,
+      rating,
+      reviewTitle: title,
+      reviewContent: content,
+      favoriteQuote,
+      moods: selectedMoods,
+      privateNotes: content,
+      containsSpoilers,
+      visibility,
+    });
+
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
       router.push('/finished-reads');
-    }, 1200);
+    }, 1000);
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
-      router.push('/finished-reads');
-    }
+    const bookId = book?.id || bookIdParam;
+    removeFinishedRead(bookId);
+    router.push('/finished-reads');
   };
 
   const currentBook = book || {
-    id: 'midnight-library',
-    title: 'The Midnight Library',
+    id: 'comfort-book',
+    title: 'The Comfort Book',
     author: 'Matt Haig',
-    coverUrl: '/assets/books/midnight-library.jpg',
-    genres: ['Fiction'],
-    moods: ['Reflective', 'Hopeful']
+    coverUrl: '/assets/books/comfort-book.jpg',
+    genre: 'Self-Development',
+    moods: ['Cozy', 'Hopeful'],
   };
 
   return (
@@ -106,13 +154,21 @@ function EditReviewContent() {
           </p>
         </div>
 
-        <Link
-          href={`/books/${currentBook.id || 'midnight-library'}`}
-          className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5"
-          style={{ borderColor: '#EADFD5', color: '#D96B50', background: '#FFFFFF' }}
-        >
-          <AiOutlineArrowLeft size={14} /> Back to book
-        </Link>
+        <div className="d-flex align-items-center gap-2">
+          <Link
+            href={`/vibe-card?bookId=${currentBook.id}`}
+            className="btn btn-rv-plum btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm"
+          >
+            <BsStars size={14} /> Create Vibe Card
+          </Link>
+          <Link
+            href={`/books/${currentBook.id}`}
+            className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5"
+            style={{ borderColor: '#EADFD5', color: '#D96B50', background: '#FFFFFF' }}
+          >
+            <AiOutlineArrowLeft size={14} /> Back to book
+          </Link>
+        </div>
       </div>
 
       <div className="row g-4 align-items-start">
@@ -125,6 +181,9 @@ function EditReviewContent() {
                 alt={currentBook.title}
                 className="img-fluid rounded-3 shadow-sm"
                 style={{ maxHeight: '280px', width: 'auto', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                }}
               />
             </div>
 
@@ -141,14 +200,17 @@ function EditReviewContent() {
                 className="badge rounded-pill px-2.5 py-1 fw-normal"
                 style={{ backgroundColor: '#EFE9F4', color: 'var(--rv-ink-plum)', fontSize: '11px' }}
               >
-                Fiction
+                {currentBook.genre || 'Fiction'}
               </span>
-              <span
-                className="badge rounded-pill px-2.5 py-1 fw-normal"
-                style={{ backgroundColor: '#EFE9F4', color: 'var(--rv-ink-plum)', fontSize: '11px' }}
-              >
-                Reflective
-              </span>
+              {selectedMoods.map((m) => (
+                <span
+                  key={m}
+                  className="badge rounded-pill px-2.5 py-1 fw-normal"
+                  style={{ backgroundColor: '#FFEBE6', color: '#D96B50', fontSize: '11px' }}
+                >
+                  {m}
+                </span>
+              ))}
             </div>
 
             {/* Finished reading pill */}
@@ -157,10 +219,17 @@ function EditReviewContent() {
               style={{ backgroundColor: '#E0EAE1', color: '#315438', fontSize: '12px' }}
             >
               <span className="fw-semibold d-inline-flex align-items-center gap-1.5">
-                <span className="rounded-circle bg-white p-0.5 d-inline-flex align-items-center justify-content-center" style={{ width: '16px', height: '16px', color: '#315438' }}>✓</span>
+                <span
+                  className="rounded-circle bg-white p-0.5 d-inline-flex align-items-center justify-content-center"
+                  style={{ width: '16px', height: '16px', color: '#315438' }}
+                >
+                  ✓
+                </span>
                 Finished reading
               </span>
-              <span className="text-muted" style={{ fontSize: '11px' }}>29 Oct 2026</span>
+              <span className="text-muted" style={{ fontSize: '11px' }}>
+                {finishedRecord?.finishedAt || 'Recently'}
+              </span>
             </div>
 
             {/* Quote Card */}
@@ -168,7 +237,8 @@ function EditReviewContent() {
               className="rounded-4 p-3 d-flex align-items-center gap-3"
               style={{
                 backgroundColor: '#EAEFE9',
-                backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.25) 0%, transparent 60%)'
+                backgroundImage:
+                  'radial-gradient(circle at 100% 0%, rgba(141, 170, 145, 0.25) 0%, transparent 60%)',
               }}
             >
               <span style={{ fontSize: '24px' }}>🌿</span>
@@ -193,13 +263,16 @@ function EditReviewContent() {
                 >
                   Edit your review
                 </h3>
-                <small className="text-muted">Last saved today</small>
+                <small className="text-muted">Changes sync with your reading shelf &amp; stats</small>
               </div>
             </div>
 
             {savedSuccess && (
-              <div className="alert alert-success d-flex align-items-center gap-2 rounded-3 mb-4 py-2 small">
-                <AiOutlineCheck size={16} /> Changes saved successfully!
+              <div
+                className="alert alert-success d-flex align-items-center gap-2 rounded-3 mb-4 py-2 small"
+                style={{ backgroundColor: '#EBF5EE', color: '#315438' }}
+              >
+                <AiOutlineCheck size={16} /> Changes saved successfully to Redux shelf!
               </div>
             )}
 
@@ -217,7 +290,7 @@ function EditReviewContent() {
                         className="btn btn-link p-0 text-decoration-none border-0"
                         style={{ color: star <= rating ? '#E27D60' : '#D9CFCA' }}
                       >
-                        {star <= rating ? <AiFillStar size={24} /> : <AiOutlineStar size={24} />}
+                        {star <= rating ? <AiFillStar size={26} /> : <AiOutlineStar size={26} />}
                       </button>
                     ))}
                   </div>
@@ -240,12 +313,30 @@ function EditReviewContent() {
                 />
               </div>
 
+              {/* Favorite Quote */}
+              <div className="mb-4">
+                <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1.5">
+                  <BsChatQuote size={15} style={{ color: '#D96B50' }} />
+                  Favorite quote from this book
+                </label>
+                <input
+                  type="text"
+                  className="form-control rounded-3 fst-italic"
+                  value={favoriteQuote}
+                  onChange={(e) => setFavoriteQuote(e.target.value)}
+                  placeholder="A memorable line from the book..."
+                />
+                <small className="text-muted d-block mt-1" style={{ fontSize: '11px' }}>
+                  This quote will be used when generating your shareable Vibe Cards.
+                </small>
+              </div>
+
               {/* Your review */}
               <div className="mb-3">
-                <label className="form-label small fw-bold text-dark mb-1">Your review</label>
+                <label className="form-label small fw-bold text-dark mb-1">Your review &amp; reflections</label>
                 <textarea
                   className="form-control rounded-3"
-                  rows={6}
+                  rows={5}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="What resonated with you? How did the writing feel?"
@@ -293,7 +384,7 @@ function EditReviewContent() {
                           color: isSelected ? '#D96B50' : 'var(--rv-ink-plum)',
                           fontWeight: isSelected ? '600' : '400',
                           borderWidth: '1px',
-                          borderStyle: 'solid'
+                          borderStyle: 'solid',
                         }}
                       >
                         <span>{m.icon}</span>
@@ -346,19 +437,36 @@ function EditReviewContent() {
 
               {/* Actions */}
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="btn btn-link p-0 text-decoration-none small"
-                  style={{ color: '#D96B50', fontSize: '13px' }}
-                >
-                  Delete review
-                </button>
+                {deleteConfirm ? (
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small text-danger fw-semibold">Remove from finished reads?</span>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="btn btn-sm btn-danger rounded-pill px-3 py-1"
+                    >
+                      Yes, delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(false)}
+                      className="btn btn-sm btn-light border rounded-pill px-3 py-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="btn btn-link p-0 text-decoration-none small d-inline-flex align-items-center gap-1"
+                    style={{ color: '#D96B50', fontSize: '13px' }}
+                  >
+                    <AiOutlineDelete size={14} /> Delete review
+                  </button>
+                )}
 
                 <div className="d-flex align-items-center gap-3">
-                  <span className="text-muted small d-none d-md-inline" style={{ fontSize: '11px' }}>
-                    You can update your review anytime.
-                  </span>
                   <Link
                     href="/finished-reads"
                     className="btn btn-outline-secondary btn-sm rounded-pill px-4 py-2 fw-semibold"

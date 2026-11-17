@@ -5,6 +5,8 @@ import {
   startReading,
   updateProgress,
   finishReading,
+  updateFinishedRead,
+  removeFinishedRead,
   removeReading,
 } from '../redux/slices/readingSlice';
 
@@ -34,6 +36,8 @@ export function useReading() {
     updateBookProgress: (bookId, currentPage, notes) =>
       dispatch(updateProgress({ bookId, currentPage, notes })),
     finishBook: (data) => dispatch(finishReading(data)),
+    updateFinishedRead: (data) => dispatch(updateFinishedRead(data)),
+    removeFinishedRead: (bookId) => dispatch(removeFinishedRead({ bookId })),
     removeBook: (bookId) => dispatch(removeReading({ bookId })),
   };
 }
