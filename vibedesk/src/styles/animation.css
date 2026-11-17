@@ -1,0 +1,55 @@
+/* One-shot entrance motion. Layout and interaction remain Bootstrap-owned. */
+@keyframes vd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vd-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vd-dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.vd-content-wrap > div {
+  animation: vd-fade-in 180ms ease-out;
+}
+
+.vd-page-header,
+.vd-form-panel {
+  animation: vd-slide-in 200ms ease-out;
+}
+
+.vd-stat-card {
+  animation: vd-slide-in 240ms ease-out;
+}
+
+.modal.show .modal-dialog {
+  animation: vd-dialog-in 200ms ease-out;
+}
+
+.vd-content-wrap .alert,
+.position-fixed > .alert {
+  animation: vd-fade-in 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vd-content-wrap > div,
+  .vd-page-header,
+  .vd-form-panel,
+  .vd-stat-card,
+  .modal.show .modal-dialog,
+  .vd-content-wrap .alert,
+  .position-fixed > .alert {
+    animation: none;
+  }
+
+  .vd-sidebar,
+  .vd-sidebar-link,
+  .vd-import-result {
+    transition: none;
+  }
+}

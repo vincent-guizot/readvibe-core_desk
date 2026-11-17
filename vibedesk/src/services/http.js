@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { ApiError } from './api-error';
+import { API_URL } from '../constants/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3360';
 
 export const http = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
