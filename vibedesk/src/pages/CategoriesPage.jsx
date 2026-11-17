@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
-import { categoriesApi, getApiErrorMessage } from '../../services/catalog-api';
-import CrudStatusAlert from '../../shared/components/CrudStatusAlert';
+import { categoriesApi, getApiErrorMessage } from '../services/catalog-api';
+import CrudStatusAlert from '../components/shared/CrudStatusAlert';
+import PageHeader from '../components/shared/PageHeader';
 
 const emptyForm = { name: '', description: '' };
 
@@ -60,13 +61,12 @@ export default function CategoriesPage({ categories, onRefresh }) {
 
   return (
     <div>
-      <h2 className="fw-bold mb-1" style={{ color: 'var(--vd-desk-navy)' }}>Kategori & Genre Buku</h2>
-      <p className="text-muted small mb-4">Kelompokkan katalog dengan taksonomi yang konsisten.</p>
+      <PageHeader eyebrow="Katalog / Categories & Genres" title="Categories & Genres" description="Kelompokkan katalog dengan taksonomi yang konsisten." />
       <CrudStatusAlert status={status} />
 
       <div className="row g-4">
         <div className="col-md-4">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">{editingId ? 'Ubah Kategori' : 'Tambah Kategori Baru'}</h5>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
@@ -86,7 +86,7 @@ export default function CategoriesPage({ categories, onRefresh }) {
         </div>
 
         <div className="col-md-8">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">Daftar Kategori ({categories.length})</h5>
             {categories.length === 0 ? <p className="text-muted small mb-0">Belum ada kategori. Tambahkan kategori pertama.</p> : (
               <div className="row g-2">

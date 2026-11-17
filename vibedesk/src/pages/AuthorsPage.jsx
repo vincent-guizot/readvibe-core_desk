@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AiOutlineDelete, AiOutlineEdit, AiOutlinePlus } from 'react-icons/ai';
-import { authorsApi, getApiErrorMessage } from '../../services/catalog-api';
-import CrudStatusAlert from '../../shared/components/CrudStatusAlert';
+import { authorsApi, getApiErrorMessage } from '../services/catalog-api';
+import CrudStatusAlert from '../components/shared/CrudStatusAlert';
+import PageHeader from '../components/shared/PageHeader';
 
 const emptyForm = { name: '', bio: '' };
 
@@ -66,13 +67,12 @@ export default function AuthorsPage({ authors, onRefresh }) {
 
   return (
     <div>
-      <h2 className="fw-bold mb-1" style={{ color: 'var(--vd-desk-navy)' }}>Manajemen Penulis</h2>
-      <p className="text-muted small mb-4">Kelola profil penulis yang terhubung ke katalog buku.</p>
+      <PageHeader eyebrow="Katalog / Authors" title="Authors" description="Kelola profil penulis yang terhubung dengan katalog buku." />
       <CrudStatusAlert status={status} />
 
       <div className="row g-4">
         <div className="col-md-4">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">{editingId ? 'Ubah Penulis' : 'Tambah Penulis Baru'}</h5>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
@@ -92,7 +92,7 @@ export default function AuthorsPage({ authors, onRefresh }) {
         </div>
 
         <div className="col-md-8">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="fw-bold mb-0">Daftar Penulis ({authors.length})</h5>
               <AiOutlinePlus className="text-muted" aria-hidden="true" />
