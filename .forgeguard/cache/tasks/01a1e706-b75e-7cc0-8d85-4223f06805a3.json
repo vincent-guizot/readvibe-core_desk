@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "session_id": "01a1e706-b75e-7cc0-8d85-4223f06805a3",
+  "objective": "Align VibeDesk's core authenticated UI with the supplied reference screens using existing local assets.",
+  "profile": "general",
+  "scopes": [
+    "vibedesk/public/assets",
+    "vibedesk/src"
+  ],
+  "resources": [
+    "url:http://localhost:3355"
+  ],
+  "semantic": false,
+  "goal": {
+    "metric": "reference screens covered by reviewed UI implementations",
+    "baseline": "3 core screens have dedicated reference-aligned components; authenticated preview is unavailable without backend",
+    "target": "6 reference screen families use the established UI system and build successfully",
+    "guardrails": [
+      "Do not alter VibeCore APIs, data contracts, or authentication behavior.",
+      "Reuse only repository-local image assets."
+    ],
+    "verifications": [
+      "npm run build",
+      "npm run lint",
+      "git diff --check"
+    ]
+  },
+  "todos": [
+    {
+      "text": "Inspect remaining page implementations and map them to the reference screens.",
+      "done": true
+    },
+    {
+      "text": "Implement reusable reference-aligned shell, header, tables, cards, and illustrations across core page families.",
+      "done": true
+    },
+    {
+      "text": "Review the changed UI and run frontend verification commands.",
+      "done": true
+    },
+    {
+      "text": "Refactor VibeDesk folder structure, Redux async resource states, reusable hooks and Bootstrap UI; verify build and lint.",
+      "done": true
+    },
+    {
+      "text": "Audit unused frontend files and CSS, simplify with Bootstrap utilities, add accessible motion, and update VibeDesk README; validate lint/build/diff.",
+      "done": true
+    },
+    {
+      "text": "Create exactly 15 scoped VibeDesk commits using configured Git identity, verify branch, push and create PR targeting vibedesk.",
+      "done": false
+    }
+  ],
+  "acceptance_criteria": [],
+  "confidence": null,
+  "confidence_history": [
+    88,
+    90,
+    91
+  ],
+  "auto_pokes": 0,
+  "poke_instruction": null,
+  "status": "active",
+  "evidence": [],
+  "evidence_records": [],
+  "blocker": null
+}
