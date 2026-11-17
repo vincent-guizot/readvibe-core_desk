@@ -4,15 +4,7 @@ import { ApiResponse } from '../../utils/api-response';
 export class BookController {
   static async list(req, res, next) {
     try {
-      const { search, genreId, authorId, mood, page = 1, limit = 20 } = req.query;
-      const { books, meta } = await BookService.list({
-        search,
-        genreId,
-        authorId,
-        mood,
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-      });
+      const { books, meta } = await BookService.list(req.query);
 
       return ApiResponse.paginated(res, books, meta, 'Katalog buku berhasil dimuat.');
     } catch (err) {

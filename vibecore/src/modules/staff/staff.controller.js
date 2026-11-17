@@ -2,6 +2,9 @@ import { StaffService } from './staff.service';
 import { ApiResponse } from '../../utils/api-response';
 
 export class StaffController {
+  static async getById(req, res, next) {
+    try { return ApiResponse.success(res, await StaffService.getById(req.params.id)); } catch (error) { next(error); }
+  }
   static async list(req, res, next) {
     try {
       const staff = await StaffService.list();
@@ -20,9 +23,9 @@ export class StaffController {
     }
   }
 
-  static async updateRole(req, res, next) {
+  static async update(req, res, next) {
     try {
-      const staff = await StaffService.updateRole(req.params.id, req.body.role);
+      const staff = await StaffService.update(req.params.id, req.body, req.user.id);
       return ApiResponse.success(res, staff, 'Peran staf berhasil diperbarui.');
     } catch (err) {
       next(err);
@@ -31,7 +34,7 @@ export class StaffController {
 
   static async delete(req, res, next) {
     try {
-      await StaffService.delete(req.params.id);
+      await StaffService.delete(req.params.id, req.user.id);
       return ApiResponse.success(res, null, 'Akun staf berhasil dihapus.');
     } catch (err) {
       next(err);

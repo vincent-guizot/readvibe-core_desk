@@ -19,7 +19,7 @@ export class AuthService {
     );
   }
 
-  static async register({ username, email, password, fullname, role = 'Member' }) {
+  static async register({ username, email, password, fullname }) {
     const existingEmail = await db.user.findOne({ where: { email } });
     if (existingEmail) {
       throw AppError.conflict('Email sudah terdaftar.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
@@ -41,7 +41,7 @@ export class AuthService {
       username,
       email,
       password: hashedPassword,
-      role: role === 'Admin' || role === 'Librarian' ? role : 'Member',
+      role: 'Member',
       profileId: profile.id,
     });
 
@@ -73,6 +73,8 @@ export class AuthService {
     if (!isValidPassword) {
       throw AppError.unauthorized('Email atau password salah.', ErrorCodes.UNAUTHORIZED);
     }
+
+    if (user.status === 'Suspended') throw AppError.forbidden('Akun dinonaktifkan. Hubungi administrator.', ErrorCodes.FORBIDDEN);
 
     const token = this.generateToken(user);
 

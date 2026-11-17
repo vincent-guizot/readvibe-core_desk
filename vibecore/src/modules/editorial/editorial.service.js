@@ -57,13 +57,17 @@ export class EditorialService {
     });
   }
 
-  static async update(id, { tagline, note, curatorNotes, curationWeight, active, isActive }) {
+  static async update(id, { bookId, tagline, note, curatorNotes, curationWeight, active, isActive }) {
     const pick = await db.editorial_pick.findByPk(id);
     if (!pick) {
       throw AppError.notFound('Editorial pick tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 
     const updates = {};
+    if (bookId !== undefined) {
+      if (!await db.book.findByPk(bookId)) throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
+      updates.bookId = bookId;
+    }
     if (tagline !== undefined) updates.tagline = tagline;
     if (curatorNotes !== undefined || note !== undefined) updates.curatorNotes = curatorNotes !== undefined ? curatorNotes : note;
     if (curationWeight !== undefined) {

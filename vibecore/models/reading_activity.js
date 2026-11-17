@@ -38,6 +38,8 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false,
       },
       flagReason: DataTypes.STRING,
+      moderationReason: DataTypes.TEXT,
+      moderatedBy: DataTypes.INTEGER,
       moderationStatus: {
         type: DataTypes.STRING,
         defaultValue: 'Approved', // 'Approved', 'Pending', 'Rejected'

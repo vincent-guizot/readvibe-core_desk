@@ -2,6 +2,12 @@ import { AnalyticsService } from './analytics.service';
 import { ApiResponse } from '../../utils/api-response';
 
 export class AnalyticsController {
+  static async wishlistIntelligence(req, res, next) {
+    try { return ApiResponse.success(res, await AnalyticsService.wishlistIntelligence(req.query)); } catch (error) { next(error); }
+  }
+  static async readingAnalytics(req, res, next) {
+    try { return ApiResponse.success(res, await AnalyticsService.readingAnalytics(req.query)); } catch (error) { next(error); }
+  }
   static async getOverview(req, res, next) {
     try {
       const data = await AnalyticsService.getOverview();

@@ -1,9 +1,9 @@
 export class Ranker {
-  static rank(candidates, selectedMoods = [], queryText = '') {
+  static rank(candidates, selectedMoods = [], queryText = '', settings = { moodMatchBaseScore: 0.70, curationWeightBonus: 0.15, minMatchScoreThreshold: 0.30 }) {
     const textLower = (queryText || '').toLowerCase();
 
     const scored = candidates.map((book) => {
-      let score = 70;
+      let score = settings.moodMatchBaseScore * 100;
       const reasons = [];
 
       // 1. Mood Tag resonance
@@ -41,11 +41,11 @@ export class Ranker {
       // 3. Editorial Pick Curation Weight
       const activePick = (book.editorialPicks || []).find((p) => p.isActive);
       if (activePick) {
-        score += Math.round((activePick.curationWeight || 50) * 0.08);
+        score += Math.round((activePick.curationWeight || 50) * settings.curationWeightBonus);
         reasons.push(`Pilihan kurator perpustakaan (${activePick.tagline || 'Rekomendasi Utama'}).`);
       }
 
-      const matchScore = Math.min(98, Math.max(80, score));
+      const matchScore = Math.min(98, Math.max(0, Math.round(score)));
 
       return {
         book,
@@ -56,6 +56,6 @@ export class Ranker {
 
     // Sort descending by score
     scored.sort((a, b) => b.matchScore - a.matchScore);
-    return scored.slice(0, 3);
+    return scored.filter((item) => item.matchScore >= settings.minMatchScoreThreshold * 100).slice(0, 3);
   }
 }

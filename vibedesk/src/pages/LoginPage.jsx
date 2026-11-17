@@ -1,109 +1,117 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import http from '../services/http';
+import { visualAssets } from '../constants/visual-assets';
 
-export default function LoginPage({ onLoginSuccess, apiUrl }) {
+export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function submit(event) {
+    event.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
-
     try {
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const { data } = await http.post('/api/auth/login', {
+        email: email.trim(),
+        password,
       });
-      const data = await res.json();
-      if (res.ok && data.data?.token) {
-        onLoginSuccess(data.data.token, data.data.user);
-        navigate('/');
-      } else {
-        setError(data.message || 'Login gagal.');
-      }
+      if (!['Admin', 'Librarian'].includes(data.user?.role))
+        throw new Error('VibeDesk hanya dapat diakses Admin dan Librarian.');
+      onLoginSuccess(data.token, data.user, remember);
+      navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || 'Gagal menghubungi server.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuick = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('password123');
-  };
-
+  }
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100" style={{ background: 'var(--vd-soft-sand)' }}>
-      <div className="card vd-card p-4 p-md-5" style={{ width: '100%', maxWidth: '420px' }}>
-        <div className="text-center mb-4">
-          <img
-            src="/assets/logos/vibedesk-horizontal-color.png"
-            alt="VibeDesk"
-            style={{ height: '40px', objectFit: 'contain' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-          <h4 className="fw-bold mt-2" style={{ color: 'var(--vd-desk-navy)' }}>
-            VibeDesk Backoffice
-          </h4>
-          <p className="text-muted small">Masuk untuk mengelola katalog dan kurasi</p>
-        </div>
-
-        {error && <div className="alert alert-danger py-2 small">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label small fw-semibold">Email Staf</label>
-            <input
-              type="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@vibedesk.app"
-              required
-            />
+    <div className="vd-login-layout">
+      <section className="vd-login-hero">
+        <img
+          className="vd-login-cover"
+          src={visualAssets.loginPanel}
+          alt="Ruang baca VibeDesk dengan koleksi buku dan tanaman"
+        />
+      </section>
+      <section className="card vd-card p-4 p-md-5 w-100">
+        <img
+          src="/assets/logos/vibedesk-horizontal-color.png"
+          alt="VibeDesk"
+          className="mb-4"
+          style={{ maxWidth: 200 }}
+        />
+        <h1 className="h3 fw-bold">Selamat datang kembali</h1>
+        <p className="text-secondary">Masuk ke CMS & Backoffice ReadVibe.</p>
+        {error && (
+          <div role="alert" className="alert alert-danger">
+            {error}
           </div>
-          <div className="mb-3">
-            <label className="form-label small fw-semibold">Password</label>
+        )}
+        <form onSubmit={submit}>
+          <label htmlFor="login-email" className="form-label">
+            Email staf
+          </label>
+          <input
+            id="login-email"
+            className="form-control mb-3"
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+          />
+          <label htmlFor="login-password" className="form-label">
+            Password
+          </label>
+          <div className="input-group mb-3">
             <input
-              type="password"
+              id="login-password"
               className="form-control"
+              type={visible ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
+              disabled={loading}
             />
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              aria-pressed={visible}
+              onClick={() => setVisible(!visible)}
+            >
+              {visible ? 'Sembunyikan' : 'Tampilkan'}
+            </button>
           </div>
-          <button type="submit" className="btn btn-vd-primary w-100 py-2 fw-semibold" disabled={loading}>
+          <div className="form-check mb-4">
+            <input
+              id="remember-session"
+              type="checkbox"
+              className="form-check-input"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <label htmlFor="remember-session" className="form-check-label">
+              Ingat sesi di perangkat ini
+            </label>
+          </div>
+          <button className="btn btn-vd-primary w-100" disabled={loading}>
             {loading ? 'Memproses...' : 'Masuk ke Control Center'}
           </button>
         </form>
-
-        <div className="mt-4 pt-3 border-top text-center">
-          <small className="text-muted d-block mb-2">Login Demo Cepat:</small>
-          <div className="d-flex gap-2 justify-content-center">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => handleQuick('admin@vibedesk.app')}
-            >
-              Admin
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => handleQuick('librarian@vibedesk.app')}
-            >
-              Librarian
-            </button>
-          </div>
-        </div>
-      </div>
+        <p className="small text-secondary border-top pt-3 mt-4 mb-0">
+          Khusus Admin dan Librarian. Hubungi administrator untuk memperoleh
+          akses staf.
+        </p>
+      </section>
     </div>
   );
 }

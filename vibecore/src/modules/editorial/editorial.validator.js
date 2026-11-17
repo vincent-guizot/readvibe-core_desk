@@ -3,7 +3,7 @@ export const validateEditorialPayload = (req) => {
   if (!bookId) {
     return 'bookId wajib diisi.';
   }
-  return null;
+  return validateEditorialUpdatePayload(req);
 };
 
 export const validateEditorialUpdatePayload = (req) => {

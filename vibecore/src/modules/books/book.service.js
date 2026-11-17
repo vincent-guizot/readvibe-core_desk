@@ -3,21 +3,30 @@ import db from '../../../models';
 import { AppError } from '../../errors/app-error';
 import { ErrorCodes } from '../../contracts/error-codes';
 import { buildPaginationMeta } from '../../utils/pagination';
+import { normalizeBookMetadata } from './book.metadata';
 
 export class BookService {
-  static async list({ search, genreId, authorId, mood, page = 1, limit = 20 }) {
+  static async list({ search, genreId, authorId, mood, moodId, stock, sort = 'newest', googleBooksId, page = 1, limit = 20 }) {
+    page = Math.max(1, parseInt(page, 10) || 1);
+    limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const offset = (page - 1) * limit;
     const where = {};
 
     if (search) {
+      const matchingAuthors = await db.author.findAll({ attributes: ['id'], where: { pen_name: { [Op.iLike]: `%${search}%` } } });
       where[Op.or] = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } },
         { isbn: { [Op.iLike]: `%${search}%` } },
+        { authorId: { [Op.in]: matchingAuthors.map((author) => author.id) } },
       ];
     }
     if (genreId) where.genreId = genreId;
     if (authorId) where.authorId = authorId;
+    if (googleBooksId) where.googleBooksId = googleBooksId;
+    if (stock === 'available') where.stock = { [Op.gt]: 5 };
+    if (stock === 'low') where.stock = { [Op.between]: [1, 5] };
+    if (stock === 'empty') where.stock = 0;
 
     const includeMood = {
       model: db.mood_tag,
@@ -28,6 +37,8 @@ export class BookService {
     if (mood) {
       includeMood.where = { name: { [Op.iLike]: `%${mood}%` } };
     }
+    if (moodId) includeMood.where = { id: moodId };
+    const orders = { newest: [['createdAt', 'DESC'], ['id', 'DESC']], title: [['title', 'ASC'], ['id', 'ASC']], stock: [['stock', 'DESC'], ['id', 'ASC']] };
 
     const { count, rows: books } = await db.book.findAndCountAll({
       where,
@@ -38,7 +49,7 @@ export class BookService {
         { model: db.editorial_pick, as: 'editorialPicks' },
       ],
       distinct: true,
-      order: [['createdAt', 'DESC']],
+      order: orders[sort] || orders.newest,
       limit: parseInt(limit, 10),
       offset: parseInt(offset, 10),
     });
@@ -61,6 +72,7 @@ export class BookService {
         {
           model: db.reading_activity,
           as: 'reviews',
+          attributes: ['id', 'rating', 'publicReview', 'isSpoiler', 'createdAt'],
           where: { moderationStatus: 'Approved', publicReview: { [Op.ne]: null } },
           required: false,
           include: [
@@ -120,6 +132,7 @@ export class BookService {
     }
 
     const book = await db.book.create({
+      ...normalizeBookMetadata(payload),
       title,
       description,
       year: year ? parseInt(year, 10) : null,
@@ -187,10 +200,11 @@ export class BookService {
     }
 
     await book.update({
+      ...normalizeBookMetadata(payload),
       title: title !== undefined ? title : book.title,
       description: description !== undefined ? description : book.description,
-      year: year !== undefined ? parseInt(year, 10) : book.year,
-      page: page !== undefined ? parseInt(page, 10) : book.page,
+      year: year !== undefined ? (year === null ? null : parseInt(year, 10)) : book.year,
+      page: page !== undefined ? (page === null ? null : parseInt(page, 10)) : book.page,
       stock: stock !== undefined ? parseInt(stock, 10) : book.stock,
       price: price !== undefined ? parseInt(price, 10) : book.price,
       image: image !== undefined ? image : book.image,

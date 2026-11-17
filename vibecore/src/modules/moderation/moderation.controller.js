@@ -2,6 +2,9 @@ import { ModerationService } from './moderation.service';
 import { ApiResponse } from '../../utils/api-response';
 
 export class ModerationController {
+  static async getById(req, res, next) {
+    try { return ApiResponse.success(res, await ModerationService.getById(req.params.id)); } catch (error) { next(error); }
+  }
   static async listReviews(req, res, next) {
     try {
       const items = await ModerationService.listReviews(req.query);
@@ -13,7 +16,7 @@ export class ModerationController {
 
   static async moderate(req, res, next) {
     try {
-      const activity = await ModerationService.moderate(req.params.id, req.body);
+      const activity = await ModerationService.moderate(req.params.id, req.body, req.user.id);
       return ApiResponse.success(res, activity, 'Keputusan moderasi berhasil disimpan.');
     } catch (err) {
       next(err);

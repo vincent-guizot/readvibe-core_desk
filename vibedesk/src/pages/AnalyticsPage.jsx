@@ -1,30 +1,237 @@
-import React from 'react';
-import { AiOutlineBarChart, AiOutlineHeart, AiOutlineRise, AiOutlineStar, AiOutlineTeam } from 'react-icons/ai';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 import StatCard from '../components/shared/StatCard';
-
+import AsyncStatus from '../components/ui/AsyncStatus';
 import BarChart from '../components/ui/BarChart';
+import { useApiQuery } from '../hooks/useApiQuery';
 
-export default function AnalyticsPage({ wishlistData, readingData, variant = 'wishlist' }) {
-  const topBooks = wishlistData || [];
-  const moodTrends = readingData?.moodTrends || [];
-  const isReading = variant === 'reading';
-  const bars = isReading ? moodTrends : topBooks;
-  const chartData = bars.slice(0, 6).map((item) => ({
-    name: isReading ? item.name || item.moodTag || 'Mood' : item.book?.title || 'Buku',
-    value: Number(isReading ? item.bookCount || item.totalReads || 0 : item.wishlistCount || 0),
-  }));
-
+export default function AnalyticsPage({
+  categories = [],
+  variant = 'wishlist',
+}) {
+  const [period, setPeriod] = useState('30');
+  const [genreId, setGenreId] = useState('');
+  const [sort, setSort] = useState('demand');
+  const reading = variant === 'reading';
+  const query = useApiQuery(
+    reading ? '/api/analytics/reading' : '/api/analytics/wishlist-intelligence',
+    { period, genreId, sort },
+  );
+  const data = query.data;
+  const chart = (title, rows) => (
+    <section className="card vd-card p-4 h-100">
+      <h2 className="h5 mb-3">{title}</h2>
+      {rows?.length ? (
+        <BarChart data={rows} label={title} />
+      ) : (
+        <EmptyState
+          compact
+          title="Belum cukup data"
+          description="Agregat akan tersedia setelah ada aktivitas pada periode ini."
+        />
+      )}
+    </section>
+  );
   return (
-    <div>
-      <PageHeader eyebrow={isReading ? 'Reading Analytics' : 'Wishlist Intelligence'} title={isReading ? 'Reading Analytics' : 'Wishlist Intelligence'} description={isReading ? 'Analisa aktivitas membaca, keterlibatan, dan preferensi pembaca ReadVibe.' : 'Sinyal permintaan komunitas untuk membantu keputusan pengadaan koleksi.'} />
-      <div className="row g-3 mb-4">
-        {isReading ? <><div className="col-lg col-sm-6"><StatCard icon={<AiOutlineTeam />} value="4.982" label="Pembaca Aktif" trend="↑ 12% vs bulan lalu" /></div><div className="col-lg col-sm-6"><StatCard icon={<AiOutlineBarChart />} value="18.740" label="Sesi Membaca" trend="↑ 18%" tone="lilac" /></div><div className="col-lg col-sm-6"><StatCard icon="◷" value="154.320" label="Menit Membaca" trend="↑ 21%" tone="gold" /></div><div className="col-lg col-sm-6"><StatCard icon={<AiOutlineHeart />} value="68%" label="Tingkat Keterlibatan" trend="↑ 6 pp" tone="coral" /></div></> : <><div className="col-lg-4 col-sm-6"><StatCard icon={<AiOutlineHeart />} value={topBooks.reduce((sum, item) => sum + Number(item.wishlistCount || 0), 0)} label="Total Wishlist" trend="Permintaan aktif komunitas" /></div><div className="col-lg-4 col-sm-6"><StatCard icon={<AiOutlineStar />} value={topBooks.length} label="Buku Dipantau" trend="Prioritas pengadaan" tone="gold" /></div><div className="col-lg-4 col-sm-6"><StatCard icon={<AiOutlineRise />} value={topBooks.filter((item) => Number(item.book?.stock || 0) < Number(item.wishlistCount || 0)).length} label="Potensi Defisit Stok" trend="Butuh review kurator" tone="coral" /></div></>}
-      </div>
-      <div className="row g-4">
-        <div className="col-lg-8"><section className="card vd-card p-4 h-100"><div className="d-flex justify-content-between align-items-center mb-4"><div><h2 className="vd-section-title">{isReading ? 'Distribusi Mood Buku' : 'Buku Paling Banyak di Wishlist'}</h2><p className="text-body-secondary small mb-0">{isReading ? 'Mood yang paling banyak dikaitkan dengan aktivitas membaca.' : 'Urutan minat member terhadap koleksi katalog.'}</p></div><span className="vd-pill">Periode berjalan</span></div>{chartData.length === 0 ? <p className="text-body-secondary mb-0">Belum ada data untuk dianalisis.</p> : <BarChart data={chartData} label={isReading ? 'Distribusi mood buku' : 'Buku paling banyak di wishlist'} />}</section></div>
-        <div className="col-lg-4"><section className="card vd-card p-4 h-100"><h2 className="vd-section-title mb-3">Insight Kurator</h2><div className="d-flex flex-column gap-3"><div className="p-3 rounded" style={{ background: '#e8f6ef' }}><strong className="d-block mb-1">{isReading ? 'Waktu membaca meningkat' : 'Permintaan koleksi terkonsentrasi'}</strong><span className="small text-body-secondary">{isReading ? 'Aktivitas pembaca menunjukkan tren positif pada periode ini.' : 'Prioritaskan stok judul dengan minat tinggi dan ketersediaan rendah.'}</span></div><div className="p-3 rounded" style={{ background: '#f0eafb' }}><strong className="d-block mb-1">{isReading ? 'Mood favorit pembaca' : 'Rekomendasi tindakan'}</strong><span className="small text-body-secondary">{isReading ? `${moodTrends[0]?.name || 'Mood teratas'} mendominasi koleksi yang dibaca.` : 'Tinjau daftar wishlist dan hubungi tim pengadaan.'}</span></div></div></section></div>
-      </div>
-    </div>
+    <>
+      <PageHeader
+        title={reading ? 'Reading Analytics' : 'Wishlist Intelligence'}
+        description={
+          reading
+            ? 'Agregat buku selesai, penilaian, dan preferensi baca.'
+            : 'Permintaan agregat untuk membantu prioritas pengadaan.'
+        }
+      />
+      <section className="card vd-card p-3 mb-4">
+        <div className="d-flex flex-wrap gap-3">
+          <label>
+            Periode
+            <select
+              className="form-select"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              <option value="30">30 hari</option>
+              <option value="90">90 hari</option>
+              <option value="365">365 hari</option>
+              <option value="all">Semua waktu</option>
+            </select>
+          </label>
+          <label>
+            Kategori
+            <select
+              className="form-select"
+              value={genreId}
+              onChange={(e) => setGenreId(e.target.value)}
+            >
+              <option value="">Semua kategori</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!reading && (
+            <label>
+              Urutkan
+              <select
+                className="form-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+              >
+                <option value="demand">Permintaan tertinggi</option>
+                <option value="deficit">Defisit stok tertinggi</option>
+              </select>
+            </label>
+          )}
+          <button
+            className="btn btn-outline-secondary align-self-end"
+            onClick={() => {
+              setPeriod('30');
+              setGenreId('');
+              setSort('demand');
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </section>
+      <AsyncStatus
+        loading={query.loading}
+        error={query.error}
+        onRetry={query.retry}
+      />
+      {data && (
+        <>
+          <div className="row g-3 mb-4">
+            {(reading
+              ? [
+                  ['Buku Selesai', data.completed],
+                  [
+                    'Rating Rata-rata',
+                    data.averageRating ?? 'Belum ada rating',
+                  ],
+                  ['Mood Populer', data.moods?.[0]?.name || '—'],
+                ]
+              : [
+                  ['Total Permintaan', data.totalDemand],
+                  ['Judul Diminta', data.requestedBooks],
+                  ['Defisit Stok', data.stockDeficit],
+                ]
+            ).map(([label, value]) => (
+              <div className="col-md-4" key={label}>
+                <StatCard
+                  icon={reading ? '☆' : '♡'}
+                  label={label}
+                  value={value}
+                />
+              </div>
+            ))}
+          </div>
+          {reading ? (
+            <>
+              <div className="row g-4 mb-4">
+                <div className="col-lg-6">
+                  {chart('Distribusi mood aktivitas selesai', data.moods)}
+                </div>
+                <div className="col-lg-6">
+                  {chart('Distribusi genre', data.genres)}
+                </div>
+              </div>
+              <div className="mb-4">
+                {chart('Tren penyelesaian bulanan', data.trends)}
+              </div>
+              <section className="card vd-card p-4">
+                <h2 className="h5">Buku dengan rating tertinggi</h2>
+                {data.highestRated?.length ? (
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Buku</th>
+                          <th>Rating</th>
+                          <th>Jumlah penilaian</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.highestRated.map((book) => (
+                          <tr key={book.id}>
+                            <td>
+                              <Link to={`/books/${book.id}`}>{book.title}</Link>
+                            </td>
+                            <td>{book.rating}</td>
+                            <td>{book.ratingCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState compact title="Belum ada rating" />
+                )}
+              </section>
+            </>
+          ) : (
+            <>
+              <div className="mb-4">
+                {chart(
+                  'Buku paling diminta',
+                  data.rows
+                    .slice(0, 10)
+                    .map((book) => ({ name: book.title, value: book.demand })),
+                )}
+              </div>
+              <section className="card vd-card p-4">
+                <h2 className="h5">Prioritas pengadaan</h2>
+                {data.rows.length ? (
+                  <div className="table-responsive">
+                    <table className="table vd-table">
+                      <thead>
+                        <tr>
+                          <th>Buku</th>
+                          <th>Kategori</th>
+                          <th>Permintaan</th>
+                          <th>Stok</th>
+                          <th>Defisit</th>
+                          <th>Rekomendasi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.rows.map((book) => (
+                          <tr key={book.id}>
+                            <td>
+                              <Link to={`/books/${book.id}`}>{book.title}</Link>
+                            </td>
+                            <td>{book.category || '—'}</td>
+                            <td>{book.demand}</td>
+                            <td>{book.stock || 0}</td>
+                            <td>{book.stockDeficit}</td>
+                            <td>
+                              {book.stockDeficit > 0
+                                ? `Tinjau pengadaan ${book.stockDeficit} eksemplar`
+                                : 'Stok mencukupi permintaan'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState title="Belum ada permintaan" />
+                )}
+              </section>
+            </>
+          )}
+          <p className="small text-secondary mt-3">
+            Data agregat saja. Jumlah permintaan dihitung dari wishlist pada
+            periode terpilih; defisit merupakan indikator untuk ditinjau, bukan
+            pesanan otomatis.
+          </p>
+        </>
+      )}
+    </>
   );
 }

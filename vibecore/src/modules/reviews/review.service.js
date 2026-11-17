@@ -11,20 +11,38 @@ export class ReviewService {
         publicReview: { [Op.ne]: null },
         moderationStatus: 'Approved',
       },
-      attributes: ['id', 'bookId', 'rating', 'quote', 'publicReview', 'moodTag', 'isSpoiler', 'createdAt'],
+      attributes: [
+        'id',
+        'bookId',
+        'rating',
+        'quote',
+        'publicReview',
+        'moodTag',
+        'isSpoiler',
+        'createdAt',
+      ],
       include: [
         {
           model: db.user,
           as: 'user',
           attributes: ['id', 'username'],
-          include: [{ model: db.profile, as: 'profile', attributes: ['fullname', 'image'] }],
+          include: [
+            {
+              model: db.profile,
+              as: 'profile',
+              attributes: ['fullname', 'image'],
+            },
+          ],
         },
       ],
       order: [['createdAt', 'DESC']],
     });
   }
 
-  static async submitReview(userId, { bookId, rating, quote, publicReview, moodTag, isSpoiler }) {
+  static async submitReview(
+    userId,
+    { bookId, rating, quote, publicReview, moodTag, isSpoiler },
+  ) {
     let activity = await db.reading_activity.findOne({
       where: { userId, bookId },
     });
@@ -60,20 +78,35 @@ export class ReviewService {
           model: db.user,
           as: 'user',
           attributes: ['id', 'username'],
-          include: [{ model: db.profile, as: 'profile', attributes: ['fullname', 'image'] }],
+          include: [
+            {
+              model: db.profile,
+              as: 'profile',
+              attributes: ['fullname', 'image'],
+            },
+          ],
         },
       ],
     });
   }
 
   static async reportReview(id, { reason }) {
+    if (
+      reason !== undefined &&
+      (typeof reason !== 'string' || reason.length > 255)
+    )
+      throw AppError.badRequest(
+        'Alasan laporan harus berupa teks maksimal 255 karakter.',
+      );
     const activity = await db.reading_activity.findByPk(id);
-    if (!activity) {
+    if (!activity || !activity.publicReview) {
       throw AppError.notFound('Ulasan tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
     // Flag for moderation review
     await activity.update({
       moderationStatus: 'Flagged',
+      isFlagged: true,
+      flagReason: reason?.trim() || null,
     });
     return true;
   }

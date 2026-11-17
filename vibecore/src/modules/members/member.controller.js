@@ -4,8 +4,7 @@ import { ApiResponse } from '../../utils/api-response';
 export class MemberController {
   static async list(req, res, next) {
     try {
-      const { search, role, page = 1, limit = 20 } = req.query;
-      const { members, meta } = await MemberService.list({ search, role, page, limit });
+      const { members, meta } = await MemberService.list(req.query);
       return ApiResponse.paginated(res, members, meta, 'Daftar member berhasil dimuat.');
     } catch (err) {
       next(err);

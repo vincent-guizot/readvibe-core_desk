@@ -21,8 +21,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border-right: 1px solid var(--vd-border);
   min-height: 100vh;
   transition: transform 0.2s ease;
-  width: 286px;
-  flex: 0 0 286px;
+  width: 270px;
+  flex: 0 0 270px;
   z-index: 10;
 }
 
@@ -41,7 +41,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-sidebar-link {
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -54,7 +54,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .vd-sidebar-link:hover {
   background-color: rgba(60, 140, 132, 0.08);
-  color: var(--vd-curator-teal);
+  color: var(--vd-action-teal);
 }
 
 .vd-sidebar-link.active {
@@ -71,6 +71,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-topbar {
+  position: relative;
+  z-index: 1030;
   background: rgba(255, 255, 255, .78);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--vd-border);
@@ -100,7 +102,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .vd-shortcut {
   background: #f0eeec;
   border-radius: 6px;
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   font-size: .72rem;
   padding: .15rem .45rem;
   position: absolute;
@@ -117,21 +119,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .vd-page-header {
   align-items: center;
-  display: flex;
-  gap: 1.5rem;
-  min-height: 110px;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 1.5rem;
+  min-height: 120px;
   position: relative;
 }
 
+.vd-page-header--plain {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .vd-page-header__content {
-  position: relative;
-  z-index: 1;
+  min-width: 0;
 }
 
 .vd-breadcrumb {
   align-items: center;
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   display: flex;
   font-size: .8rem;
   gap: .45rem;
@@ -147,7 +152,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-page-header p {
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   font-size: 1rem;
   margin: 0;
   max-width: 680px;
@@ -157,18 +162,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   flex-wrap: wrap;
   gap: .75rem;
-  margin-left: auto;
-  position: relative;
-  z-index: 2;
+  grid-column: 1 / -1;
+  justify-self: end;
+  max-width: 100%;
 }
 
 .vd-page-header__art {
-  bottom: 0;
-  height: 150px;
-  opacity: .88;
-  position: absolute;
-  right: 164px;
-  width: min(27vw, 310px);
+  height: 120px;
+  width: clamp(100px, 15vw, 180px);
+  pointer-events: none;
 }
 
 .vd-page-header__art img {
@@ -293,12 +295,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .vd-status--warning {
   background:#fff2d8;
-  color:#b66700;
+  color:#815000;
 }
 
 .vd-status--danger {
   background:#ffe8e5;
-  color:#d54234;
+  color:#b02a20;
 }
 
 .vd-icon-button {
@@ -323,7 +325,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-section-kicker {
-  color: var(--vd-curator-teal);
+  color: var(--vd-action-teal);
   display: block;
   font-size: .69rem;
   font-weight: 800;
@@ -355,7 +357,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   background: #fbfaf8;
   border: 1px solid var(--vd-border);
   border-radius: 9px;
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   display: flex;
   gap: .45rem;
   padding: .45rem .7rem;
@@ -378,7 +380,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .vd-data-table thead th {
   background: #fbfaf8;
   border-bottom: 1px solid var(--vd-border);
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   font-size: .68rem;
   font-weight: 800;
   letter-spacing: .04em;
@@ -453,7 +455,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .vd-import-steps li {
   align-items: center;
-  color: #98a2b3;
+  color: var(--vd-readable-gray);
   display: flex;
   font-size: .75rem;
   gap: .55rem;
@@ -487,7 +489,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-import-steps li.is-active span {
-  background: var(--vd-curator-teal);
+  background: var(--vd-action-teal);
   color: #fff;
 }
 
@@ -519,7 +521,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .vd-import-intro p, .vd-import-review-heading p {
-  color: var(--vd-slate-gray);
+  color: var(--vd-readable-gray);
   font-size: .82rem;
   margin: 0;
   max-width: 560px;
@@ -559,20 +561,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   padding: 1.25rem;
 }
 
-.vd-page-header {
-  align-items: flex-start;
-  flex-direction: column;
-}
-
-.vd-page-header__art {
-  opacity: .35;
-  right: 0;
-}
-
-.vd-page-header__actions {
-  margin-left: 0;
-}
-
 .vd-import-steps {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -586,6 +574,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .vd-topbar .container-fluid {
   gap: .75rem;
+  flex-wrap: wrap;
 }
 
 .vd-global-search {
@@ -632,8 +621,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   these variables supply the brand colors. */
 .btn-vd-primary {
   --bs-btn-color: #fff;
-  --bs-btn-bg: var(--vd-curator-teal);
-  --bs-btn-border-color: var(--vd-curator-teal);
+  --bs-btn-bg: var(--vd-action-teal);
+  --bs-btn-border-color: var(--vd-action-teal);
   --bs-btn-hover-color: #fff;
   --bs-btn-hover-bg: #31756e;
   --bs-btn-hover-border-color: #31756e;

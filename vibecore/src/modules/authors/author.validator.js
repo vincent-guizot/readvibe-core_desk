@@ -2,10 +2,10 @@ const hasText = (value) => typeof value === 'string' && value.trim() !== '';
 
 export const validateAuthorPayload = (req) => {
   const name = req.body.name ?? req.body.pen_name;
-  if (!name || name.trim() === '') {
+  if (typeof name !== 'string' || name.trim() === '' || name.length > 255) {
     return 'Nama penulis wajib diisi.';
   }
-  return null;
+  return validateAuthorUpdatePayload(req);
 };
 
 export const validateAuthorUpdatePayload = (req) => {
