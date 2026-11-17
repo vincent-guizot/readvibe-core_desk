@@ -25,6 +25,13 @@ module.exports = {
       defaultValue: false,
     });
 
+    // 1b. Extend users table
+    await queryInterface.addColumn('users', 'status', {
+      type: Sequelize.STRING,
+      defaultValue: 'Active',
+      allowNull: true,
+    });
+
     // 2. Create mood_tags table
     await queryInterface.createTable('mood_tags', {
       id: {
@@ -268,5 +275,6 @@ module.exports = {
     await queryInterface.removeColumn('books', 'previewLink');
     await queryInterface.removeColumn('books', 'googleBooksId');
     await queryInterface.removeColumn('books', 'isbn');
+    await queryInterface.removeColumn('users', 'status');
   },
 };

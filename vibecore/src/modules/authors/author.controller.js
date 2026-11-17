@@ -41,7 +41,7 @@ export class AuthorController {
   static async delete(req, res, next) {
     try {
       const author = await AuthorService.delete(req.params.id);
-      return ApiResponse.success(res, null, `Penulis "${author.name}" berhasil dihapus.`);
+      return ApiResponse.success(res, null, `Penulis "${author.pen_name || author.name}" berhasil dihapus.`);
     } catch (err) {
       next(err);
     }

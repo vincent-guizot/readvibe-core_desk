@@ -11,6 +11,7 @@ router.use(authorization(['Admin', 'Librarian']));
 router.get('/', MemberController.list);
 router.get('/:id', MemberController.getById);
 router.patch('/:id/status', MemberController.updateStatus);
+router.put('/:id/status', MemberController.updateStatus);
 router.delete('/:id', MemberController.delete);
 
 export default router;

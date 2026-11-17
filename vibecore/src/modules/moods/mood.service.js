@@ -5,6 +5,7 @@ import { ErrorCodes } from '../../contracts/error-codes';
 export class MoodService {
   static async list() {
     return await db.mood_tag.findAll({
+      include: [{ model: db.book, as: 'books', attributes: ['id'], through: { attributes: [] } }],
       order: [['name', 'ASC']],
     });
   }
@@ -25,21 +26,21 @@ export class MoodService {
     return mood;
   }
 
-  static async create({ name, description, color, icon }) {
+  static async create({ name, description, color, icon, emoji }) {
     const existing = await db.mood_tag.findOne({ where: { name } });
     if (existing) {
       throw AppError.conflict(`Mood tag "${name}" sudah ada.`, ErrorCodes.RESOURCE_ALREADY_EXISTS);
     }
 
     return await db.mood_tag.create({
-      name,
-      description,
+      name: name.trim(),
+      description: description?.trim() || null,
       color: color || '#EF786B',
-      icon: icon || 'Sparkles',
+      icon: icon || emoji || 'Sparkles',
     });
   }
 
-  static async update(id, { name, description, color, icon }) {
+  static async update(id, { name, description, color, icon, emoji }) {
     const mood = await db.mood_tag.findByPk(id);
     if (!mood) {
       throw AppError.notFound('Mood tag tidak ditemukan.', ErrorCodes.NOT_FOUND);
@@ -53,10 +54,10 @@ export class MoodService {
     }
 
     await mood.update({
-      name: name !== undefined ? name : mood.name,
-      description: description !== undefined ? description : mood.description,
+      name: name !== undefined ? name.trim() : mood.name,
+      description: description !== undefined ? description.trim() || null : mood.description,
       color: color !== undefined ? color : mood.color,
-      icon: icon !== undefined ? icon : mood.icon,
+      icon: icon !== undefined ? icon : (emoji !== undefined ? emoji : mood.icon),
     });
 
     return mood;
@@ -67,6 +68,11 @@ export class MoodService {
     if (!mood) {
       throw AppError.notFound('Mood tag tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
+    const bookCount = await db.book_mood.count({ where: { moodTagId: mood.id } });
+    if (bookCount > 0) {
+      throw AppError.conflict('Mood tag masih terhubung ke buku. Lepaskan relasinya terlebih dahulu.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
+    }
+
     await mood.destroy();
     return mood;
   }

@@ -9,12 +9,16 @@ const router = Router();
 // Public route for viewing a user's finished reads
 router.get('/user/:userId/finished', ReadingController.getUserFinishedReads);
 router.get('/vibe-card/:id', ReadingController.getVibeCard);
+router.get('/:id/vibecard', ReadingController.getVibeCard);
 
 // Authenticated user routes
 router.use(authentication);
 router.get('/', ReadingController.getMyActivities);
+router.post('/', validateRequest(validateStartReading), ReadingController.startReading);
 router.post('/start', validateRequest(validateStartReading), ReadingController.startReading);
 router.post('/finish', validateRequest(validateFinishReading), ReadingController.finishReading);
+router.put('/:id', ReadingController.updateActivity);
+router.patch('/:id', ReadingController.updateActivity);
 router.delete('/:id', ReadingController.deleteActivity);
 
 export default router;

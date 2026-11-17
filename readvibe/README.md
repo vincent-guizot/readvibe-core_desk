@@ -1,17 +1,22 @@
 # ReadVibe (Client Web Application)
 
-ReadVibe adalah platform pembaca buku berbasis AI Vibe Matcher yang mencocokkan buku dengan suasana hati pembaca, kartu berbagi estetik (#ReadVibeWrapped), dan smart wishlist.
+ReadVibe adalah platform pembaca buku cerdas berbasis AI Vibe Matcher yang mencocokkan buku dengan suasana hati pembaca, kartu berbagi estetik (#ReadVibeWrapped), dan smart reading tracker & wishlist.
 
-Aplikasi ini dibangun menggunakan **Next.js (App Router)**, **React 19**, dan **Bootstrap 5.3**.
+Aplikasi ini dibangun menggunakan **Next.js 15 (App Router)**, **React 19**, dan **Bootstrap 5.3**.
+
+---
 
 ## Spesifikasi & Port
 
 - **Port Development**: `http://localhost:3350`
 - **Backend API (VibeCore)**: `http://localhost:3360`
+- **Branch Kerja Modul**: `readvibe`
+
+---
 
 ## Petunjuk Menjalankan Proyek Secara Mandiri
 
-Proyek ini adalah proyek mandiri. Jalankan seluruh perintah langsung dari direktori `readvibe`:
+Proyek ini adalah proyek mandiri dalam ekosistem ReadVibe. Jalankan seluruh perintah langsung dari direktori `readvibe`:
 
 ```bash
 cd readvibe
@@ -28,6 +33,8 @@ Buka peramban di `http://localhost:3350`.
 - `npm start` : Menjalankan server produksi di port 3350.
 - `npm run lint` : Menjalankan ESLint.
 
+---
+
 ## Konfigurasi Environment
 
 Salin file `.env.example` menjadi `.env` sebelum menjalankan server:
@@ -41,6 +48,20 @@ Isi variabel environment:
 PORT=3350
 NEXT_PUBLIC_API_URL=http://localhost:3360
 ```
+
+---
+
+## Struktur Rute Utama (App Router)
+
+- `/` — Halaman beranda (Featured Books, Editorial Picks, Mood Explorer)
+- `/search` — Pencarian buku dinamis dengan filter genre, mood, dan kueri teks
+- `/recommendations` — AI Vibe Matcher kustom berdasarkan mood & prompt pengguna
+- `/my-reading` — Manajemen aktivitas membaca (Currently Reading, Completed, Progress Tracking)
+- `/wishlist` — Daftar keinginan membaca dengan filter mood dan catatan pembaca
+- `/profile` — Profil pembaca dan preferensi bacaan
+- `/books/[id]` — Detail buku, rating, dan metadata lengkap
+
+---
 
 ## Komunikasi dengan VibeCore API
 

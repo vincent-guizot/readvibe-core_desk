@@ -6,7 +6,7 @@ export class EditorialService {
   static async list({ activeOnly = false }) {
     const where = {};
     if (activeOnly) {
-      where.active = true;
+      where.isActive = true;
     }
 
     return await db.editorial_pick.findAll({
@@ -29,17 +29,27 @@ export class EditorialService {
     });
   }
 
-  static async create({ bookId, note, curationWeight = 1.0, active = true }) {
+  static async create({ bookId, tagline, note, curatorNotes, curationWeight = 50, active = true, isActive }) {
     const book = await db.book.findByPk(bookId);
     if (!book) {
       throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 
+    const resolvedActive = isActive !== undefined ? !!isActive : (active !== undefined ? !!active : true);
+    const resolvedNotes = curatorNotes || note || '';
+    let resolvedWeight = parseFloat(curationWeight) || 50;
+    if (resolvedWeight > 0 && resolvedWeight <= 1.0) {
+      resolvedWeight = Math.round(resolvedWeight * 100);
+    } else {
+      resolvedWeight = Math.round(resolvedWeight);
+    }
+
     const pick = await db.editorial_pick.create({
       bookId,
-      note,
-      curationWeight: parseFloat(curationWeight) || 1.0,
-      active: active !== undefined ? !!active : true,
+      tagline: tagline || 'Pilihan Redaksi',
+      curatorNotes: resolvedNotes,
+      curationWeight: resolvedWeight,
+      isActive: resolvedActive,
     });
 
     return await db.editorial_pick.findByPk(pick.id, {
@@ -47,18 +57,27 @@ export class EditorialService {
     });
   }
 
-  static async update(id, { note, curationWeight, active }) {
+  static async update(id, { tagline, note, curatorNotes, curationWeight, active, isActive }) {
     const pick = await db.editorial_pick.findByPk(id);
     if (!pick) {
       throw AppError.notFound('Editorial pick tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 
-    await pick.update({
-      note: note !== undefined ? note : pick.note,
-      curationWeight: curationWeight !== undefined ? parseFloat(curationWeight) : pick.curationWeight,
-      active: active !== undefined ? !!active : pick.active,
-    });
+    const updates = {};
+    if (tagline !== undefined) updates.tagline = tagline;
+    if (curatorNotes !== undefined || note !== undefined) updates.curatorNotes = curatorNotes !== undefined ? curatorNotes : note;
+    if (curationWeight !== undefined) {
+      let weightVal = parseFloat(curationWeight) || 50;
+      if (weightVal > 0 && weightVal <= 1.0) {
+        weightVal = Math.round(weightVal * 100);
+      } else {
+        weightVal = Math.round(weightVal);
+      }
+      updates.curationWeight = weightVal;
+    }
+    if (isActive !== undefined || active !== undefined) updates.isActive = isActive !== undefined ? !!isActive : !!active;
 
+    await pick.update(updates);
     return pick;
   }
 

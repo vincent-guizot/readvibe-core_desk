@@ -47,6 +47,15 @@ export class ReadingController {
     }
   }
 
+  static async updateActivity(req, res, next) {
+    try {
+      const activity = await ReadingService.updateActivity(req.params.id, req.user.id, req.body);
+      return ApiResponse.success(res, activity, 'Aktivitas membaca berhasil diperbarui.');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async deleteActivity(req, res, next) {
     try {
       await ReadingService.deleteActivity(req.params.id, req.user.id);

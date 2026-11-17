@@ -15,6 +15,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       tagline: DataTypes.STRING,
       curatorNotes: DataTypes.TEXT,
+      note: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return this.getDataValue('curatorNotes');
+        },
+        set(val) {
+          this.setDataValue('curatorNotes', val);
+        },
+      },
       curationWeight: {
         type: DataTypes.INTEGER,
         defaultValue: 50,
@@ -22,6 +31,15 @@ module.exports = (sequelize, DataTypes) => {
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
+      },
+      active: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return this.getDataValue('isActive');
+        },
+        set(val) {
+          this.setDataValue('isActive', val);
+        },
       },
     },
     {

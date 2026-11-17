@@ -26,6 +26,7 @@ Server akan aktif di `http://localhost:3360`.
 - `npm run dev` : Menjalankan server development dengan nodemon dan Babel di port 3360 (`src/server.js`).
 - `npm run build` : Melakukan kompilasi Babel dari `src/` ke direktori `build/`.
 - `npm start` : Menjalankan server hasil kompilasi produksi (`node build/server.js`).
+- `npm test` : Menjalankan comprehensive automated test suite (80 pengujian endpoint & RBAC) di `tests/runner.js`.
 
 ## Konfigurasi Environment
 
@@ -74,8 +75,29 @@ Modul-modul yang tersedia:
 - `settings`: Konfigurasi bobot rekomendasi dan integrasi API.
 - `integrations/google-books`: Pencarian dan import metadata Google Books 1-click.
 
-## Database & Sequelize
+## Database & Sequelize CLI
 
-- Database: `library_ms`
-- Migrasi: `npx sequelize-cli db:migrate`
-- Konfigurasi: `config/database.js` dan `.sequelizerc`
+VibeCore menggunakan Sequelize ORM dan Sequelize CLI untuk manajemen skema basis data PostgreSQL (`library_ms`).
+
+### Perintah Database (NPM Scripts)
+
+| Perintah | Deskripsi |
+| :--- | :--- |
+| `npm run db:create` | Membuat database `library_ms` baru di PostgreSQL |
+| `npm run db:drop` | Menghapus database `library_ms` |
+| `npm run db:migrate` | Menjalankan seluruh migrasi skema tabel yang tertunda |
+| `npm run db:migrate:status` | Memeriksa status migrasi (`up` / `down`) |
+| `npm run db:migrate:undo` | Membatalkan (*rollback*) migrasi terakhir |
+| `npm run db:migrate:undo:all` | Membatalkan seluruh migrasi |
+| `npm run db:seed` / `npm run db:seed:all` | Menjalankan seeder ekosistem (data awal demo) |
+| `npm run db:seed:undo` / `npm run db:seed:undo:all` | Menghapus/membersihkan data seeder |
+| `npm run db:setup` | Alur inisialisasi awal: `db:create` + `db:migrate` + `db:seed:all` |
+| `npm run db:reset` | Reset total: `db:drop` + `db:create` + `db:migrate` + `db:seed:all` |
+| `npm run migration:generate -- --name <nama>` | Membuat berkas migrasi baru |
+| `npm run seed:generate -- --name <nama>` | Membuat berkas seeder baru |
+
+### Berkas Konfigurasi & Direktori
+
+- **Konfigurasi DB**: `config/database.js` & `.sequelizerc`
+- **Direktori Migrasi**: `migrations/`
+- **Direktori Seeder**: `seeders/` (`20261029191500-seed-readvibe-ecosystem.js`)

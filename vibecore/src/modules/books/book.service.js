@@ -109,13 +109,23 @@ export class BookService {
       }
     }
 
+    if (googleBooksId) {
+      const existing = await db.book.findOne({ where: { googleBooksId } });
+      if (existing) {
+        throw AppError.conflict(
+          `Buku dari Google Books ini sudah terdaftar: "${existing.title}"`,
+          ErrorCodes.RESOURCE_ALREADY_EXISTS
+        );
+      }
+    }
+
     const book = await db.book.create({
       title,
       description,
       year: year ? parseInt(year, 10) : null,
       page: page ? parseInt(page, 10) : null,
-      stock: stock ? parseInt(stock, 10) : 1,
-      price: price ? parseInt(price, 10) : 0,
+      stock: stock !== undefined && stock !== null && stock !== '' ? parseInt(stock, 10) : 1,
+      price: price !== undefined && price !== null && price !== '' ? parseInt(price, 10) : 0,
       image,
       isbn,
       googleBooksId,
@@ -124,7 +134,7 @@ export class BookService {
       authorId: authorId ? parseInt(authorId, 10) : null,
       genreId: genreId ? parseInt(genreId, 10) : null,
       userId: userId || null,
-      status: (stock && parseInt(stock, 10) > 0) ? 'Available' : 'Out of Stock',
+      status: parseInt(stock, 10) > 0 ? 'Available' : 'Out of Stock',
     });
 
     if (Array.isArray(moodIds) && moodIds.length > 0) {
@@ -169,6 +179,13 @@ export class BookService {
       }
     }
 
+    if (googleBooksId && googleBooksId !== book.googleBooksId) {
+      const existing = await db.book.findOne({ where: { googleBooksId } });
+      if (existing && existing.id !== book.id) {
+        throw AppError.conflict('Google Books ID sudah digunakan oleh buku lain.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
+      }
+    }
+
     await book.update({
       title: title !== undefined ? title : book.title,
       description: description !== undefined ? description : book.description,
@@ -181,8 +198,8 @@ export class BookService {
       googleBooksId: googleBooksId !== undefined ? googleBooksId : book.googleBooksId,
       previewLink: previewLink !== undefined ? previewLink : book.previewLink,
       embeddable: embeddable !== undefined ? !!embeddable : book.embeddable,
-      authorId: authorId !== undefined ? authorId : book.authorId,
-      genreId: genreId !== undefined ? genreId : book.genreId,
+      authorId: authorId !== undefined ? (authorId ? parseInt(authorId, 10) : null) : book.authorId,
+      genreId: genreId !== undefined ? (genreId ? parseInt(genreId, 10) : null) : book.genreId,
       status: (stock !== undefined ? parseInt(stock, 10) : book.stock) > 0 ? 'Available' : 'Out of Stock',
     });
 

@@ -20,6 +20,15 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
       },
       icon: DataTypes.STRING,
+      emoji: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return this.getDataValue('icon');
+        },
+        set(val) {
+          this.setDataValue('icon', val);
+        },
+      },
       color: DataTypes.STRING,
       description: DataTypes.TEXT,
     },
