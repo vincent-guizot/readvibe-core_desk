@@ -5,6 +5,7 @@ import { ErrorCodes } from '../../contracts/error-codes';
 export class CategoryService {
   static async list() {
     return await db.genre.findAll({
+      include: [{ model: db.book, as: 'books', attributes: ['id'] }],
       order: [['name', 'ASC']],
     });
   }
@@ -24,7 +25,7 @@ export class CategoryService {
     if (existing) {
       throw AppError.conflict(`Kategori "${name}" sudah ada.`, ErrorCodes.RESOURCE_ALREADY_EXISTS);
     }
-    return await db.genre.create({ name, description });
+    return await db.genre.create({ name: name.trim(), description: description?.trim() || null });
   }
 
   static async update(id, { name, description }) {
@@ -41,8 +42,8 @@ export class CategoryService {
     }
 
     await genre.update({
-      name: name !== undefined ? name : genre.name,
-      description: description !== undefined ? description : genre.description,
+      name: name !== undefined ? name.trim() : genre.name,
+      description: description !== undefined ? description.trim() || null : genre.description,
     });
     return genre;
   }
@@ -52,6 +53,11 @@ export class CategoryService {
     if (!genre) {
       throw AppError.notFound('Kategori tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
+    const bookCount = await db.book.count({ where: { genreId: genre.id } });
+    if (bookCount > 0) {
+      throw AppError.conflict('Kategori masih terhubung ke buku. Pindahkan atau hapus buku tersebut terlebih dahulu.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
+    }
+
     await genre.destroy();
     return genre;
   }

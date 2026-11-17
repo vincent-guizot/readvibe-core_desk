@@ -31,6 +31,7 @@ export default function AppRoutes({
   members,
   onOpenImport,
   onOpenAddBook,
+  onEditBook,
   onDeleteBook,
   onRefresh,
   onModerate,
@@ -68,6 +69,7 @@ export default function AppRoutes({
               onOpenImport={onOpenImport}
               onOpenAddBook={onOpenAddBook}
               onDeleteBook={onDeleteBook}
+              onEditBook={onEditBook}
             />
           </ProtectedRoute>
         }
