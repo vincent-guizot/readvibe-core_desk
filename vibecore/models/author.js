@@ -23,6 +23,7 @@ module.exports = (sequelize, DataTypes) => {
           this.setDataValue('pen_name', value);
         },
       },
+      bio: DataTypes.TEXT,
       profileId: DataTypes.INTEGER,
       userId: DataTypes.INTEGER,
     },

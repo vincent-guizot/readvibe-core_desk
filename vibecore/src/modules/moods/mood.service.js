@@ -5,6 +5,7 @@ import { ErrorCodes } from '../../contracts/error-codes';
 export class MoodService {
   static async list() {
     return await db.mood_tag.findAll({
+      include: [{ model: db.book, as: 'books', attributes: ['id'], through: { attributes: [] } }],
       order: [['name', 'ASC']],
     });
   }
@@ -32,8 +33,8 @@ export class MoodService {
     }
 
     return await db.mood_tag.create({
-      name,
-      description,
+      name: name.trim(),
+      description: description?.trim() || null,
       color: color || '#EF786B',
       icon: icon || emoji || 'Sparkles',
     });
@@ -53,8 +54,8 @@ export class MoodService {
     }
 
     await mood.update({
-      name: name !== undefined ? name : mood.name,
-      description: description !== undefined ? description : mood.description,
+      name: name !== undefined ? name.trim() : mood.name,
+      description: description !== undefined ? description.trim() || null : mood.description,
       color: color !== undefined ? color : mood.color,
       icon: icon !== undefined ? icon : (emoji !== undefined ? emoji : mood.icon),
     });
@@ -67,6 +68,11 @@ export class MoodService {
     if (!mood) {
       throw AppError.notFound('Mood tag tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
+    const bookCount = await db.book_mood.count({ where: { moodTagId: mood.id } });
+    if (bookCount > 0) {
+      throw AppError.conflict('Mood tag masih terhubung ke buku. Lepaskan relasinya terlebih dahulu.', ErrorCodes.RESOURCE_ALREADY_EXISTS);
+    }
+
     await mood.destroy();
     return mood;
   }
