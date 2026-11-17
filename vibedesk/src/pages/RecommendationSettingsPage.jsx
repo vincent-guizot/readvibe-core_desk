@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from '../components/shared/PageHeader';
 
 export default function RecommendationSettingsPage({ apiUrl, token }) {
   const [settings, setSettings] = useState({
@@ -40,13 +41,11 @@ export default function RecommendationSettingsPage({ apiUrl, token }) {
 
   return (
     <div>
-      <h2 className="fw-bold mb-4" style={{ color: 'var(--vd-desk-navy)' }}>
-        Konfigurasi Algoritma Rekomendasi (Recommendation Settings)
-      </h2>
+      <PageHeader eyebrow="Kurasi & Analitik / Recommendation Settings" title="Recommendation Settings" description="Atur parameter AI Vibe Matcher dan bobot kurasi." />
 
       <div className="row g-4">
         <div className="col-md-7">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">Bobot & Parameter AI Vibe Matcher</h5>
             {saved && <div className="alert alert-success py-2 small">Pengaturan berhasil disimpan!</div>}
             <form onSubmit={handleSave}>
@@ -104,7 +103,7 @@ export default function RecommendationSettingsPage({ apiUrl, token }) {
         </div>
 
         <div className="col-md-5">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">Dokumentasi Formula</h5>
             <p className="small text-muted mb-2">
               Formula Penilaian:

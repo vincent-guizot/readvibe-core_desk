@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
-import { editorialPicksApi, getApiErrorMessage } from '../../services/catalog-api';
-import CrudStatusAlert from '../../shared/components/CrudStatusAlert';
+import { editorialPicksApi, getApiErrorMessage } from '../services/catalog-api';
+import CrudStatusAlert from '../components/shared/CrudStatusAlert';
+import PageHeader from '../components/shared/PageHeader';
 
 const emptyForm = { bookId: '', tagline: '', note: '', curationWeight: 90, active: true };
 
@@ -79,13 +80,12 @@ export default function EditorialPicksPage({ picks, books, onRefresh }) {
 
   return (
     <div>
-      <h2 className="fw-bold mb-1" style={{ color: 'var(--vd-desk-navy)' }}>Kurasi Pilihan Editor</h2>
-      <p className="text-muted small mb-4">Atur buku unggulan dan bobot kurasi yang dipakai sebagai sinyal rekomendasi.</p>
+      <PageHeader eyebrow="Kurasi & Analitik / Editorial Picks" title="Editorial Picks" description="Atur buku unggulan dan bobot kurasi untuk sinyal rekomendasi." />
       <CrudStatusAlert status={status} />
 
       <div className="row g-4">
         <div className="col-md-5">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">{editingId ? 'Ubah Pilihan Editor' : 'Tambah Pilihan Editor'}</h5>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
@@ -121,7 +121,7 @@ export default function EditorialPicksPage({ picks, books, onRefresh }) {
         </div>
 
         <div className="col-md-7">
-          <div className="vd-card p-4">
+          <div className="card vd-card p-4">
             <h5 className="fw-bold mb-3">Daftar Kurasi ({picks.length})</h5>
             {picks.length === 0 ? <p className="text-muted small mb-0">Belum ada pilihan editor.</p> : (
               <div className="d-flex flex-column gap-3">
