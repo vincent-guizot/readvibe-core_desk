@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ApiError } from './api-error';
 import { API_URL } from '../constants/api';
+import { clearSession, readSession } from '../features/auth/session';
 
 
 export const http = axios.create({
@@ -12,7 +13,7 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('vibedesk_token');
+  const { token } = readSession();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,8 +26,12 @@ http.interceptors.response.use(
     const status = error.response ? error.response.status : 500;
     const data = error.response ? error.response.data : null;
     const message = data?.message || error.message || 'Terjadi kesalahan jaringan atau server';
-    const errorCode = data?.errorCode || 'API_ERROR';
-    return Promise.reject(new ApiError(message, status, errorCode, data?.details));
+    if (status === 401 && !error.config?.url?.endsWith('/auth/login')) {
+      clearSession();
+      window.dispatchEvent(new Event('vibedesk:session-expired'));
+    }
+    const errorCode = data?.error?.code || data?.errorCode || 'API_ERROR';
+    return Promise.reject(new ApiError(message, status, errorCode, data?.error?.details || data?.details));
   }
 );
 

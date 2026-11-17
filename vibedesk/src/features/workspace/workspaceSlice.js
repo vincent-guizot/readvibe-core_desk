@@ -13,7 +13,7 @@ export const fetchResource = createAsyncThunk(
   { condition: (resource, { getState }) => !getState().workspace[resource]?.loading },
 );
 
-const objectResources = ['dashboardData', 'wishlistIntelligence', 'readingTrends'];
+const objectResources = ['dashboardData'];
 const initialState = Object.fromEntries(Object.keys(resourceEndpoints).map((key) => [
   key, { data: objectResources.includes(key) ? null : [], loading: false, error: null, requestId: null },
 ]));
@@ -21,7 +21,7 @@ const initialState = Object.fromEntries(Object.keys(resourceEndpoints).map((key)
 const workspaceSlice = createSlice({
   name: 'workspace',
   initialState,
-  reducers: {},
+  reducers: { resetWorkspace: () => initialState },
   extraReducers: (builder) => {
     builder
       .addCase(fetchResource.pending, (state, action) => {
@@ -45,6 +45,7 @@ const workspaceSlice = createSlice({
   },
 });
 
+export const { resetWorkspace } = workspaceSlice.actions;
 export const refreshWorkspace = () => (dispatch) => Promise.all(
   Object.keys(resourceEndpoints).map((resource) => dispatch(fetchResource(resource))),
 );
