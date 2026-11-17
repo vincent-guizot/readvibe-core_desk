@@ -1,97 +1,87 @@
-# Daftar Fitur & Sitemap Ekosistem
+# Sitemap dan Fitur Ekosistem
 
----
+Inventaris source pada 17 November 2026. Keberadaan route menunjukkan halaman terdaftar, bukan bukti semua fitur halaman sudah terhubung ke backend atau diuji live.
 
-## 1. READVIBE (Client Web Application)
+## ReadVibe
 
-### Fitur Utama
-1. **AI Vibe Matcher**:
-   - Pemilihan chip mood tags emosional atau penulisan curahan hati bebas.
-   - Pemrosesan Google Gemini AI terintegrasi di backend VibeCore.
-   - Indikator kecocokan persentase (Match Score %) dan alasan kurasi personal.
-   - Kondisi loading dengan animasi kutipan penenang, error, dan hasil kosong.
-2. **Vibe Card Generator**:
-   - Pembuatan kartu visual berasio **9:16** untuk dibagikan ke Instagram Story & WhatsApp Status.
-   - Menampilkan cover buku, judul, rating bintang, kutipan favorit pembaca, badge mood, dan watermark `#ReadVibeWrapped`.
-   - Unduh langsung sebagai file gambar **PNG** resolusi tinggi menggunakan rendering Canvas.
-   - Dukungan Web Share API untuk berbagi langsung ke perangkat mobile dengan fallback otomatis unduh.
-3. **Smart Wishlist**:
-   - Pengaturan prioritas membaca: `Tinggi (Bulan Ini)`, `Sedang (Tahun Ini)`, `Santai`.
-   - Catatan alasan personal ingin membaca.
-   - Pengaturan visibilitas (`Publik` vs `Privat`).
-   - Tautan berbagi profil/wishlist publik.
-   - Tombol transisi instan dari Wishlist ke rak `Reading` atau `Finished`.
-4. **Digital Preview**:
-   - Penampil Google Books Embedded Viewer langsung di jendela modal tanpa meninggalkan aplikasi.
-   - Fallback tautan eksternal jika penerbit membatasi pratinjau tertanam.
-   - Indikator ketersediaan sampel bab.
-5. **Manajemen Akun & Rak Membaca**:
-   - Otentikasi JWT (Register, Login, Logout) dan Profil Pembaca.
-   - Rak `Currently Reading` untuk melacak bacaan yang sedang berlangsung.
-   - Rak `Finished Reads` untuk mengarsipkan buku yang telah selesai dibaca.
-   - Catatan pribadi (terlindungi, hanya untuk pemilik) terpisah dari ulasan publik komunitas.
-   - Statistik membaca pribadi (total buku, distribusi mood favorit).
+Next.js App Router menyediakan katalog, pencarian, vibe matcher, rak bacaan, wishlist, finished reads, statistik, profil, dan Vibe Card. Preview buku dan ekspor kartu dapat memakai komponen/modal dalam halaman.
 
-### Sitemap ReadVibe
-```
-/ (Single Page Application dengan Tab Navigation & Deep Modals)
-├── Tab: Discover / Home (Hero, AI Search, Editorial Picks, Eksplorasi Katalog)
-├── Tab: AI Vibe Matcher (Interaktif Mood Tags, Free-text Prompt, Vibe Match Results)
-├── Tab: My Reading (Rak Buku Sedang Dibaca, Start Date, Tombol Selesai & Review)
-├── Tab: Smart Wishlist (Daftar Incaran, Filter Prioritas, Toggle Visibilitas, Pindah Rak)
-├── Tab: Finished Reads (Arsip Bacaan Tuntas, Trigger Generator Kartu Vibe)
-├── Tab: Reading Stats (Statistik Total Selesai, Bacaan Aktif, Distribusi Mood)
-├── Tab: Public Profile / Wishlist (Pratinjau Halaman Publik Pengguna Bebas Rahasia)
-├── Modal: Vibe Card 9:16 (Visual Story Card, Download PNG, Web Share)
-├── Modal: Digital Preview (Google Books Embedded Viewer & External Link)
-├── Modal: Tambah ke Wishlist (Form Prioritas, Alasan, Visibilitas)
-├── Modal: Tandai Selesai Dibaca (Rating, Kutipan, Catatan Privat, Ulasan Publik)
-└── Modal: Otentikasi (Login, Register Akun Baru, Quick Login Demo)
-```
+Sumber: [folder App Router](../../readvibe/src/app/). Route group `(main)` dan `(auth)` tidak menjadi bagian URL.
 
----
+| Route source |
+| --- |
+| `/` |
+| `/books/[slug]` |
+| `/discover` |
+| `/finished-reads` |
+| `/finished-reads/edit-review` |
+| `/forgot-password` |
+| `/login` |
+| `/my-reading` |
+| `/notifications` |
+| `/profile` |
+| `/reader/[id]` |
+| `/register` |
+| `/search` |
+| `/settings` |
+| `/stats` |
+| `/u/[username]` |
+| `/u/[username]/wishlist` |
+| `/vibe-card` |
+| `/vibe-matcher` |
+| `/wishlist` |
 
-## 2. VIBEDESK (CMS & Backoffice)
+Halaman seperti forgot-password dan notifications tetap masuk inventaris route; ketersediaan endpoint pendukung harus diperiksa sebelum dianggap fitur backend lengkap.
 
-### Fitur Utama
-1. **Manajemen Katalog**:
-   - CRUD lengkap data buku, penulis, dan kategori/genre.
-   - Metadata fisik dan digital (stok eksemplar fisik, ISBN, link Google Books).
-   - **1-Click Import Google Books**: Cari buku via ISBN atau judul, pratinjau metadata sebelum simpan, dan pencegahan duplikasi buku.
-   - Input manual buku dengan pengaitan ke mood tags.
-2. **Kurasi & Taksonomi Mood**:
-   - CRUD mood tags beserta ikon emoji, warna, dan deskripsi filosofis.
-   - Pengaitan buku ke banyak mood tags (*many-to-many*).
-   - **Editorial Picks**: Menetapkan buku pilihan editor, tagline kurasi, catatan pustakawan, dan bobot kurasi (50% - 100%) yang mempengaruhi algoritma AI.
-3. **Wishlist Intelligence (Analitik Inventaris)**:
-   - Pemeringkatan buku paling banyak masuk wishlist member.
-   - Komparasi jumlah permintaan wishlist terhadap stok fisik inventaris (Deteksi defisit stok untuk pengadaan buku baru).
-   - Breakdown prioritas wishlist (*High, Medium, Low*).
-4. **Analitik Tren Membaca**:
-   - Distribusi agregat mood buku yang diselesaikan oleh komunitas.
-   - Skor kepuasan rata-rata dan total ulasan terverifikasi.
-   - Perlindungan privasi (catatan privat tidak ditampilkan).
-5. **Moderasi Konten Komunitas**:
-   - Antrean ulasan publik yang dilaporkan mengandung spoiler atau spam.
-   - Tindakan moderasi: Setujui (*Approve*), Tolak (*Reject*), atau Hapus Teks Ulasan.
-6. **Manajemen Member & Hak Akses Staf**:
-   - Daftar seluruh pengguna terdaftar dengan peran masing-masing.
-   - Pengaturan hak akses peran: `Member`, `Librarian`, `Admin`.
+## VibeDesk: 31 route
 
-### Sitemap VibeDesk
-```
-/ (Backoffice SPA dengan React Router v7)
-├── /                     -> Dashboard (KPI Cards, Koleksi Buku Terbaru, Quick Import)
-├── /books                -> Katalog Buku (Tabel Inventaris, Pencarian, Filter, Hapus)
-├── /authors              -> Manajemen Penulis (Tambah Penulis, Daftar Penulis)
-├── /categories           -> Manajemen Kategori & Genre
-├── /moods                -> Taksonomi Mood Tags & Resonansi Emosi
-├── /editorial-picks      -> Pilihan Editor (Bobot Kurasi, Tagline, Catatan Pustakawan)
-├── /wishlist-intel       -> Wishlist Intelligence (Tren Incaran, Peringatan Defisit Stok)
-├── /reading-analytics    -> Analitik Tren Membaca (Distribusi Mood Agregat, Kepuasan)
-├── /moderation           -> Antrean Moderasi Ulasan & Laporan Spam/Spoiler
-├── /members              -> Manajemen Akun Member & Staf (Ubah Role Akses)
-├── /settings             -> Pengaturan Sistem & Status Koneksi Endpoint VibeCore
-├── Modal: 1-Click Import -> Pencarian Google Books API & Preview Sebelum Simpan
-└── Modal: Input Manual   -> Form Tambah Buku Fisik Baru
-```
+Sumber: [router CMS](../../vibedesk/src/app/routes/index.jsx). Login bersifat publik; seluruh halaman lain membutuhkan Admin/Librarian. Member, Staff, Recommendation Settings, dan System Settings hanya Admin.
+
+| No. | Route | Fungsi |
+| --- | --- | --- |
+| 1 | `/login` | Login staf, ingat sesi, tampil/sembunyi password, loading/error |
+| 2 | `/` | KPI aktual, perubahan katalog terbaru, alert stok/moderasi, quick actions |
+| 3 | `/books` | Search judul/penulis/ISBN, filter kategori/penulis/mood/stok, sorting, pagination server, CRUD |
+| 4 | `/books/new` | Form tambah buku, relasi, metadata dan cover |
+| 5 | `/books/:id/edit` | Form bersama, nilai tersimpan, update dan hapus dengan konfirmasi |
+| 6 | `/books/:id` | Sampul, metadata, stok, sinopsis, ulasan publik, kurasi dan profil penulis terkait |
+| 7 | `/books/import` | Wizard empat tahap: cari, preview, mapping lokal, review dan konfirmasi |
+| 8 | `/authors` | Search/sort, biografi, jumlah buku, detail/edit/hapus |
+| 9 | `/authors/new` | Tambah nama pena dan biografi |
+| 10 | `/authors/:id/edit` | Edit profil penulis |
+| 11 | `/authors/:id` | Profil, biografi, jumlah dan tautan buku terkait |
+| 12 | `/categories` | Search/sort, deskripsi, jumlah buku, edit/hapus |
+| 13 | `/categories/new` | Tambah kategori |
+| 14 | `/categories/:id/edit` | Edit kategori; konflik relasi ditampilkan dari API |
+| 15 | `/moods` | Search/sort, warna HEX, deskripsi, jumlah buku, edit/hapus |
+| 16 | `/moods/new` | Tambah mood dengan preview warna |
+| 17 | `/moods/:id/edit` | Edit mood dan tampilkan konflik relasi |
+| 18 | `/editorial-picks` | Search, filter aktif, sorting bobot/judul, catatan kurator, edit/hapus |
+| 19 | `/editorial-picks/new` | Pilih buku, tagline, catatan, bobot 50–100%, status aktif |
+| 20 | `/editorial-picks/:id/edit` | Update buku dan informasi kurasi |
+| 21 | `/wishlist-intel` | Agregat permintaan, stok/defisit, prioritas pengadaan, periode/kategori/sort |
+| 22 | `/reading-analytics` | Penyelesaian, rating, mood/genre, tren bulanan, buku rating tertinggi |
+| 23 | `/moderation` | Daftar ulasan publik, laporan, alasan, tanggal, filter status |
+| 24 | `/moderation/:id` | Review konteks, alasan keputusan, approve/reject/remove dan konfirmasi |
+| 25 | `/members` | Search, filter status, pagination server, avatar dan jumlah aktivitas |
+| 26 | `/members/:id` | Informasi akun, jumlah aktivitas/selesai/wishlist, suspend/aktifkan |
+| 27 | `/staff` | Daftar/search staf, permission matrix, tambah/edit/hapus |
+| 28 | `/staff/new` | Nama, username, email, password awal, role dan status |
+| 29 | `/staff/:id/edit` | Update role/status dengan konfirmasi |
+| 30 | `/recommendation-settings` | Slider/nilai bobot, preview urutan aktual, save/cancel, waktu simpan |
+| 31 | `/settings` | Health API/database/Google Books, retry dan konfigurasi integrasi aman |
+
+Form metadata dan Editorial memakai route tersendiri. Tidak ada modal CRUD atau
+modal import. Penghapusan/keputusan memakai konfirmasi browser. Belum ada alur
+draft/publish buku; status ketersediaan diturunkan dari stok.
+
+## Pola interaksi CMS
+
+- Form tambah/edit buku dan metadata katalog memiliki route sendiri; modal konfirmasi hanya dipakai untuk keputusan seperti hapus.
+- Books memakai pencarian debounced, filter, sorting dan pagination server. Metadata katalog memakai pencarian/sort lokal sesuai resource.
+- Wizard Google Books melalui pencarian, preview, mapping relasi, dan review dengan persetujuan sebelum POST buku.
+- Dashboard dan analytics memuat agregat backend; settings tersimpan di database.
+- Member hanya akun role Member; pengelolaan staf memiliki menu dan endpoint tersendiri.
+- Loading, error, retry, empty state, feedback mutasi, sidebar desktop dan drawer mobile mendukung operasi CMS.
+
+Detail payload dan akses ada di [API](../backend/api-specification.md) dan [matriks akses](../security/matriks-hak-akses.md).

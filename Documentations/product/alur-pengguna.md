@@ -1,111 +1,101 @@
-# Alur Pengguna (User Flows)
+# Alur Pengguna
 
----
+Ditinjau dari router dan service pada 17 November 2026. Diagram menjelaskan implementasi backend dan alur CMS; bukan rekaman pengujian live. Daftar endpoint ada di [spesifikasi API](../backend/api-specification.md).
 
-## 1. Alur AI Vibe Matching (ReadVibe)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Pembaca (User)
-    participant RV as ReadVibe Frontend
-    participant VC as VibeCore Backend
-    participant Gemini as Google Gemini AI
-    participant DB as PostgreSQL Database
-
-    User->>RV: Pilih mood tags (misal: "Calm & Mindful") dan/atau tulis curahan hati
-    User->>RV: Klik "Cari Vibe"
-    RV->>RV: Tampilkan status loading dengan kutipan reflektif
-    RV->>VC: POST /api/ai/vibe-match { moodTags, queryText }
-    VC->>DB: Query buku aktif beserta author, genre, dan moods
-    alt Gemini API Key Tersedia
-        VC->>Gemini: Kirim katalog buku dan emosi pengguna
-        Gemini-->>VC: Kembalikan JSON (bookId, matchScore, personal reasoning)
-    else Fallback Heuristik
-        VC->>VC: Hitung skor resonansi berdasarkan overlap mood & kata kunci
-    end
-    VC-->>RV: Kembalikan daftar rekomendasi teratas (Match Score & Reason)
-    RV-->>User: Tampilkan kartu hasil kurasi, alasan personal, dan opsi aksi (Wishlist / Preview)
-```
-
----
-
-## 2. Alur Transisi Status Membaca & Pembuatan Vibe Card (9:16)
+## Rekomendasi mood
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor User as Pembaca
-    participant RV as ReadVibe
-    participant VC as VibeCore
-    participant DB as PostgreSQL
-
-    User->>RV: Klik "Mulai Membaca" dari Wishlist
-    RV->>VC: POST /api/wishlists/:id/move-to-reading
-    VC->>DB: Hapus dari wishlists, buat entri di reading_activities (status: 'Reading')
-    VC-->>RV: Konfirmasi status membaca dimulai
-    Note over User,RV: Pengguna membaca buku...
-    User->>RV: Klik "Tandai Selesai Dibaca & Buat Vibe Card"
-    RV-->>User: Tampilkan formulir review (Rating, Kutipan, Catatan Privat, Mood)
-    User->>RV: Submit formulir
-    RV->>VC: POST /api/reading-activities/finish-and-review
-    VC->>DB: Update status 'Finished', simpan rating, quote, privateNote, publicReview
-    VC-->>RV: Konfirmasi tuntas dan kirim data ulasan
-    RV-->>User: Otomatis buka Modal Pratinjau Vibe Card (9:16)
-    User->>RV: Klik "Unduh PNG" atau "Bagikan"
-    RV->>RV: Render Canvas 1080x1920 dan picu download gambar / Web Share API
+  actor Reader as Pembaca
+  participant UI as ReadVibe
+  participant API as VibeCore
+  participant DB as PostgreSQL
+  participant Gemini
+  Reader->>UI: Pilih mood dan isi teks
+  UI->>API: POST /api/recommendations/match
+  API->>DB: Ambil kandidat dan settings
+  API->>API: Ranker lokal, ambang skor, maksimal 3 hasil
+  alt enableGeminiExplanations aktif
+    API->>Gemini: Minta penjelasan hasil ranking
+    Gemini-->>API: Penjelasan atau fallback generator
+  else Nonaktif
+    API->>API: Gunakan defaultReason
+  end
+  API-->>UI: totalMatches, query, matches
+  UI-->>Reader: Buku, matchScore, reason
 ```
 
----
+Skor ranking memakai rentang 0–98; settings numerik memakai 0–1. Gemini bukan pengganti ranker lokal. Kandidat kosong menghasilkan daftar hasil kosong.
 
-## 3. Alur 1-Click Import Google Books (VibeDesk)
+## Wishlist, membaca, dan Vibe Card
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Curator as Pustakawan / Admin
-    participant VD as VibeDesk Backoffice
-    participant VC as VibeCore Backend
-    participant GBooks as Google Books API
-    participant DB as PostgreSQL
-
-    Curator->>VD: Buka modal "1-Click Import Google Books"
-    Curator->>VD: Masukkan ISBN atau Judul Buku
-    VD->>VC: GET /api/integrations/google-books/search?query=...
-    VC->>GBooks: Request data volume (maxResults=8)
-    GBooks-->>VC: Response metadata buku dan status embeddable
-    VC->>DB: Periksa duplikasi ISBN di database lokal
-    VC-->>VD: Kirim hasil pencarian beserta flag 'isAlreadyImported'
-    VD-->>Curator: Tampilkan hasil pencarian, thumbnail, dan status preview
-    Curator->>VD: Klik tombol "1-Click Import" pada buku terpilih
-    VD->>VC: POST /api/integrations/google-books/import { metadata }
-    VC->>DB: Buat/Hubungkan Author, Genre, dan record Book baru
-    VC-->>VD: Konfirmasi buku berhasil masuk inventaris katalog
-    VD-->>Curator: Tampilkan notifikasi sukses dan refresh tabel buku
+  actor Reader as Pembaca login
+  participant UI as ReadVibe
+  participant API as VibeCore
+  participant DB as PostgreSQL
+  Reader->>UI: Mulai membaca buku
+  UI->>API: POST /api/reading/start dengan bookId
+  API->>DB: Buat/update aktivitas Reading
+  API->>DB: Hapus wishlist user dan buku tersebut
+  API-->>UI: Aktivitas membaca
+  Reader->>UI: Selesaikan dan tulis ulasan
+  UI->>API: POST /api/reading/finish
+  API->>DB: Simpan Finished, rating, quote, privateNote, publicReview
+  API-->>UI: Aktivitas pemilik
+  Reader->>UI: Buka Vibe Card
+  UI->>UI: Render preview dan ekspor kartu
 ```
 
----
+Backend juga menyediakan `GET /api/reading/vibe-card/:id` untuk data kartu publik pada aktivitas Finished, tanpa privateNote. UI dapat membangun kartu dari data yang sudah dimuat; diagram tidak mengklaim setiap preview memanggil endpoint kartu. Start/finish menerima bookId dan dapat membuat atau memperbarui aktivitas; tidak ada endpoint move-to-reading khusus atau jaminan state machine ketat pada seluruh update.
 
-## 4. Alur Moderasi Ulasan Komunitas
+## Wizard import VibeDesk
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Member as Member ReadVibe
-    actor Curator as Staf VibeDesk
-    participant VC as VibeCore
-    participant DB as PostgreSQL
-
-    Member->>VC: POST /api/reading-activities/:id/flag { flagReason: 'Spoiler' }
-    VC->>DB: Update isFlagged=true, moderationStatus='Pending'
-    Curator->>VC: GET /api/moderation/reviews
-    VC->>DB: Ambil daftar ulasan berstatus 'Pending' / isFlagged=true
-    VC-->>Curator: Tampilkan antrean ulasan di menu Moderasi
-    alt Disetujui (Aman)
-        Curator->>VC: PUT /api/moderation/reviews/:id { status: 'Approved' }
-        VC->>DB: Update moderationStatus='Approved', isFlagged=false
-    else Mengandung Pelanggaran
-        Curator->>VC: PUT /api/moderation/reviews/:id { status: 'Rejected', action: 'delete' }
-        VC->>DB: Hapus teks publicReview agar tidak tampil di publik
-    end
+  actor Staff as Admin atau Librarian
+  participant UI as VibeDesk /books/import
+  participant API as VibeCore
+  participant Books as Google Books
+  participant DB as PostgreSQL
+  Staff->>UI: Cari judul atau ISBN
+  UI->>API: GET /api/integrations/google-books/search?query=...
+  API->>DB: Baca googleBooksEnabled
+  API->>Books: Cari melalui adapter backend
+  Books-->>API: Metadata volume
+  API-->>UI: Metadata domain
+  Staff->>UI: Pilih kandidat dan preview
+  UI->>API: GET /api/books untuk cek Google ID atau ISBN
+  Staff->>UI: Mapping author/category lokal, stok, mood
+  Staff->>UI: Review dan centang persetujuan
+  UI->>API: POST /api/books
+  API->>DB: Periksa duplikat dan simpan buku beserta mood
+  API-->>UI: Buku tersimpan
+  UI-->>Staff: Navigasi ke detail buku
 ```
+
+Duplikat diblokir pada wizard dan diperiksa kembali saat create. Author/category yang belum ada dibuat melalui halaman katalog terkait. API key tetap di backend. Wizard memiliki empat tahap; bukan modal atau import satu klik. Kegagalan provider dikembalikan sebagai error, bukan daftar sukses kosong.
+
+## Laporan dan moderasi
+
+```mermaid
+sequenceDiagram
+  actor Member
+  actor Staff as Admin atau Librarian
+  participant API as VibeCore
+  participant DB as PostgreSQL
+  Member->>API: POST /api/reviews/:id/report dengan reason opsional
+  API->>DB: Set Flagged, isFlagged dan flagReason
+  Staff->>API: GET /api/moderation/reviews
+  API-->>Staff: Ulasan publik dan konteks laporan
+  Staff->>API: GET /api/moderation/reviews/:id
+  Staff->>API: PATCH /api/moderation/reviews/:id dengan status dan reason
+  API->>DB: Simpan moderationStatus, moderationReason, moderatedBy
+  alt Removed
+    API->>DB: Kosongkan publicReview
+  end
+  API-->>Staff: id dan moderationStatus
+```
+
+Keputusan menerima Approved, Rejected, Flagged, atau Removed. Reason wajib; catatan privat pemilik tidak masuk konteks moderasi dan tidak dihapus oleh Removed. Halaman CMS memakai `/moderation` dan `/moderation/:id`.

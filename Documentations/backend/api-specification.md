@@ -1,189 +1,229 @@
 # Spesifikasi Endpoint REST API VibeCore
 
-Dokumentasi komprehensif endpoint REST API **VibeCore** (`http://localhost:3360/api`).
+Ditinjau dari router source pada 17 November 2026. Base development: `http://localhost:3360`. Tabel memakai prefix utama; alias prefix dijelaskan terpisah. Inventaris ini berasal dari source, bukan hasil probe endpoint live.
 
-Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
-- Respons Sukses: `{ success: true, message, data, meta, error: null, requestId }`
-- Respons Gagal: `{ success: false, message, data: null, meta: null, error: { code, details }, requestId }`
+Akses **Login** berarti akun terautentikasi untuk resource miliknya; **Staf** berarti Admin/Librarian; **Admin** berarti Admin saja. Semua akun terautentikasi tetap diperiksa statusnya oleh middleware.
 
----
+Status publik: `GET /` dan `GET /api` mengembalikan JSON status tanpa envelope. Endpoint domain memakai [response contract](response-contract.md), kecuali respons file cover.
 
-## Ringkasan Endpoint
+## Auth
 
-| Modul | Method | Endpoint | Akses | Deskripsi |
-| :--- | :--- | :--- | :--- | :--- |
-| **System** | `GET` | `/api` | Public | Status layanan VibeCore & allowed origins |
-| **Auth** | `POST` | `/api/auth/register` | Public | Registrasi akun baru (Member) |
-| | `POST` | `/api/auth/login` | Public | Login akun & perolehan token JWT |
-| | `GET` | `/api/auth/me` | Authenticated | Profil pengguna yang sedang aktif |
-| | `PUT` | `/api/auth/profile` | Authenticated | Perbarui data profil pengguna |
-| **Books** | `GET` | `/api/books` | Public | Katalog buku dengan pencarian, filter, & paginasi |
-| | `GET` | `/api/books/:id` | Public | Detail buku lengkap beserta ulasan publik |
-| | `POST` | `/api/books` | Librarian/Admin | Tambah buku manual ke katalog |
-| | `PUT` | `/api/books/:id` | Librarian/Admin | Perbarui metadata atau stok buku |
-| | `DELETE` | `/api/books/:id` | Librarian/Admin | Hapus buku dari katalog |
-| **Recommendations** | `POST` | `/api/recommendations/match` | Public | Rekomendasi AI Vibe Matcher (Gemini 2.5) |
-| **Reading** | `GET` | `/api/reading` | Authenticated | Rak buku pengguna (`Reading`, `Finished`) |
-| | `POST` | `/api/reading/start` | Authenticated | Mulai membaca buku (pindah dari wishlist) |
-| | `POST` | `/api/reading/finish` | Authenticated | Tandai selesai, input rating & kutipan Vibe Card |
-| | `GET` | `/api/reading/vibe-card/:id` | Public/Auth | Data kartu visual 9:16 untuk ekspor Canvas/PNG |
-| | `GET` | `/api/reading/user/:userId/finished` | Public | Riwayat buku selesai publik seorang pengguna |
-| **Wishlists** | `GET` | `/api/wishlists` | Authenticated | Daftar buku incaran personal (Smart Wishlist) |
-| | `POST` | `/api/wishlists` | Authenticated | Tambah buku ke wishlist dengan tingkat prioritas |
-| | `PUT` | `/api/wishlists/:id` | Authenticated | Ubah prioritas, catatan alasan, atau visibilitas |
-| | `DELETE` | `/api/wishlists/:id` | Authenticated | Hapus buku dari wishlist |
-| | `GET` | `/api/wishlists/user/:userId` | Public | Wishlist publik milik pengguna |
-| **Reviews** | `GET` | `/api/reviews/book/:bookId` | Public | Daftar ulasan publik untuk suatu buku |
-| | `POST` | `/api/reviews` | Authenticated | Kirim ulasan dan rating publik baru |
-| | `POST` | `/api/reviews/:id/report` | Authenticated | Laporkan ulasan bermasalah (spam/spoiler) |
-| **Moods** | `GET` | `/api/moods` | Public | Daftar taksonomi mood tags emosional |
-| | `GET` | `/api/moods/:id` | Public | Detail mood tag beserta buku terhubung |
-| | `POST` | `/api/moods` | Librarian/Admin | Tambah mood tag baru |
-| | `PUT` | `/api/moods/:id` | Librarian/Admin | Perbarui nama, warna, atau deskripsi mood |
-| | `DELETE` | `/api/moods/:id` | Librarian/Admin | Hapus mood tag |
-| **Editorial** | `GET` | `/api/editorial` | Public | Daftar kurasi pilihan editor (Editorial Picks) |
-| | `POST` | `/api/editorial` | Librarian/Admin | Tetapkan buku sebagai pilihan editor |
-| | `PUT` | `/api/editorial/:id` | Librarian/Admin | Ubah bobot kurasi atau catatan kurator |
-| | `DELETE` | `/api/editorial/:id` | Librarian/Admin | Hapus pilihan editor |
-| **Authors** | `GET` | `/api/authors` | Public | Daftar seluruh penulis |
-| | `POST` | `/api/authors` | Librarian/Admin | Tambah penulis baru |
-| | `PUT` | `/api/authors/:id` | Librarian/Admin | Perbarui profil penulis |
-| | `DELETE` | `/api/authors/:id` | Librarian/Admin | Hapus penulis |
-| **Categories** | `GET` | `/api/categories` | Public | Daftar kategori/genre buku |
-| | `POST` | `/api/categories` | Librarian/Admin | Tambah kategori baru |
-| | `PUT` | `/api/categories/:id` | Librarian/Admin | Perbarui kategori |
-| | `DELETE` | `/api/categories/:id` | Librarian/Admin | Hapus kategori |
-| **Members** | `GET` | `/api/members` | Librarian/Admin | Daftar seluruh akun member komunitas |
-| | `GET` | `/api/members/:id` | Librarian/Admin | Detail member beserta aktivitas membaca |
-| | `PATCH` | `/api/members/:id/status`| Admin | Perbarui status aktif/suspend member |
-| | `DELETE` | `/api/members/:id` | Admin | Hapus akun member |
-| **Moderation** | `GET` | `/api/moderation/reviews` | Librarian/Admin | Antrean ulasan yang ditandai (Flagged) |
-| | `PATCH` | `/api/moderation/reviews/:id` | Librarian/Admin | Keputusan moderasi (`Approved`/`Rejected`) |
-| **Analytics** | `GET` | `/api/analytics/overview` | Librarian/Admin | KPI metrik buku, member, wishlist, selesai |
-| | `GET` | `/api/analytics/top-wishlisted` | Librarian/Admin | Tren buku paling banyak diincar (Wishlist Intel) |
-| | `GET` | `/api/analytics/mood-distribution` | Librarian/Admin | Distribusi suasana hati komunitas pembaca |
-| **Staff** | `GET` | `/api/staff` | Admin | Daftar akun staf perpustakaan |
-| | `POST` | `/api/staff` | Admin | Buat akun staf baru (`Librarian` atau `Admin`) |
-| | `PATCH` | `/api/staff/:id/role` | Admin | Ubah hak akses peran staf |
-| | `DELETE` | `/api/staff/:id` | Admin | Hapus akun staf |
-| **Settings** | `GET` | `/api/settings` | Admin | Pengaturan bobot rekomendasi & status sistem |
-| | `PUT` | `/api/settings` | Admin | Perbarui bobot kurasi dan ambang batas AI |
-| **Google Books**| `GET` | `/api/integrations/google-books/search` | Librarian/Admin | Cari metadata buku eksternal via ISBN/Judul |
+Sumber: [router](../../vibecore/src/modules/auth/auth.routes.js).
 
----
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | Publik | AuthController.register |
+| `POST` | `/api/auth/login` | Publik | AuthController.login |
+| `GET` | `/api/auth/me` | Login | AuthController.me |
+| `PUT` | `/api/auth/profile` | Login | AuthController.updateProfile |
 
-## Detail Spesifikasi Endpoint Terpilih
+## Books
 
-### 1. `POST /api/recommendations/match`
-Mencocokkan suasana hati pembaca dengan katalog buku menggunakan model Google Gemini 2.5 Flash didukung bobot kurasi editorial pustakawan.
+Sumber: [router](../../vibecore/src/modules/books/book.routes.js).
 
-#### Request Body:
-```json
-{
-  "moodTags": ["🧘 Calm & Mindful"],
-  "queryText": "Lagi penat butuh bacaan hangat tentang cara menata pikiran"
-}
-```
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/books` | Publik | BookController.list |
+| `GET` | `/api/books/covers/:filename` | Publik | BookCoverController.get |
+| `GET` | `/api/books/:id` | Publik | BookController.getById |
+| `POST` | `/api/books` | Staf | BookController.create |
+| `POST` | `/api/books/covers` | Staf | BookCoverController.upload |
+| `PUT` | `/api/books/:id` | Staf | BookController.update |
+| `DELETE` | `/api/books/:id` | Staf | BookController.delete |
 
-#### Response (200 OK):
-```json
-{
-  "success": true,
-  "message": "Rekomendasi buku berhasil ditemukan",
-  "data": {
-    "totalMatches": 2,
-    "query": {
-      "moodTags": ["🧘 Calm & Mindful"],
-      "queryText": "Lagi penat butuh bacaan hangat tentang cara menata pikiran"
-    },
-    "matches": [
-      {
-        "book": {
-          "id": 1,
-          "title": "Filosofi Teras",
-          "author": { "name": "Henry Manampiring" },
-          "image": "https://...",
-          "genre": { "name": "Filsafat & Self-Help" }
-        },
-        "matchScore": 0.94,
-        "explanation": "Buku ini sangat ideal untuk meredakan penat dengan memandu kita fokus pada hal-hal yang dapat kita kendalikan."
-      }
-    ]
-  },
-  "meta": null,
-  "error": null,
-  "requestId": "req_88f92b"
-}
-```
+## Recommendations
 
----
+Sumber: [router](../../vibecore/src/modules/recommendations/recommendation.routes.js).
 
-### 2. `POST /api/reading/finish`
-Menandai buku selesai dibaca, menyimpan rating bintang, kutipan favorit, catatan pribadi, dan ulasan publik terpisah.
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `POST` | `/api/recommendations/match` | Publik | RecommendationController.matchVibe |
+| `POST` | `/api/recommendations` | Publik | RecommendationController.matchVibe |
+| `GET` | `/api/recommendations/editorial` | Publik | EditorialController.list |
 
-#### Request Body:
-```json
-{
-  "bookId": 1,
-  "rating": 5,
-  "quote": "Ketenangan sejati datang dari menerima apa yang berada di luar kendali kita.",
-  "privateNote": "Catatan pribadi: dibaca saat cuti tahunan di Bandung.",
-  "publicReview": "Buku yang mengubah cara pandang saya terhadap kekhawatiran hidup.",
-  "moodTag": "🧘 Calm & Mindful",
-  "isSpoiler": false
-}
-```
+## Reading
 
-#### Response (200 OK):
-```json
-{
-  "success": true,
-  "message": "Selamat! Buku berhasil ditandai selesai dibaca.",
-  "data": {
-    "id": 12,
-    "userId": 3,
-    "bookId": 1,
-    "status": "Finished",
-    "rating": 5,
-    "quote": "Ketenangan sejati datang dari menerima apa yang berada di luar kendali kita.",
-    "publicReview": "Buku yang mengubah cara pandang saya terhadap kekhawatiran hidup.",
-    "moodTag": "🧘 Calm & Mindful",
-    "isSpoiler": false,
-    "finishDate": "2026-10-29T19:40:00.000Z",
-    "book": {
-      "id": 1,
-      "title": "Filosofi Teras"
-    }
-  },
-  "meta": null,
-  "error": null,
-  "requestId": "req_45a12d"
-}
-```
+Sumber: [router](../../vibecore/src/modules/reading/reading.routes.js).
 
----
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/reading/user/:userId/finished` | Publik | ReadingController.getUserFinishedReads |
+| `GET` | `/api/reading/vibe-card/:id` | Publik | ReadingController.getVibeCard |
+| `GET` | `/api/reading/:id/vibecard` | Publik | ReadingController.getVibeCard |
+| `GET` | `/api/reading` | Login | ReadingController.getMyActivities |
+| `POST` | `/api/reading` | Login | ReadingController.startReading |
+| `POST` | `/api/reading/start` | Login | ReadingController.startReading |
+| `POST` | `/api/reading/finish` | Login | ReadingController.finishReading |
+| `PUT` | `/api/reading/:id` | Login | ReadingController.updateActivity |
+| `PATCH` | `/api/reading/:id` | Login | ReadingController.updateActivity |
+| `DELETE` | `/api/reading/:id` | Login | ReadingController.deleteActivity |
 
-### 3. `GET /api/reading/vibe-card/:id`
-Menyediakan data terformat untuk rendering kartu visual rasio 9:16 di sisi klien (Canvas / PNG export).
+## Wishlists
 
-#### Response (200 OK):
-```json
-{
-  "success": true,
-  "message": "Data Vibe Card berhasil dimuat.",
-  "data": {
-    "cardRatio": "9:16",
-    "title": "Filosofi Teras",
-    "author": "Henry Manampiring",
-    "coverImage": "https://...",
-    "rating": 5,
-    "quote": "Ketenangan sejati datang dari menerima apa yang berada di luar kendali kita.",
-    "mood": "🧘 Calm & Mindful",
-    "reader": "Rian Mahendra",
-    "finishDate": "2026-10-29T19:40:00.000Z"
-  },
-  "meta": null,
-  "error": null,
-  "requestId": "req_99c31e"
-}
-```
+Sumber: [router](../../vibecore/src/modules/wishlists/wishlist.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/wishlists/user/:userId` | Publik | WishlistController.getUserPublicWishlist |
+| `GET` | `/api/wishlists/public/:userId` | Publik | WishlistController.getUserPublicWishlist |
+| `GET` | `/api/wishlists` | Login | WishlistController.getMyWishlist |
+| `POST` | `/api/wishlists` | Login | WishlistController.add |
+| `PUT` | `/api/wishlists/:id` | Login | WishlistController.update |
+| `DELETE` | `/api/wishlists/:id` | Login | WishlistController.remove |
+
+## Reviews
+
+Sumber: [router](../../vibecore/src/modules/reviews/review.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/reviews/book/:bookId` | Publik | ReviewController.getBookReviews |
+| `POST` | `/api/reviews` | Login | ReviewController.submitReview |
+| `POST` | `/api/reviews/:id/report` | Login | ReviewController.reportReview |
+
+## Authors
+
+Sumber: [router](../../vibecore/src/modules/authors/author.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/authors` | Publik | AuthorController.list |
+| `GET` | `/api/authors/:id` | Publik | AuthorController.getById |
+| `POST` | `/api/authors` | Staf | AuthorController.create |
+| `PUT` | `/api/authors/:id` | Staf | AuthorController.update |
+| `DELETE` | `/api/authors/:id` | Staf | AuthorController.delete |
+
+## Categories
+
+Sumber: [router](../../vibecore/src/modules/categories/category.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/categories` | Publik | CategoryController.list |
+| `GET` | `/api/categories/:id` | Publik | CategoryController.getById |
+| `POST` | `/api/categories` | Staf | CategoryController.create |
+| `PUT` | `/api/categories/:id` | Staf | CategoryController.update |
+| `DELETE` | `/api/categories/:id` | Staf | CategoryController.delete |
+
+## Moods
+
+Sumber: [router](../../vibecore/src/modules/moods/mood.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/moods` | Publik | MoodController.list |
+| `GET` | `/api/moods/:id` | Publik | MoodController.getById |
+| `POST` | `/api/moods` | Staf | MoodController.create |
+| `PUT` | `/api/moods/:id` | Staf | MoodController.update |
+| `DELETE` | `/api/moods/:id` | Staf | MoodController.delete |
+
+## Editorial
+
+Sumber: [router](../../vibecore/src/modules/editorial/editorial.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/editorial` | Publik | EditorialController.list |
+| `POST` | `/api/editorial` | Staf | EditorialController.create |
+| `PUT` | `/api/editorial/:id` | Staf | EditorialController.update |
+| `DELETE` | `/api/editorial/:id` | Staf | EditorialController.delete |
+
+## Members
+
+Sumber: [router](../../vibecore/src/modules/members/member.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/members` | Admin | MemberController.list |
+| `GET` | `/api/members/:id` | Admin | MemberController.getById |
+| `PATCH` | `/api/members/:id/status` | Admin | MemberController.updateStatus |
+| `PUT` | `/api/members/:id/status` | Admin | MemberController.updateStatus |
+| `DELETE` | `/api/members/:id` | Admin | MemberController.delete |
+
+## Moderation
+
+Sumber: [router](../../vibecore/src/modules/moderation/moderation.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/moderation/reviews` | Staf | ModerationController.listReviews |
+| `GET` | `/api/moderation/reviews/:id` | Staf | ModerationController.getById |
+| `PATCH` | `/api/moderation/reviews/:id` | Staf | ModerationController.moderate |
+| `PUT` | `/api/moderation/reviews/:id` | Staf | ModerationController.moderate |
+
+## Analytics
+
+Sumber: [router](../../vibecore/src/modules/analytics/analytics.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/analytics/overview` | Staf | AnalyticsController.getOverview |
+| `GET` | `/api/analytics/wishlist-intelligence` | Staf | AnalyticsController.wishlistIntelligence |
+| `GET` | `/api/analytics/reading` | Staf | AnalyticsController.readingAnalytics |
+| `GET` | `/api/analytics/top-wishlisted` | Staf | AnalyticsController.getTopWishlisted |
+| `GET` | `/api/analytics/mood-distribution` | Staf | AnalyticsController.getMoodDistribution |
+
+## Staff
+
+Sumber: [router](../../vibecore/src/modules/staff/staff.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/staff` | Admin | StaffController.list |
+| `GET` | `/api/staff/:id` | Admin | StaffController.getById |
+| `POST` | `/api/staff` | Admin | StaffController.create |
+| `PATCH` | `/api/staff/:id/role` | Admin | StaffController.update |
+| `PUT` | `/api/staff/:id/role` | Admin | StaffController.update |
+| `PUT` | `/api/staff/:id` | Admin | StaffController.update |
+| `DELETE` | `/api/staff/:id` | Admin | StaffController.delete |
+
+## Settings
+
+Sumber: [router](../../vibecore/src/modules/settings/settings.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/settings` | Admin | SettingsController.getSettings |
+| `GET` | `/api/settings/health` | Admin | SettingsController.health |
+| `POST` | `/api/settings/preview` | Admin | SettingsController.preview |
+| `PUT` | `/api/settings` | Admin | SettingsController.updateSettings |
+
+## Google Books
+
+Sumber: [router](../../vibecore/src/modules/../integrations/google-books/google-books.routes.js).
+
+| Method | Endpoint | Akses | Handler |
+| --- | --- | --- | --- |
+| `GET` | `/api/integrations/google-books/search` | Staf | Pencarian melalui adapter |
+
+## Cara menghitung endpoint
+
+Tabel di atas memuat **78 registrasi method + path** pada prefix utama, termasuk alias suffix yang memang didaftarkan router. Ditambah dua status route (`/` dan `/api`) menjadi **80**. Jumlah URL jika seluruh alias prefix diekspansi akan lebih besar; angka ini tidak sama dengan jumlah use case atau jumlah halaman.
+
+## Alias prefix
+
+| Prefix utama | Alias kompatibilitas |
+| --- | --- |
+| /api/recommendations | /api/ai |
+| /api/reading | /api/reading-activities |
+| /api/wishlists | /api/wishlist |
+| /api/editorial | /api/editorial-picks |
+| /api/categories | /api/genres |
+| /api/members | /api/users |
+
+Alias memakai router yang sama; alias tidak menciptakan suffix baru. Contohnya `/api/ai/match` tersedia, sedangkan `/api/ai/vibe-match` tidak didaftarkan. Tidak ada endpoint `/api/integrations/google-books/import`, `/api/wishlists/:id/move-to-reading`, atau `/api/reading-activities/finish-and-review`.
+
+## Query dan payload penting
+
+- Books: search mencakup title, description, ISBN, dan pen_name; filter genreId, authorId, mood (nama), moodId, googleBooksId, stock; sort newest/title/stock; page dan limit. Stock available >5, low 1–5, empty 0. Page minimal 1 dan limit 1–100.
+- Buku create/update: relasi authorId, genreId, moodIds; stock, price, ISBN/Google ID, preview dan metadata. subtitle/publisher maksimal 255, edition/language 100, format 50 karakter. widthCm/heightCm positif, maksimal 999999.99, dua desimal. Metadata kosong/null menghapus nilai; field yang tidak dikirim saat update dipertahankan.
+- Cover: POST multipart field cover, satu JPG/PNG/WebP maksimal 5 MiB; konten diperiksa Sharp, maksimal 20 megapiksel, output WebP. URL hasil upload dipakai pada image saat menyimpan buku.
+- Google Books: GET search?query= minimal dua karakter; backend memeriksa googleBooksEnabled. Wizard preview → mapping author/category/stock/mood → review/consent → POST /api/books. Relasi dipilih dari katalog lokal; tidak dibuat otomatis oleh endpoint pencarian.
+- Member list: search, status, page, limit; hanya akun role Member. Detail mengembalikan profil aman dan counts, bukan catatan pribadi.
+- Moderation: list memakai status; PATCH/PUT keputusan menerima status Approved/Rejected/Flagged/Removed dan reason wajib (maksimal 2000). Removed hanya mengosongkan publicReview. Report ulasan menerima reason opsional maksimal 255 karakter.
+- Analytics wishlist-intelligence/reading: period 30/90/365/all dan genreId; wishlist menerima sort demand/deficit. Data berupa agregat tanpa identitas wishlist individual.
+- Staff create: fullname, username, email, password 12–128 karakter, role Admin/Librarian, status Active/Suspended. Update role/status mengikuti proteksi self-lockout dan Admin aktif terakhir.
+- Settings: curationWeightBonus, moodMatchBaseScore, minMatchScoreThreshold menerima angka 0–1; enableGeminiExplanations dan googleBooksEnabled boolean. PUT menyimpan whitelist field. Preview POST memakai `{ settings, moods }` dan ranker yang sama, tanpa menyimpan.
+- Recommendations POST match: `{ moodTags, queryText }`; response totalMatches/query/matches, item berisi book, matchScore 0–98, reason. Ranking lokal memakai settings; Gemini explanations opsional.
+
+Model data terpisah di [referensi database](spesifikasi-api-dan-data.md). Validasi rinci mengikuti validator dan service masing-masing modul; tabel ini tidak menyatakan seluruh daftar memiliki pagination server.

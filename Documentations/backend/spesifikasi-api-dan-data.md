@@ -1,8 +1,8 @@
-# Model Data & Spesifikasi API VibeCore
+# Model Data VibeCore
 
----
+Referensi logis berdasarkan [model Sequelize](../../vibecore/models/) dan [migrasi](../../vibecore/migrations/), ditinjau 17 November 2026. DBML ini merangkum kolom dan relasi domain; bukan dump database live atau daftar lengkap constraint/index fisik. Endpoint dipisahkan ke [spesifikasi API](api-specification.md).
 
-## 1. Skema Model Data Database (PostgreSQL)
+## Skema logis
 
 ```dbml
 Table users {
@@ -11,6 +11,7 @@ Table users {
   email varchar [not null, unique]
   password varchar [not null]
   role varchar [default: 'Member'] // 'Member', 'Librarian', 'Admin'
+  status varchar [default: 'Active'] // 'Active', 'Suspended'
   profileId integer
   createdAt timestamp
   updatedAt timestamp
@@ -48,6 +49,13 @@ Table books {
   id integer [primary key]
   title varchar [not null]
   description text
+  subtitle varchar(255)
+  publisher varchar(255)
+  edition varchar(100)
+  language varchar(100)
+  format varchar(50)
+  widthCm decimal(8,2)
+  heightCm decimal(8,2)
   year integer
   page integer
   stock integer [default: 1]
@@ -120,7 +128,17 @@ Table reading_activities {
   isSpoiler boolean [default: false]
   isFlagged boolean [default: false]
   flagReason varchar
-  moderationStatus varchar [default: 'Approved'] // 'Approved', 'Pending', 'Rejected'
+  moderationReason text
+  moderatedBy integer
+  moderationStatus varchar [default: 'Approved'] // 'Approved', 'Pending', 'Flagged', 'Rejected', 'Removed'
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table application_settings {
+  id varchar [primary key]
+  value jsonb [not null]
+  updatedBy integer
   createdAt timestamp
   updatedAt timestamp
 }
@@ -139,82 +157,15 @@ Ref: reading_activities.userId > users.id
 Ref: reading_activities.bookId > books.id
 ```
 
----
+## Persistence dan migrasi
 
-## 2. Ringkasan Endpoint REST API
+- books memakai authorId, genreId, userId; book_moods menghubungkan buku dengan mood_tags. Kategori API disimpan pada tabel genres.
+- wishlists menyimpan priority, reason, visibility; reading_activities menyimpan status, rating, quote, privateNote, publicReview, dan audit moderasi. Public projection tidak boleh dianggap setara dengan seluruh kolom tabel.
+- application_settings memakai key backoffice, value JSONB, updatedBy dan timestamp. updatedBy/moderatedBy adalah identitas aktor yang tersimpan; DBML tidak mengklaim constraint foreign key untuk kolom audit.
+- 20261117110000-add-book-metadata menambah tujuh kolom metadata nullable. Publisher berupa teks, bukan tabel katalog penerbit.
+- 20261117120000-add-backoffice-settings-and-moderation-audit membuat application_settings dan menambah moderationReason/moderatedBy dalam transaksi.
+- Jalankan npm run db:migrate dan npm run db:migrate:status dari vibecore dengan environment database tujuan. Rollback menghapus kolom/tabel beserta nilainya; siapkan backup sebelum rollback data yang diperlukan.
+- Pemeriksaan duplikat ISBN/Google ID dilakukan service buku; DBML ini tidak menyatakan keduanya memiliki unique constraint. Aturan duplikasi dan constraint per pasangan user/book harus diperiksa pada service serta migrasi terkait.
+- File cover berada di storage backend, sedangkan books.image menyimpan URL. File yatim belum dibersihkan otomatis.
 
-Base URL: `http://localhost:3360/api`
-
-### A. Autentikasi (`/api/auth`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Publik | Registrasi akun baru (Member) beserta entri profil. |
-| `POST` | `/api/auth/login` | Publik | Login dengan email dan kata sandi, mengembalikan token JWT. |
-| `GET` | `/api/auth/me` | Bearer Token | Mengambil data profil pengguna yang sedang login. |
-| `PUT` | `/api/auth/profile` | Bearer Token | Memperbarui data profil (nama, avatar, usia, kebangsaan). |
-
-### B. Katalog Buku (`/api/books`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/books` | Publik | Pencarian dan filter buku (search, genre, mood, limit, page). |
-| `GET` | `/api/books/:id` | Publik | Detail lengkap buku, author, genre, mood, dan ulasan publik. |
-| `POST` | `/api/books` | Admin / Librarian | Menambahkan buku baru ke inventaris. |
-| `PUT` | `/api/books/:id` | Admin / Librarian | Memperbarui metadata dan stok fisik buku. |
-| `DELETE`| `/api/books/:id` | Admin / Librarian | Menghapus buku dari katalog. |
-
-### C. Penulis & Kategori (`/api/authors`, `/api/genres`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/authors` | Publik | Mengambil daftar penulis beserta jumlah karya. |
-| `POST` | `/api/authors` | Admin / Librarian | Mendaftarkan penulis baru. |
-| `GET` | `/api/genres` | Publik | Mengambil daftar kategori/genre. |
-| `POST` | `/api/genres` | Admin / Librarian | Menambahkan kategori baru. |
-
-### D. Mood & Pilihan Editor (`/api/moods`, `/api/editorial-picks`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/moods` | Publik | Daftar mood tags emosional. |
-| `POST` | `/api/moods` | Admin / Librarian | Membuat mood tag baru. |
-| `POST` | `/api/moods/assign` | Admin / Librarian | Menautkan mood tag ke buku. |
-| `GET` | `/api/editorial-picks` | Publik | Buku kurasi pilihan editor aktif beserta bobot kurasi. |
-| `POST` | `/api/editorial-picks` | Admin / Librarian | Menetapkan buku pilihan editor dan bobot kurasi (50-100%). |
-
-### E. Smart Wishlist (`/api/wishlists`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/wishlists/my` | Bearer Token | Mengambil wishlist milik pengguna yang login. |
-| `GET` | `/api/wishlists/user/:id` | Publik | Mengambil wishlist publik milik pengguna lain (privat disaring). |
-| `POST` | `/api/wishlists` | Bearer Token | Menambahkan buku ke wishlist (cegah duplikasi per user per buku). |
-| `PUT` | `/api/wishlists/:id` | Bearer Token | Mengubah prioritas (High/Med/Low) atau alasan membaca. |
-| `DELETE`| `/api/wishlists/:id` | Bearer Token | Menghapus buku dari wishlist. |
-| `POST` | `/api/wishlists/:id/move-to-reading` | Bearer Token | Memindahkan buku dari wishlist ke rak "Reading". |
-
-### F. Aktivitas Membaca & Ulasan (`/api/reading-activities`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/reading-activities/my` | Bearer Token | Mengambil rak membaca pengguna (`Reading`, `Finished`). |
-| `GET` | `/api/reading-activities/user/:id/finished` | Publik | Mengambil buku selesai dibaca milik user publik (tanpa catatan privat). |
-| `POST` | `/api/reading-activities/transition` | Bearer Token | Validasi dan transisi status (Want to Read &rarr; Reading &rarr; Finished). |
-| `POST` | `/api/reading-activities/finish-and-review` | Bearer Token | Tandai selesai, simpan rating, quote 9:16, catatan privat, dan ulasan. |
-| `POST` | `/api/reading-activities/:id/flag` | Bearer Token | Laporkan ulasan yang melanggar (spam / spoiler). |
-
-### G. AI Vibe Matcher (`/api/ai/vibe-match`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/ai/vibe-match` | Publik | Memproses mood tags & teks bebas via Google Gemini AI / heuristik. |
-
-### H. Integrasi Google Books (`/api/integrations/google-books`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/integrations/google-books/search` | Admin / Librarian | Pencarian buku via Google Books API. |
-| `POST` | `/api/integrations/google-books/import` | Admin / Librarian | 1-Click Import metadata ke inventaris database lokal. |
-
-### I. Analitik & Moderasi (`/api/analytics`, `/api/moderation`)
-| Method | Endpoint | Hak Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/analytics/user/stats` | Bearer Token | Statistik membaca pengguna login. |
-| `GET` | `/api/analytics/dashboard` | Admin / Librarian | KPI ringkasan dashboard CMS. |
-| `GET` | `/api/analytics/wishlist-intelligence`| Admin / Librarian | Analitik buku paling diminati vs stok fisik inventaris. |
-| `GET` | `/api/analytics/reading-trends` | Admin / Librarian | Distribusi tren mood membaca komunitas. |
-| `GET` | `/api/moderation/reviews` | Admin / Librarian | Antrean laporan spam/spoiler. |
-| `PUT` | `/api/moderation/reviews/:id` | Admin / Librarian | Tindakan moderasi: Approve, Reject, atau Hapus Teks. |
+Privasi dan akses berada di [matriks keamanan](../security/matriks-hak-akses.md). Setup database mengikuti [README backend](../../vibecore/README.md), termasuk DB_NAME dan port yang ditetapkan environment.
