@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AiOutlinePlus, AiOutlineCloudDownload, AiOutlineDelete } from 'react-icons/ai';
+import { AiOutlinePlus, AiOutlineCloudDownload, AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
 
-export default function BooksPage({ books, onOpenImport, onOpenAddBook, onDeleteBook }) {
+export default function BooksPage({ books, onOpenImport, onOpenAddBook, onDeleteBook, onEditBook }) {
   const [search, setSearch] = useState('');
 
   const filtered = books.filter((b) => {
@@ -89,13 +89,22 @@ export default function BooksPage({ books, onOpenImport, onOpenAddBook, onDelete
                     </span>
                   </td>
                   <td>
-                    <button
-                      className="btn btn-sm btn-outline-danger p-1"
-                      onClick={() => onDeleteBook(b.id, b.title)}
-                      title="Hapus Buku"
-                    >
-                      <AiOutlineDelete size={16} />
-                    </button>
+                    <div className="btn-group btn-group-sm" aria-label={`Aksi untuk ${b.title}`}>
+                      <button
+                        className="btn btn-outline-secondary p-1"
+                        onClick={() => onEditBook(b)}
+                        title="Ubah Buku"
+                      >
+                        <AiOutlineEdit size={16} />
+                      </button>
+                      <button
+                        className="btn btn-outline-danger p-1"
+                        onClick={() => onDeleteBook(b.id, b.title)}
+                        title="Hapus Buku"
+                      >
+                        <AiOutlineDelete size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

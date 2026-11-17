@@ -9,7 +9,7 @@ import {
   AiOutlineArrowLeft,
   AiOutlineLock
 } from 'react-icons/ai';
-import { readVibeStore } from '../../../lib/store';
+import { readVibeStore } from '@/lib/store';
 
 export default function RegisterPage() {
   const router = useRouter();
