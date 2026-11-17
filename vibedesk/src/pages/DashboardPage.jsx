@@ -1,34 +1,129 @@
-import React from 'react';
-import { AiOutlineBarChart, AiOutlineBook, AiOutlineCloudDownload, AiOutlineFlag, AiOutlinePlus, AiOutlineTeam, AiOutlineWarning } from 'react-icons/ai';
+import { Link } from 'react-router-dom';
 import PageHeader from '../components/shared/PageHeader';
+import EmptyState from '../components/shared/EmptyState';
 import StatCard from '../components/shared/StatCard';
+import { visualAssets } from '../constants/visual-assets';
 
-export default function DashboardPage({ kpi, books, onOpenImport, onOpenAddBook }) {
-  const totalBooks = kpi?.totalBooks || books.length;
-  const lowStock = books.filter((book) => Number(book.stock) > 0 && Number(book.stock) <= 5).length;
-  const outOfStock = books.filter((book) => Number(book.stock) === 0).length;
-  const recentBooks = books.slice(0, 5);
-
+export default function DashboardPage({ kpi, onOpenImport, onOpenAddBook }) {
+  const cards = [
+    ['Total Buku', 'totalBooks', '▣'],
+    ['Total Member', 'totalMembers', '♙'],
+    ['Stok ≤5', 'lowStockBooks', '!'],
+    ['Kurasi Aktif', 'activeEditorialPicks', '☆'],
+    ['Menunggu Moderasi', 'pendingModeration', '◷'],
+  ];
   return (
-    <div>
-      <PageHeader eyebrow="Control Center" title="Control Center" description="Ringkasan operasional, kurasi, dan perkembangan ekosistem ReadVibe." />
-
+    <>
+      <PageHeader
+        title="Control Center"
+        description="Ringkasan operasional ReadVibe berdasarkan data VibeCore."
+      />
       <div className="row g-3 mb-4">
-        <div className="col-xl col-md-6"><StatCard icon={<AiOutlineBook />} value={totalBooks.toLocaleString('id-ID')} label="Total Buku" trend="↑ Koleksi aktif" /></div>
-        <div className="col-xl col-md-6"><StatCard icon={<AiOutlineTeam />} value={(kpi?.totalMembers || 0).toLocaleString('id-ID')} label="Total Member" trend="↑ Komunitas bertumbuh" tone="lilac" /></div>
-        <div className="col-xl col-md-6"><StatCard icon={<AiOutlineWarning />} value={lowStock + outOfStock} label="Stok Rendah / Habis" trend={`${outOfStock} buku perlu perhatian`} tone="gold" /></div>
-        <div className="col-xl col-md-6"><StatCard icon={<AiOutlineBarChart />} value={(kpi?.totalWishlists || 0).toLocaleString('id-ID')} label="Wishlist Aktif" trend="Sinyal permintaan koleksi" tone="coral" /></div>
+        {cards.map(([label, key, icon]) => (
+          <div className="col-xl col-sm-6" key={key}>
+            <StatCard label={label} value={kpi?.[key] ?? '—'} icon={icon} />
+          </div>
+        ))}
       </div>
-
-      <div className="row g-4 mb-4">
-        <div className="col-lg-7"><section className="card vd-card p-4 h-100"><div className="d-flex align-items-start gap-2 mb-3"><span className="fs-4">ϟ</span><div><h2 className="vd-section-title">Quick Actions</h2><p className="text-body-secondary small mb-0">Akses cepat untuk tugas operasional harian.</p></div></div><div className="row g-3"><div className="col-sm-6"><button type="button" className="btn btn-vd-primary w-100 py-3" onClick={onOpenAddBook}><AiOutlinePlus size={22} className="d-block mx-auto mb-2" />Tambah Buku Manual</button></div><div className="col-sm-6"><button type="button" className="btn btn-outline-secondary w-100 py-3" onClick={onOpenImport}><AiOutlineCloudDownload size={22} className="d-block mx-auto mb-2" />Import Google Books</button></div></div></section></div>
-        <div className="col-lg-5"><section className="card vd-card p-4 h-100"><div className="d-flex align-items-center justify-content-between mb-3"><h2 className="vd-section-title">Alert Prioritas</h2><span className="small text-success fw-semibold">Lihat semua →</span></div><div className="d-flex flex-column gap-2"><div className="vd-status vd-status--danger w-100"><AiOutlineWarning /> {lowStock + outOfStock} buku stok rendah atau habis.</div><div className="vd-status vd-status--warning w-100"><AiOutlineFlag /> 5 laporan ulasan menunggu moderasi.</div><div className="vd-status vd-status--active w-100">● Koneksi VibeCore dan Google Books normal.</div></div></section></div>
-      </div>
-
+      <section className="card vd-card mb-4 overflow-hidden">
+        <div className="row g-0 align-items-center">
+          <div className="col-lg-6 p-4">
+            <span className="vd-section-kicker">Ruang kerja kurator</span>
+            <h2 className="h3 mt-2">
+              Koleksi terawat, pengalaman membaca bermakna.
+            </h2>
+            <p className="text-secondary">
+              Perbarui metadata, kelola ketersediaan, dan susun pilihan
+              editorial.
+            </p>
+            <div className="d-flex flex-wrap gap-2">
+              <button className="btn btn-vd-primary" onClick={onOpenAddBook}>
+                Tambah Buku Manual
+              </button>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={onOpenImport}
+              >
+                Import Google Books
+              </button>
+            </div>
+          </div>
+          <div className="col-lg-6">
+            <img
+              src={visualAssets.dashboardPanel}
+              className="vd-dashboard-cover"
+              alt="Meja dengan buku dan kopi, rak buku serta tanaman di sisi kanan"
+            />
+          </div>
+        </div>
+      </section>
       <div className="row g-4">
-        <div className="col-lg-8"><section className="card vd-card p-4 h-100"><div className="d-flex justify-content-between align-items-center mb-3"><div><h2 className="vd-section-title">Koleksi Terbaru</h2><p className="text-body-secondary small mb-0">Buku terakhir yang masuk ke katalog.</p></div><span className="small text-success fw-semibold">Lihat katalog →</span></div>{recentBooks.length === 0 ? <p className="text-body-secondary mb-0">Belum ada buku di katalog.</p> : <div className="table-responsive"><table className="table vd-table mb-0"><thead><tr><th>Buku</th><th>Kategori</th><th>Stok</th><th>Status</th></tr></thead><tbody>{recentBooks.map((book) => <tr key={book.id}><td><div className="d-flex align-items-center gap-2"><img src={book.image || 'https://via.placeholder.com/36x52'} alt="" className="rounded" style={{ height: 48, objectFit: 'cover', width: 34 }} /><div><strong>{book.title}</strong><span className="d-block small text-body-secondary">{book.author?.name || book.author?.pen_name || 'Penulis belum dipetakan'}</span></div></div></td><td><span className="vd-pill">{book.genre?.name || 'Tanpa kategori'}</span></td><td>{book.stock ?? 0}</td><td><span className={`vd-status ${book.stock > 5 ? 'vd-status--active' : book.stock > 0 ? 'vd-status--warning' : 'vd-status--danger'}`}>{book.stock > 5 ? 'Aktif' : book.stock > 0 ? 'Stok rendah' : 'Habis'}</span></td></tr>)}</tbody></table></div>}</section></div>
-        <div className="col-lg-4"><section className="card vd-card p-4 h-100 d-flex flex-column justify-content-between"><div><span className="vd-pill mb-3">Kurasi koleksi</span><h2 className="vd-section-title fs-2">Kelola koleksi, kuatkan kurasi.</h2><p className="text-body-secondary mt-3">Jaga kualitas katalog dan pengalaman membaca komunitas ReadVibe melalui metadata yang konsisten.</p></div><button type="button" className="btn btn-outline-secondary">Lihat panduan kurasi →</button></section></div>
+        <div className="col-lg-8">
+          <section className="card vd-card p-4 h-100">
+            <div className="d-flex justify-content-between gap-3 mb-3">
+              <h2 className="h5">Perubahan katalog terbaru</h2>
+              <Link to="/books">Lihat katalog</Link>
+            </div>
+            {kpi?.recentBooks?.length ? (
+              <ul className="list-group list-group-flush">
+                {kpi.recentBooks.map((book) => (
+                  <li
+                    className="list-group-item px-0 d-flex justify-content-between gap-3"
+                    key={book.id}
+                  >
+                    <Link to={`/books/${book.id}`}>{book.title}</Link>
+                    <span className="small text-secondary">
+                      {new Date(book.updatedAt).toLocaleString('id-ID')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                compact
+                illustration={visualAssets.emptyBooks}
+                title={
+                  kpi ? 'Belum ada perubahan katalog' : 'Data belum tersedia'
+                }
+              />
+            )}
+          </section>
+        </div>
+        <div className="col-lg-4">
+          <section className="card vd-card p-4 h-100">
+            <h2 className="h5">Perhatian operasional</h2>
+            {kpi ? (
+              <>
+                <Link className="d-block alert alert-warning" to="/books">
+                  {kpi.lowStockBooks} judul memiliki stok ≤5.
+                </Link>
+                <Link
+                  className="d-block alert alert-light border"
+                  to="/moderation"
+                >
+                  {kpi.pendingModeration} ulasan menunggu moderasi.
+                </Link>
+              </>
+            ) : (
+              <p className="text-secondary">Menunggu ringkasan VibeCore.</p>
+            )}
+            <img
+              src={visualAssets.readingCup}
+              className="d-block mx-auto"
+              width={130}
+              height={110}
+              style={{ objectFit: 'contain' }}
+              alt=""
+            />
+            <Link
+              className="btn btn-outline-secondary w-100 mt-2"
+              to="/editorial-picks"
+            >
+              Kelola kurasi editorial
+            </Link>
+          </section>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
