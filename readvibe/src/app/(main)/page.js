@@ -9,12 +9,19 @@ import {
   AiOutlineBook
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { useBooks, useWishlist } from '@/hooks';
+import { useBooks, useWishlist, useReading, useAuth } from '@/hooks';
 
 export default function HomePage() {
   const router = useRouter();
   const { books: reduxBooks } = useBooks();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { finishedReads, status: readingStatus } = useReading();
+  const { isAuthenticated } = useAuth();
+  const now = new Date();
+  const finishedThisMonth = finishedReads.filter((activity) => {
+    const date = new Date(activity.finishDate);
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }).length;
   const [activeMood, setActiveMood] = useState('Cozy');
 
   const moodPills = [
@@ -378,7 +385,7 @@ export default function HomePage() {
                         Your reading journey
                       </h6>
                       <div className="text-muted" style={{ fontSize: '12px' }}>
-                        3 books finished this month
+                        {!isAuthenticated ? 'Sign in to track your reading' : readingStatus === 'loading' ? 'Loading reading activity…' : `${finishedThisMonth} books finished this month`}
                       </div>
                     </div>
                   </div>
