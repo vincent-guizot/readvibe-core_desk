@@ -12,7 +12,9 @@ const source = (file) => path.join(__dirname, '../src', file);
 test('PostgreSQL and local SMTP: recovery, single-use concurrency, expiry, session revocation and reading persistence', {
   skip: process.env.RUN_AUTH_DB_TESTS !== '1', timeout: 60000,
 }, async (t) => {
-  const db = require('../models');
+  const qa = await require('./helpers/qa-api')();
+  const db = qa.db;
+  t.after(qa.close);
   const messages = [];
   const smtpSockets = new Set();
   const smtp = net.createServer((socket) => {
@@ -63,10 +65,6 @@ test('PostgreSQL and local SMTP: recovery, single-use concurrency, expiry, sessi
     await new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); });
     for (const socket of smtpSockets) socket.destroy();
     await new Promise((resolve) => smtp.close(resolve));
-    try {
-      if (user) { await db.reading_activity.destroy({ where: { userId: user.id } }); await db.user.destroy({ where: { id: user.id } }); }
-      if (book) await db.book.destroy({ where: { id: book.id } });
-    } finally { await db.sequelize.close(); }
   });
   const request = async (suffix, body, bearer) => {
     const result = await fetch(`http://127.0.0.1:${server.address().port}/api/auth${suffix}`, {

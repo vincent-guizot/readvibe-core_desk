@@ -34,6 +34,8 @@ module.exports = (sequelize, DataTypes) => {
       quote: DataTypes.TEXT,
       privateNote: DataTypes.TEXT,
       publicReview: DataTypes.TEXT,
+      reviewTitle: DataTypes.STRING(255),
+      reviewVisibility: { type: DataTypes.STRING(16), allowNull: false, defaultValue: 'Public', validate: { isIn: [['Public', 'Private']] } },
       moodTag: DataTypes.STRING,
       isSpoiler: {
         type: DataTypes.BOOLEAN,

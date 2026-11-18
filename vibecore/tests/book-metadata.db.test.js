@@ -6,7 +6,8 @@ const loadModule = require('./helpers/load-module');
 test('metadata survives a real PostgreSQL round-trip without leaving a fixture row', {
   skip: process.env.RUN_BOOKS_DB_TESTS !== '1',
 }, async () => {
-  const db = require('../models');
+  const qa = await require('./helpers/qa-api')();
+  const db = qa.db;
   const { normalizeBookMetadata } = loadModule(path.join(__dirname, '../src/modules/books/book.metadata.js'));
   const rollback = new Error('Rollback integration fixture');
   let id;
@@ -34,6 +35,6 @@ test('metadata survives a real PostgreSQL round-trip without leaving a fixture r
     }), (error) => error === rollback);
     assert.equal(await db.book.findByPk(id), null);
   } finally {
-    await db.sequelize.close();
+    await qa.close();
   }
 });

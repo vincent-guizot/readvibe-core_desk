@@ -2,6 +2,21 @@
 
 Dokumentasi komprehensif endpoint REST API **VibeCore** (`http://localhost:3360/api`).
 
+Validasi CRUD (18 November 2026):
+
+- PUT/PATCH `/api/reading/:id` membatasi status pada `Want to Read`, `Reading`,
+  atau `Finished`. Rating opsional harus integer JSON 1–5; `isSpoiler` boolean.
+  Batas rating/tipe juga berlaku pada POST `/api/reading/finish` dan `/api/reviews`.
+- Reading text fields menerima string/null. Review publik wajib berupa string
+  tidak kosong. Input yang tidak valid menghasilkan envelope error 400.
+- POST `/api/wishlists` dan PUT `/api/wishlists/:id` membatasi `priority` pada
+  `Low|Medium|High`, `visibility` pada `Public|Private`, serta `reason` string/null.
+- POST wishlist/review dengan ID buku yang tidak ditemukan menghasilkan 404.
+
+Koleksi request dan instruksi run terisolasi tersedia di
+[Postman](../vibecore/postman/README.md). Bukti dan batas cakupan ada di
+[QA Report](../vibecore/QA_REPORT.md).
+
 Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 - Respons Sukses: `{ success: true, message, data, meta, error: null, requestId }`
 - Respons Gagal: `{ success: false, message, data: null, meta: null, error: { code, details }, requestId }`

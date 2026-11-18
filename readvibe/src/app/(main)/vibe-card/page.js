@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,22 +13,30 @@ import {
   AiOutlineCopy,
 } from 'react-icons/ai';
 import { useReading, useBooks, useAuth } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
 import VibeCardPreview from '@/components/books/VibeCardPreview';
 
 function VibeCardContent() {
   const searchParams = useSearchParams();
   const bookIdParam = searchParams.get('bookId');
 
-  const { finishedReads } = useReading();
+  const { finishedReads, status } = useReading();
   const { books: allBooks } = useBooks();
   const { user } = useAuth();
+  const initialIndex = bookIdParam ? finishedReads.findIndex((record) => String(record.bookId) === String(bookIdParam)) : 0;
+  if (!user) return <div className="container py-5"><Link href="/login">Sign in to create your Vibe Card</Link></div>;
+  if (status === 'idle' || status === 'loading') return <p role="status" className="container py-5">Loading finished reads…</p>;
+  const record = finishedReads[initialIndex];
+  if (!record || (!record.book && !allBooks.some((book) => String(book.id) === String(record.bookId)))) return <div className="container py-5"><h1>No finished read selected</h1><Link href="/finished-reads">Choose a finished book</Link></div>;
+  return <VibeCardEditor key={record.id} initialIndex={initialIndex} activeFinishedList={finishedReads} allBooks={allBooks} user={user} />;
+}
 
-  const [selectedBookIndex, setSelectedBookIndex] = useState(0);
+function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
+  const initial = activeFinishedList[initialIndex];
+  const [selectedBookIndex, setSelectedBookIndex] = useState(initialIndex);
   const [theme, setTheme] = useState('Paper'); // 'Paper' | 'Twilight' | 'Botanical' | 'Sunset'
-  const [rating, setRating] = useState(5);
-  const [selectedMoods, setSelectedMoods] = useState(['Reflective', 'Hopeful']);
-  const [caption, setCaption] = useState('A gentle reminder that every life holds a little possibility.');
+  const [rating, setRating] = useState(initial.rating || 0);
+  const [selectedMoods, setSelectedMoods] = useState(initial.moods || []);
+  const [caption, setCaption] = useState(initial.favoriteQuote || '');
   const [showMyName, setShowMyName] = useState(true);
   const [showFinishedDate, setShowFinishedDate] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -36,39 +44,8 @@ function VibeCardContent() {
 
   const cardRef = useRef(null);
 
-  // Sync finished reads
-  const activeFinishedList = finishedReads && finishedReads.length > 0
-    ? finishedReads
-    : readVibeStore.getFinishedReads();
-
-  useEffect(() => {
-    if (bookIdParam && activeFinishedList.length > 0) {
-      const idx = activeFinishedList.findIndex((f) => f.bookId === bookIdParam);
-      if (idx !== -1) {
-        setSelectedBookIndex(idx);
-        if (activeFinishedList[idx].rating) setRating(activeFinishedList[idx].rating);
-        if (activeFinishedList[idx].moods) setSelectedMoods(activeFinishedList[idx].moods);
-        if (activeFinishedList[idx].favoriteQuote) setCaption(activeFinishedList[idx].favoriteQuote);
-        if (activeFinishedList[idx].vibeCardTheme) setTheme(activeFinishedList[idx].vibeCardTheme);
-      }
-    }
-  }, [bookIdParam, activeFinishedList]);
-
-  const currentFinished = activeFinishedList[selectedBookIndex] || {
-    bookId: 'midnight-library',
-    rating: 5,
-    finishedAt: 'Recently',
-  };
-
-  const currentBook = allBooks.find((b) => b.id === currentFinished.bookId || b.slug === currentFinished.bookId) || {
-    id: 'midnight-library',
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    coverUrl: '/assets/books/midnight-library.jpg',
-    rating: 4.5,
-    quote: 'Between life and death there is a library, and within that library, the shelves go on forever.',
-    moods: ['Reflective', 'Hopeful', 'Cozy'],
-  };
+  const currentFinished = activeFinishedList[selectedBookIndex];
+  const currentBook = allBooks.find((book) => String(book.id) === String(currentFinished?.bookId)) || currentFinished?.book;
 
   const handleCycleBook = () => {
     if (activeFinishedList.length > 0) {
@@ -76,8 +53,8 @@ function VibeCardContent() {
       setSelectedBookIndex(nextIdx);
       const nextItem = activeFinishedList[nextIdx];
       if (nextItem.rating) setRating(nextItem.rating);
-      if (nextItem.moods) setSelectedMoods(nextItem.moods);
-      if (nextItem.favoriteQuote) setCaption(nextItem.favoriteQuote);
+      setSelectedMoods(nextItem.moods || []);
+      setCaption(nextItem.favoriteQuote || '');
       if (nextItem.vibeCardTheme) setTheme(nextItem.vibeCardTheme);
     }
   };

@@ -59,6 +59,7 @@ export class WishlistService {
   }
 
   static async add(userId, { bookId, priority = 'Medium', reason = '', visibility = 'Public' }) {
+    if (!await db.book.findByPk(bookId)) throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
     const existing = await db.wishlist.findOne({
       where: { userId, bookId },
     });

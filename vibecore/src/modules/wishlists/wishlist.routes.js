@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { WishlistController } from './wishlist.controller';
 import { validateRequest } from '../../middlewares/validate-request';
-import { validateWishlistPayload } from './wishlist.validator';
+import { validateWishlistPayload, validateWishlistUpdate } from './wishlist.validator';
 import { authentication } from '../../middlewares/authentication';
 
 const router = Router();
@@ -15,7 +15,7 @@ router.get('/public/:userId', WishlistController.getUserPublicWishlist);
 router.use(authentication);
 router.get('/', WishlistController.getMyWishlist);
 router.post('/', validateRequest(validateWishlistPayload), WishlistController.add);
-router.put('/:id', WishlistController.update);
+router.put('/:id', validateRequest(validateWishlistUpdate), WishlistController.update);
 router.delete('/:id', WishlistController.remove);
 
 export default router;

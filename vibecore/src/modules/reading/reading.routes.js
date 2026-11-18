@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ReadingController } from './reading.controller';
 import { validateRequest } from '../../middlewares/validate-request';
-import { validateStartReading, validateFinishReading, validateReadingProgress } from './reading.validator';
+import { validateStartReading, validateFinishReading, validateReadingUpdate } from './reading.validator';
 import { authentication } from '../../middlewares/authentication';
 
 const router = Router();
@@ -17,8 +17,8 @@ router.get('/', ReadingController.getMyActivities);
 router.post('/', validateRequest(validateStartReading), ReadingController.startReading);
 router.post('/start', validateRequest(validateStartReading), ReadingController.startReading);
 router.post('/finish', validateRequest(validateFinishReading), ReadingController.finishReading);
-router.put('/:id', validateRequest(validateReadingProgress), ReadingController.updateActivity);
-router.patch('/:id', validateRequest(validateReadingProgress), ReadingController.updateActivity);
+router.put('/:id', validateRequest(validateReadingUpdate), ReadingController.updateActivity);
+router.patch('/:id', validateRequest(validateReadingUpdate), ReadingController.updateActivity);
 router.delete('/:id', ReadingController.deleteActivity);
 
 export default router;

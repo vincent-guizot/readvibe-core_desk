@@ -19,7 +19,7 @@ function EditReviewContent() {
   const { getFinishedDetail, status } = useReading();
   const book = getBookById(params?.get('bookId'));
   const record = book && getFinishedDetail(book.id);
-  if (!book || status === 'loading' || status === 'idle') return <p role="status" className="p-4">Loading reading activity…</p>;
+  if (!book || (!record && (status === 'loading' || status === 'idle'))) return <p role="status" className="p-4">Loading reading activity…</p>;
   if (!record) return <p role="alert" className="p-4">Finished reading activity not found.</p>;
   return <EditReviewForm key={record.id} book={book} finishedRecord={record} />;
 }
@@ -30,13 +30,14 @@ function EditReviewForm({ book, finishedRecord }) {
   const { updateFinishedRead, removeFinishedRead, status, error } = useReading();
   const [rating, setRating] = useState(finishedRecord.rating ?? 5);
   const [title, setTitle] = useState(finishedRecord.reviewTitle || '');
-  const [content, setContent] = useState(finishedRecord.reviewContent || finishedRecord.privateNotes || '');
+  const [content, setContent] = useState(finishedRecord.reviewContent || '');
+  const [privateNotes, setPrivateNotes] = useState(finishedRecord.privateNotes || '');
   const [favoriteQuote, setFavoriteQuote] = useState(finishedRecord.favoriteQuote || '');
   const [containsSpoilers, setContainsSpoilers] = useState(finishedRecord.containsSpoilers || false);
   const [selectedMoods, setSelectedMoods] = useState(finishedRecord.moods || []);
-  const [visibility, setVisibility] = useState(finishedRecord.reviewContent ? 'public' : 'private');
+  const [visibility, setVisibility] = useState(finishedRecord.reviewVisibility === 'Private' || !finishedRecord.reviewContent ? 'private' : 'public');
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const moodsList = [
     { name: 'Cozy', icon: '☕' },
@@ -65,10 +66,10 @@ function EditReviewForm({ book, finishedRecord }) {
       bookId,
       rating,
       reviewTitle: title,
-      reviewContent: visibility === 'private' ? '' : content,
+      reviewContent: content,
       favoriteQuote,
       moods: selectedMoods,
-      privateNotes: content,
+      privateNotes,
       containsSpoilers,
       visibility,
     });
@@ -83,7 +84,7 @@ function EditReviewForm({ book, finishedRecord }) {
 
   const handleDelete = async () => {
     const bookId = book?.id || bookIdParam;
-    const result = await removeFinishedRead(bookId);
+    const result = deleteConfirm === 'activity' ? await removeFinishedRead(bookId) : await updateFinishedRead({ bookId, reviewTitle: '', reviewContent: '', visibility: 'private' });
     if (result.error) return;
     router.push('/finished-reads');
   };
@@ -250,7 +251,7 @@ function EditReviewForm({ book, finishedRecord }) {
                 className="alert alert-success d-flex align-items-center gap-2 rounded-3 mb-4 py-2 small"
                 style={{ backgroundColor: '#EBF5EE', color: '#315438' }}
               >
-                <AiOutlineCheck size={16} /> Changes saved successfully to Redux shelf!
+                <AiOutlineCheck size={16} /> Review saved successfully.
               </div>
             )}
 
@@ -264,6 +265,8 @@ function EditReviewForm({ book, finishedRecord }) {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
+                        aria-label={`Rate ${star} out of 5`}
+                        aria-pressed={rating === star}
                         type="button"
                         onClick={() => setRating(star)}
                         className="btn btn-link p-0 text-decoration-none border-0"
@@ -281,8 +284,10 @@ function EditReviewForm({ book, finishedRecord }) {
 
               {/* Review Title */}
               <div className="mb-4">
-                <label className="form-label small fw-bold text-dark mb-1">Review title</label>
+                <label htmlFor="review-title" className="form-label small fw-bold text-dark mb-1">Review title</label>
                 <input
+                  id="review-title"
+                  maxLength={255}
                   type="text"
                   className="form-control rounded-3"
                   value={title}
@@ -312,19 +317,26 @@ function EditReviewForm({ book, finishedRecord }) {
 
               {/* Your review */}
               <div className="mb-3">
-                <label className="form-label small fw-bold text-dark mb-1">Your review &amp; reflections</label>
+                <label htmlFor="review-content" className="form-label small fw-bold text-dark mb-1">Your review &amp; reflections</label>
                 <textarea
+                  id="review-content"
                   className="form-control rounded-3"
                   rows={5}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="What resonated with you? How did the writing feel?"
                   maxLength={2000}
-                  required
+                  required={visibility === 'public'}
                 />
                 <div className="text-end text-muted small mt-1" style={{ fontSize: '11px' }}>
                   {content.length} / 2000 characters
                 </div>
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="review-private-notes" className="form-label small fw-bold">Private notes</label>
+                <textarea id="review-private-notes" className="form-control" rows={3} value={privateNotes} onChange={(event) => setPrivateNotes(event.target.value)} />
+                <small className="text-muted">Only you can see these notes. They are saved separately from your public review.</small>
               </div>
 
               {/* Contains spoilers */}
@@ -418,31 +430,35 @@ function EditReviewForm({ book, finishedRecord }) {
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
                 {deleteConfirm ? (
                   <div className="d-flex align-items-center gap-2">
-                    <span className="small text-danger fw-semibold">Remove from finished reads?</span>
+                    <span className="small text-danger fw-semibold">{deleteConfirm === 'activity' ? 'Remove this finished read and all its notes?' : 'Delete this review? Your finished read and private notes will be kept.'}</span>
                     <button
                       type="button"
                       onClick={handleDelete}
+                      disabled={status === 'loading'}
                       className="btn btn-sm btn-danger rounded-pill px-3 py-1"
                     >
                       Yes, delete
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDeleteConfirm(false)}
+                      onClick={() => setDeleteConfirm(null)}
                       className="btn btn-sm btn-light border rounded-pill px-3 py-1"
                     >
                       Cancel
                     </button>
                   </div>
                 ) : (
+                  <div className="d-flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => setDeleteConfirm(true)}
+                    onClick={() => setDeleteConfirm('review')}
                     className="btn btn-link p-0 text-decoration-none small d-inline-flex align-items-center gap-1"
                     style={{ color: '#D96B50', fontSize: '13px' }}
                   >
                     <AiOutlineDelete size={14} /> Delete review
                   </button>
+                  <button type="button" className="btn btn-link p-0 text-danger small" onClick={() => setDeleteConfirm('activity')}>Remove finished read</button>
+                  </div>
                 )}
 
                 <div className="d-flex align-items-center gap-3">

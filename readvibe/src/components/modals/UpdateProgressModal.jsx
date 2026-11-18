@@ -76,10 +76,11 @@ function ProgressForm({
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="reading-current-page" className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
               Current page
             </label>
             <input
+              id="reading-current-page"
               type="number"
               min="0"
               max={totalPages}
@@ -91,10 +92,11 @@ function ProgressForm({
           </div>
 
           <div className="mb-4">
-            <label className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="reading-private-notes" className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
               Reading notes / thoughts so far (Optional)
             </label>
             <textarea
+              id="reading-private-notes"
               className="form-control"
               rows={3}
               placeholder="Record a thought, quote, or page impression..."

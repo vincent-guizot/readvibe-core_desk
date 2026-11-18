@@ -1,0 +1,3757 @@
+{
+  "info": {
+    "name": "VibeCore CRUD and RBAC",
+    "_postman_id": "6d8943f0-4b69-49e1-994d-266895a0a6f0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Local-only CRUD regression. Run in order against the disposable database using npm run test:postman. Creates fixture records and deletes them at the end. No production URLs or embedded credentials."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3360"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const base = pm.variables.replaceIn('{{baseUrl}}');",
+          "if (!/^http:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?\\/?$/.test(base)) throw new Error('Regression collection requires a localhost API.');",
+          "if (pm.info.requestName === '01 API status') pm.collectionVariables.set('runId', Date.now().toString(36));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "CRUD Regression",
+      "item": [
+        {
+          "name": "01 API status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('API online', () => pm.expect(payload.status).to.eql('online'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 admin login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('adminToken', payload.data.token);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('adminId', payload.data.user.id);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('adminUsername', payload.data.user.username);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 librarian login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{librarianEmail}}\",\n  \"password\": \"{{librarianPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('librarianToken', payload.data.token);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('librarianId', payload.data.user.id);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('librarianUsername', payload.data.user.username);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 member login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('memberToken', payload.data.token);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('memberId', payload.data.user.id);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('memberUsername', payload.data.user.username);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 other login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{otherEmail}}\",\n  \"password\": \"{{otherPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('otherToken', payload.data.token);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('otherId', payload.data.user.id);",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('otherUsername', payload.data.user.username);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Register generated Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman-{{runId}}\",\n  \"email\": \"postman-{{runId}}@example.invalid\",\n  \"password\": \"{{fixturePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('createdMemberId', payload.data.user.id);",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('createdMemberToken', payload.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Read own profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 Update own profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"Postman QA Reader\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 Create authors",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/authors",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pen_name\": \"Postman author {{runId}}\",\n  \"bio\": \"Collection fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('authorId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 List authors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/authors"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Read authors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/authors/{{authorId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 Update authors",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/authors/{{authorId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Revised fixture biography\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 Create categories",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman category {{runId}}\",\n  \"description\": \"Collection fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('categoryId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 List categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 Read categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 Update categories",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Revised category\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 Create moods",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moods",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman mood {{runId}}\",\n  \"color\": \"#abcdef\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('moodId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 List moods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/moods"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 Read moods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/moods/{{moodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 Update moods",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moods/{{moodId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"#123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 Anonymous catalog write denied",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman book {{runId}}\",\n  \"isbn\": \"postman-{{runId}}\",\n  \"page\": 120,\n  \"stock\": 5,\n  \"authorId\": \"{{authorId}}\",\n  \"genreId\": \"{{categoryId}}\",\n  \"moodIds\": [\n    \"{{moodId}}\"\n  ],\n  \"publisher\": \"Postman QA Publisher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 Member catalog write denied",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman book {{runId}}\",\n  \"isbn\": \"postman-{{runId}}\",\n  \"page\": 120,\n  \"stock\": 5,\n  \"authorId\": \"{{authorId}}\",\n  \"genreId\": \"{{categoryId}}\",\n  \"moodIds\": [\n    \"{{moodId}}\"\n  ],\n  \"publisher\": \"Postman QA Publisher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 Create book",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman book {{runId}}\",\n  \"isbn\": \"postman-{{runId}}\",\n  \"page\": 120,\n  \"stock\": 5,\n  \"authorId\": \"{{authorId}}\",\n  \"genreId\": \"{{categoryId}}\",\n  \"moodIds\": [\n    \"{{moodId}}\"\n  ],\n  \"publisher\": \"Postman QA Publisher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('bookId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 Duplicate ISBN rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman book {{runId}}\",\n  \"isbn\": \"postman-{{runId}}\",\n  \"page\": 120,\n  \"stock\": 5,\n  \"authorId\": \"{{authorId}}\",\n  \"genreId\": \"{{categoryId}}\",\n  \"moodIds\": [\n    \"{{moodId}}\"\n  ],\n  \"publisher\": \"Postman QA Publisher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 List books",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/books?limit=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26 Read book",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27 Update book",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books/{{bookId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Revised Postman book {{runId}}\",\n  \"stock\": 3,\n  \"publisher\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Book update persisted', () => { pm.expect(payload.data.stock).to.eql(3); pm.expect(payload.data.publisher).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "28 Reject invalid stock",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books/{{bookId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "29 Create editorial pick",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/editorial",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"tagline\": \"Postman pick\",\n  \"curationWeight\": 75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('pickId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30 List editorial picks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/editorial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "31 Update editorial pick",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/editorial/{{pickId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tagline\": \"Revised Postman pick\",\n  \"curationWeight\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "32 Create private wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"priority\": \"High\",\n  \"visibility\": \"Private\",\n  \"reason\": \"Collection fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('wishlistId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "33 List own wishlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "34 Reject invalid wishlist priority",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists/{{wishlistId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"Urgent\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "35 Reject other user wishlist update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists/{{wishlistId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Denied\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "36 Publish wishlist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists/{{wishlistId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibility\": \"Public\",\n  \"priority\": \"Medium\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "37 Public wishlist by username",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/wishlists/username/{{memberUsername}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "38 Public wishlist by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/wishlists/user/{{memberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "39 Delete wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists/{{wishlistId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "40 Recreate wishlist for reading transition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "41 Start reading",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/start",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"currentPage\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('readingId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "42 Wishlist removed by start reading",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/wishlists"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Wishlist empty after reading starts', () => pm.expect(payload.data.some(w => String(w.bookId) === String(pm.collectionVariables.get('bookId')))).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "43 Update reading progress",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/{{readingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPage\": 42,\n  \"privateNote\": \"POSTMAN_PRIVATE_{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "44 Read own activities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Progress persisted', () => { const row = payload.data.find(a => String(a.id) === String(pm.collectionVariables.get('readingId'))); pm.expect(row.currentPage).to.eql(42); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "45 Reject invalid reading status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/{{readingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Invalid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "46 Reject invalid reading rating",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/{{readingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "47 Reject other user reading update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/{{readingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPage\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "48 Finish reading",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/finish",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"currentPage\": 120,\n  \"rating\": 4,\n  \"quote\": \"Public quote\",\n  \"publicReview\": \"Postman public review\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "49 Public finished reads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/reading/user/{{memberId}}/finished"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "50 Public Vibe Card",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/reading/vibe-card/{{readingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "51 Update public review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reviews",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"rating\": 5,\n  \"publicReview\": \"Revised public review\",\n  \"isSpoiler\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('reviewId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "52 Read public reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/reviews/book/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "53 Reject non-text review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reviews",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"publicReview\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "54 Report review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}/report",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Collection QA report\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "55 Member moderation denied",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moderation/reviews"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "56 Read moderation queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moderation/reviews?status=Flagged"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "57 Read moderation context",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moderation/reviews/{{reviewId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));",
+                  "pm.test('Report reason persisted', () => pm.expect(payload.data.flagReason).to.eql('Collection QA report'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "58 Remove public review",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moderation/reviews/{{reviewId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Removed\",\n  \"reason\": \"Collection QA decision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "59 Removed review absent publicly",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/reviews/book/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Removed review absent', () => pm.expect(payload.data.some(r => String(r.id) === String(pm.collectionVariables.get('reviewId')))).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "60 List members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "61 Safe member detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members/{{memberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.test('Private notes excluded', () => pm.expect(pm.response.text()).not.to.include('POSTMAN_PRIVATE_' + pm.collectionVariables.get('runId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "62 Librarian members denied",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "63 Suspend generated member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members/{{createdMemberId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Suspended\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "64 Suspended member token denied",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{createdMemberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "65 Reactivate generated member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members/{{createdMemberId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "66 Librarian staff creation denied",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"denied\",\n  \"email\": \"denied@example.invalid\",\n  \"password\": \"{{fixturePassword}}\",\n  \"role\": \"Librarian\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "67 Create generated staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman-staff-{{runId}}\",\n  \"email\": \"staff-{{runId}}@example.invalid\",\n  \"password\": \"{{fixturePassword}}\",\n  \"role\": \"Librarian\",\n  \"fullname\": \"Postman QA Staff\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('staffId', payload.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "68 List staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "69 Read staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff/{{staffId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "70 Update staff",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff/{{staffId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Suspended\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "71 Read settings and capture restore values",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('settingsBefore', JSON.stringify(Object.fromEntries(['curationWeightBonus','moodMatchBaseScore','minMatchScoreThreshold','enableGeminiExplanations','googleBooksEnabled'].map(k => [k,payload.data[k]]))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "72 Member settings denied",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "73 Update settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"curationWeightBonus\": 0.25,\n  \"googleBooksEnabled\": false,\n  \"enableGeminiExplanations\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "74 Preview recommendations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings/preview",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"settings\": {\n    \"curationWeightBonus\": 0.25\n  },\n  \"moods\": [\n    \"Postman mood {{runId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "75 Reject invalid settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"curationWeightBonus\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "76 Google Books disabled explicitly",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/integrations/google-books/search?query=QA"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "77 Analytics overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/analytics/overview"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "78 Analytics wishlist-intelligence",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/analytics/wishlist-intelligence"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "79 Analytics reading",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/analytics/reading"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "80 Analytics top-wishlisted",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/analytics/top-wishlisted"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "81 Analytics mood-distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/analytics/mood-distribution"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "82 Match recommendations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/recommendations/match",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moodTags\": [\n    \"Postman mood {{runId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "83 Read recommended editorial",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/recommendations/editorial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "84 Restore settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{{settingsBefore}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "85 Delete activity",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/reading/{{readingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "86 Delete editorial",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{librarianToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/editorial/{{pickId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "87 Delete book",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "88 Deleted book returns 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(false));",
+                  "pm.test('Safe error', () => { pm.expect(payload.data).to.eql(null); pm.expect(payload.error.code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "89 Delete authors",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/authors/{{authorId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "90 Delete categories",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "91 Delete moods",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/moods/{{moodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "92 Delete generated staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/staff/{{staffId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "93 Delete generated member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/members/{{createdMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const payload = pm.response.json();",
+                  "pm.test('Response envelope', () => { ['success','message','data','meta','error','requestId'].forEach(k => pm.expect(payload).to.have.property(k)); });",
+                  "pm.test('Success flag', () => pm.expect(payload.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

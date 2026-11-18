@@ -72,8 +72,8 @@ export class BookService {
         {
           model: db.reading_activity,
           as: 'reviews',
-          attributes: ['id', 'rating', 'publicReview', 'isSpoiler', 'createdAt'],
-          where: { moderationStatus: 'Approved', publicReview: { [Op.ne]: null } },
+          attributes: ['id', 'rating', 'reviewTitle', 'publicReview', 'isSpoiler', 'createdAt'],
+          where: { moderationStatus: 'Approved', reviewVisibility: 'Public', [Op.and]: [{ publicReview: { [Op.ne]: null } }, { publicReview: { [Op.ne]: '' } }] },
           required: false,
           include: [
             {
