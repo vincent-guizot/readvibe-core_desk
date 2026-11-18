@@ -15,6 +15,8 @@ Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 | **System** | `GET` | `/api` | Public | Status layanan VibeCore & allowed origins |
 | **Auth** | `POST` | `/api/auth/register` | Public | Registrasi akun baru (Member) |
 | | `POST` | `/api/auth/login` | Public | Login akun & perolehan token JWT |
+| | `POST` | `/api/auth/forgot-password` | Public | Kirim tautan reset melalui SMTP; `{ email }` |
+| | `POST` | `/api/auth/reset-password` | Public | Ganti password dan cabut sesi lama; `{ token, password }` |
 | | `GET` | `/api/auth/me` | Authenticated | Profil pengguna yang sedang aktif |
 | | `PUT` | `/api/auth/profile` | Authenticated | Perbarui data profil pengguna |
 | **Books** | `GET` | `/api/books` | Public | Katalog buku dengan pencarian, filter, & paginasi |
@@ -33,6 +35,7 @@ Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 | | `PUT` | `/api/wishlists/:id` | Authenticated | Ubah prioritas, catatan alasan, atau visibilitas |
 | | `DELETE` | `/api/wishlists/:id` | Authenticated | Hapus buku dari wishlist |
 | | `GET` | `/api/wishlists/user/:userId` | Public | Wishlist publik milik pengguna |
+| | `GET` | `/api/wishlists/username/:username` | Public | Wishlist Public berdasarkan username; profil aman tanpa email/password |
 | **Reviews** | `GET` | `/api/reviews/book/:bookId` | Public | Daftar ulasan publik untuk suatu buku |
 | | `POST` | `/api/reviews` | Authenticated | Kirim ulasan dan rating publik baru |
 | | `POST` | `/api/reviews/:id/report` | Authenticated | Laporkan ulasan bermasalah (spam/spoiler) |
