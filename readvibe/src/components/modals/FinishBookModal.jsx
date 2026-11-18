@@ -14,13 +14,14 @@ import { useReading } from '@/hooks';
 
 export default function FinishBookModal({ book, isOpen, onClose, onFinished, onBookFinished }) {
   const router = useRouter();
-  const { finishBook, status: saveStatus, error: saveError } = useReading();
+  const { finishBook, getBookProgress, status: saveStatus, error: saveError } = useReading();
+  const currentReading = book && getBookProgress(book.id);
   const [rating, setRating] = useState(4);
   const [hoverRating, setHoverRating] = useState(0);
   const [finishedDate, setFinishedDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [selectedMoods, setSelectedMoods] = useState([]);
   const [favoriteQuote, setFavoriteQuote] = useState('');
-  const [personalNotes, setPersonalNotes] = useState('');
+  const [personalNotes, setPersonalNotes] = useState(currentReading?.notes || '');
   const [createVibeCard, setCreateVibeCard] = useState(true);
 
   if (!isOpen || !book) return null;
@@ -152,6 +153,8 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
+                      aria-label={`Rate ${star} out of 5`}
+                      aria-pressed={rating === star}
                       type="button"
                       className="btn btn-link p-0 text-decoration-none border-0 shadow-none"
                       onMouseEnter={() => setHoverRating(star)}

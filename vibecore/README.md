@@ -30,6 +30,7 @@ Server akan aktif di `http://localhost:3360`.
 - `npm run test:unit`: Regresi terisolasi tanpa database, termasuk tes HTTP localhost.
 - `npm run test:crud`: CRUD/RBAC dan alur layanan ReadVibe–VibeDesk pada database PostgreSQL sementara.
 - `npm run test:postman`: Koleksi Postman pada API/database sementara, tanpa pelaporan cloud.
+- `npm run test:browser-api`: API/database disposable untuk QA browser; jalankan di terminal interaktif dan ketik `quit` untuk cleanup.
 
 Suite CRUD/Postman memerlukan PostgreSQL lokal dan izin CREATE DATABASE.
 Runner membuat database baru dengan prefix `vibecore_qa_`, menerapkan semua
@@ -38,6 +39,32 @@ menyalakan server development terlebih dahulu. Gunakan perintah terisolasi ini
 untuk regresi tanpa bergantung pada akun demo di runner HTTP legacy `npm test`.
 Detail collection ada di [Postman README](postman/README.md), sedangkan cakupan
 dan batas bukti tersedia di [QA Report](QA_REPORT.md).
+
+Hasil pengujian browser dan perbaikan CRUD terbaru tersedia di
+[Browser QA Report](BROWSER_QA_REPORT.md).
+
+### Profil, akun dan privasi ulasan
+
+| Endpoint | Kontrak | Table yang digunakan |
+| --- | --- | --- |
+| `GET /api/auth/public/:username` | Profil publik aktif; tanpa email, password atau tokenVersion | `users`, `profiles` |
+| `PUT /api/auth/profile` | Profil sendiri: fullname, image, bio, location; username diperbarui atomik | `profiles`, `users` |
+| `PUT /api/auth/password` | currentPassword + password baru 12 karakter–72 byte UTF-8; semua sesi lama dibatalkan | `users`, `password_reset_tokens` |
+| `PATCH /api/auth/account` | currentPassword + email; email unik, login kembali setelah perubahan | `users`, `password_reset_tokens` |
+| `DELETE /api/auth/account` | currentPassword; Member menghapus akun sendiri beserta data miliknya. Akun staf dikelola lewat CMS | `users`, `profiles`, `reading_activities`, `wishlists`, `password_reset_tokens` |
+
+Reading finish/update menerima `reviewTitle` (maksimal 255 karakter) dan
+`reviewVisibility` (`Public`/`Private`). Teks tetap disimpan di `publicReview` saat
+Private, tetapi hanya dapat dibaca pemilik melalui endpoint aktivitas sendiri.
+Endpoint buku, ulasan publik, shelf publik dan moderasi staf menyaring draft
+privat. Menghapus teks ulasan dapat dilakukan dengan update `publicReview: ''`
+dan `reviewTitle: ''`; menghapus seluruh aktivitas tetap memakai DELETE reading.
+
+Jalankan `npm run db:migrate` sebelum memakai kode baru. Empat migration
+`20261118100000`–`20261118103000` menambah kolom judul/visibilitas ulasan dan
+bio/lokasi profil, serta constraint unik username/email. Tidak diperlukan table
+baru untuk perubahan ini. Guard migrasi menolak duplikasi identitas tanpa
+menghapus atau menggabungkan data; selesaikan duplikasi lebih dahulu bila ada.
 
 ## Konfigurasi Environment
 

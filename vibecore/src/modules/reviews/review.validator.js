@@ -8,6 +8,7 @@ export const validateReviewPayload = (req) => {
   }
   if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) return 'Rating harus berupa angka bulat antara 1 dan 5.';
   if (isSpoiler !== undefined && typeof isSpoiler !== 'boolean') return 'isSpoiler harus berupa boolean.';
+  if (req.body.reviewTitle !== undefined && (typeof req.body.reviewTitle !== 'string' || req.body.reviewTitle.length > 255)) return 'Judul ulasan maksimal 255 karakter.';
   return null;
 };
 

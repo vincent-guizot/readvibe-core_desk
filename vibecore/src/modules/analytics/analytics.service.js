@@ -38,6 +38,7 @@ export class AnalyticsService {
       db.reading_activity.count({
         where: {
           publicReview: { [Op.ne]: null },
+          reviewVisibility: 'Public',
           moderationStatus: { [Op.in]: ['Pending', 'Flagged'] },
         },
       }),

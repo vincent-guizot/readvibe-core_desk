@@ -9,7 +9,8 @@ test(
   'backoffice PostgreSQL aggregates and new columns work without changing existing data',
   { skip: process.env.RUN_BOOKS_DB_TESTS !== '1' },
   async (t) => {
-    const db = require('../models');
+    const qa = await require('./helpers/qa-api')();
+    const db = qa.db;
     const { AppError } = load(source('errors/app-error.js'));
     try {
       const { AnalyticsService } = load(
@@ -159,7 +160,7 @@ test(
         },
       );
     } finally {
-      await db.sequelize.close();
+      await qa.close();
     }
   },
 );

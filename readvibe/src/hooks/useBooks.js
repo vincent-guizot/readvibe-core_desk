@@ -11,7 +11,7 @@ import {
 
 export function useBooks() {
   const dispatch = useAppDispatch();
-  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId } = useAppSelector(
+  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId, status } = useAppSelector(
     (state) => state.books
   );
 
@@ -47,6 +47,7 @@ export function useBooks() {
 
   return {
     books,
+    status,
     filteredBooks,
     selectedMood,
     searchQuery,

@@ -69,8 +69,11 @@ export const readVibeStore = {
     const result = await http.put('/api/auth/profile', {
       fullname: updates.name ?? updates.fullname ?? current?.name,
       image: updates.avatar ?? updates.image ?? current?.avatar,
+      username: updates.username ?? current?.username,
+      bio: updates.bio ?? current?.bio ?? '',
+      location: updates.location ?? current?.location ?? '',
     });
-    const user = mapUser({ ...current, profile: result.data.profile });
+    const user = mapUser({ ...current, username: result.data.username ?? current?.username, profile: result.data.profile });
     store.dispatch(updateUserProfile(user));
     return user;
   },

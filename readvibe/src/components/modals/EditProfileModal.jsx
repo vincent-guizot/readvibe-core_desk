@@ -12,12 +12,14 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
   const [location, setLocation] = useState(user.location || '');
   const [avatar, setAvatar] = useState(user.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+    setError('');
     try {
       const updated = await readVibeStore.updateUser({
         name,
@@ -29,7 +31,7 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
       if (onUpdated) onUpdated(updated);
       onClose();
     } catch (err) {
-      console.error(err);
+      setError(err.message);
     } finally {
       setIsSaving(false);
     }
@@ -68,6 +70,7 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 overflow-y-auto">
+          {error && <div role="alert" className="alert alert-danger">{error}</div>}
           {/* Avatar Selection */}
           <div className="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style={{ backgroundColor: '#FAF7F2' }}>
             <img
@@ -99,10 +102,12 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-fullname" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Full Name
             </label>
             <input
+              id="profile-fullname"
+              maxLength={255}
               type="text"
               className="form-control"
               value={name}
@@ -113,12 +118,14 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-username" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Username
             </label>
             <div className="input-group">
               <span className="input-group-text bg-light text-muted">@</span>
               <input
+                id="profile-username"
+                maxLength={50}
                 type="text"
                 className="form-control"
                 value={username}
@@ -130,10 +137,12 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-location" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Location
             </label>
             <input
+              id="profile-location"
+              maxLength={255}
               type="text"
               className="form-control"
               value={location}
@@ -143,10 +152,12 @@ function ProfileForm({ isOpen, onClose, onUpdated, user }) {
           </div>
 
           <div className="mb-4">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-bio" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Bio / Reading Tagline
             </label>
             <textarea
+              id="profile-bio"
+              maxLength={2000}
               className="form-control"
               rows={3}
               value={bio}

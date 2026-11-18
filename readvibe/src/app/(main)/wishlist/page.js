@@ -8,8 +8,6 @@ import {
   AiOutlineEdit,
   AiOutlineEllipsis,
   AiOutlineShareAlt,
-  AiOutlineLock,
-  AiOutlineEye,
   AiOutlineLink
 } from 'react-icons/ai';
 import { BsBookmarks, BsBookmark } from 'react-icons/bs';
@@ -24,7 +22,6 @@ export default function WishlistPage() {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('All');
-  const [isPrivate, setIsPrivate] = useState(true);
   const [selectedBookForEdit, setSelectedBookForEdit] = useState(null);
 
   const items = useMemo(() => {
@@ -125,33 +122,18 @@ export default function WishlistPage() {
 
           <div className="d-flex flex-column align-items-end gap-1">
             <div className="d-flex align-items-center gap-2">
-              {/* Privacy Dropdown button */}
-              <button
-                type="button"
-                className="btn btn-sm btn-white border rounded-3 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm"
-                style={{ backgroundColor: '#FFFFFF', color: 'var(--rv-ink-plum)' }}
-                onClick={() => setIsPrivate(!isPrivate)}
-              >
-                {isPrivate ? <AiOutlineEye size={15} /> : <AiOutlineLock size={15} />}
-                <span>{isPrivate ? 'Private ▾' : 'Public ▾'}</span>
-              </button>
+              <span className="small text-muted">{items.filter((item) => item.isPublic).length} public · {items.filter((item) => !item.isPublic).length} private</span>
 
               {/* Share Wishlist button */}
               <Link
                 href={`/u/${usernameParam}/wishlist`}
-                className={`btn btn-sm rounded-3 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 ${
-                  isPrivate ? 'btn-light text-muted border opacity-75' : 'btn-rv-plum text-white shadow-sm'
-                }`}
+                className="btn btn-sm rounded-3 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 btn-rv-plum text-white shadow-sm"
                 style={{ textDecoration: 'none' }}
               >
                 <AiOutlineShareAlt size={15} /> Share wishlist
               </Link>
             </div>
-            {isPrivate && (
-              <span className="text-muted small" style={{ fontSize: '11px' }}>
-                Set to public to enable sharing.
-              </span>
-            )}
+            <span className="text-muted small" style={{ fontSize: '11px' }}>Use Edit note to change each book’s visibility.</span>
           </div>
         </div>
       </div>
