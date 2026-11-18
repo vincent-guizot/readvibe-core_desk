@@ -43,6 +43,7 @@ export class ReviewService {
     userId,
     { bookId, rating, quote, publicReview, moodTag, isSpoiler },
   ) {
+    if (!await db.book.findByPk(bookId)) throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
     let activity = await db.reading_activity.findOne({
       where: { userId, bookId },
     });

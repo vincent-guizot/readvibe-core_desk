@@ -1,11 +1,13 @@
 export const validateReviewPayload = (req) => {
-  const { bookId, publicReview } = req.body;
+  const { bookId, publicReview, rating, isSpoiler } = req.body;
   if (!bookId) {
     return 'bookId wajib diisi.';
   }
-  if (!publicReview || publicReview.trim() === '') {
+  if (typeof publicReview !== 'string' || publicReview.trim() === '') {
     return 'Teks ulasan publik tidak boleh kosong.';
   }
+  if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) return 'Rating harus berupa angka bulat antara 1 dan 5.';
+  if (isSpoiler !== undefined && typeof isSpoiler !== 'boolean') return 'isSpoiler harus berupa boolean.';
   return null;
 };
 

@@ -15,12 +15,20 @@ export const validateStartReading = (req) => {
 };
 
 export const validateFinishReading = (req) => {
-  const { bookId, rating } = req.body;
+  const { bookId } = req.body;
   if (!bookId) {
     return 'bookId wajib diisi.';
   }
-  if (rating !== undefined && (rating < 1 || rating > 5)) {
-    return 'Rating harus berada di antara 1 dan 5.';
+  return validateReadingUpdate(req);
+};
+
+export const validateReadingUpdate = (req) => {
+  const { status, rating, isSpoiler } = req.body;
+  if (status !== undefined && !['Want to Read', 'Reading', 'Finished'].includes(status)) return 'Status membaca tidak valid.';
+  if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) return 'Rating harus berupa angka bulat antara 1 dan 5.';
+  if (isSpoiler !== undefined && typeof isSpoiler !== 'boolean') return 'isSpoiler harus berupa boolean.';
+  for (const field of ['quote', 'privateNote', 'publicReview', 'moodTag']) {
+    if (req.body[field] !== undefined && req.body[field] !== null && typeof req.body[field] !== 'string') return `${field} harus berupa teks.`;
   }
   return validateReadingProgress(req);
 };
