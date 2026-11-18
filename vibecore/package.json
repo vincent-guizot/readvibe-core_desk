@@ -10,6 +10,8 @@
     "build": "babel src -d build",
     "babel-build": "babel src -d build",
     "test": "node tests/runner.js",
+    "test:unit": "node --test tests/backoffice.test.js tests/book-cover.test.js tests/book-update.test.js tests/book-metadata.test.js tests/password-reset.test.js tests/reading-progress.test.js tests/reading-schema.test.js tests/readvibe-integration.test.js tests/qa-api.test.js",
+    "test:crud": "node tests/run-crud.js",
     "db:create": "sequelize-cli db:create",
     "db:drop": "sequelize-cli db:drop",
     "db:migrate": "sequelize-cli db:migrate",
