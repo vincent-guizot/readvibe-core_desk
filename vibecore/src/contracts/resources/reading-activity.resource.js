@@ -27,6 +27,7 @@ export const toReadingActivityResource = (activity, isOwnerOrAdmin = false) => {
 
   // Only expose privateNote to the owner or admin!
   if (isOwnerOrAdmin) {
+    base.currentPage = activity.currentPage;
     base.privateNote = activity.privateNote;
     base.isFlagged = activity.isFlagged;
     base.flagReason = activity.flagReason;

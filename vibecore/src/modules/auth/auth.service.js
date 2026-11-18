@@ -13,6 +13,7 @@ export class AuthService {
         username: user.username,
         email: user.email,
         role: user.role,
+        tokenVersion: user.tokenVersion || 0,
       },
       ENV.JWT_SECRET,
       { expiresIn: ENV.JWT_EXPIRES_IN }

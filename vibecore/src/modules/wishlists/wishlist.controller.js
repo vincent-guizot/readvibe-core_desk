@@ -13,7 +13,9 @@ export class WishlistController {
 
   static async getUserPublicWishlist(req, res, next) {
     try {
-      const data = await WishlistService.getUserPublicWishlist(req.params.userId);
+      const data = req.params.username
+        ? await WishlistService.getUserPublicWishlistByUsername(req.params.username)
+        : await WishlistService.getUserPublicWishlist(req.params.userId);
       return ApiResponse.success(res, data, 'Wishlist publik berhasil dimuat.');
     } catch (err) {
       next(err);

@@ -70,7 +70,7 @@ export class ReadingService {
     return { user, finished };
   }
 
-  static async startReading(userId, { bookId, startDate = new Date() }) {
+  static async startReading(userId, { bookId, startDate = new Date(), currentPage }) {
     const book = await db.book.findByPk(bookId);
     if (!book) {
       throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
@@ -83,6 +83,7 @@ export class ReadingService {
     if (activity) {
       await activity.update({
         status: 'Reading',
+        currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
         startDate: startDate || new Date(),
       });
     } else {
@@ -90,6 +91,7 @@ export class ReadingService {
         userId,
         bookId,
         status: 'Reading',
+        currentPage: currentPage !== undefined ? currentPage : 0,
         startDate: startDate || new Date(),
       });
     }
@@ -106,6 +108,7 @@ export class ReadingService {
     const {
       bookId,
       rating,
+      currentPage,
       quote,
       privateNote,
       publicReview,
@@ -126,6 +129,7 @@ export class ReadingService {
     if (activity) {
       await activity.update({
         status: 'Finished',
+        currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
         rating: rating !== undefined ? rating : activity.rating,
         quote: quote !== undefined ? quote : activity.quote,
         privateNote: privateNote !== undefined ? privateNote : activity.privateNote,
@@ -140,6 +144,7 @@ export class ReadingService {
         userId,
         bookId,
         status: 'Finished',
+        currentPage: currentPage !== undefined ? currentPage : 0,
         startDate: new Date(),
         finishDate: finishDate || new Date(),
         rating,
@@ -211,9 +216,10 @@ export class ReadingService {
       throw AppError.notFound('Aktivitas membaca tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 
-    const { status, rating, quote, privateNote, publicReview, moodTag, isSpoiler, finishDate } = payload;
+    const { status, rating, quote, privateNote, publicReview, moodTag, isSpoiler, finishDate, currentPage } = payload;
     await activity.update({
       status: status !== undefined ? status : activity.status,
+      currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
       rating: rating !== undefined ? rating : activity.rating,
       quote: quote !== undefined ? quote : activity.quote,
       privateNote: privateNote !== undefined ? privateNote : activity.privateNote,

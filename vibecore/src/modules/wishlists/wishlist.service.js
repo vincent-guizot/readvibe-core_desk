@@ -3,6 +3,12 @@ import { AppError } from '../../errors/app-error';
 import { ErrorCodes } from '../../contracts/error-codes';
 
 export class WishlistService {
+  static async getUserPublicWishlistByUsername(username) {
+    const user = await db.user.findOne({ where: { username }, attributes: ['id'] });
+    if (!user) throw AppError.notFound('Pengguna tidak ditemukan.', ErrorCodes.NOT_FOUND);
+    return this.getUserPublicWishlist(user.id);
+  }
+
   static async getMyWishlist(userId) {
     return await db.wishlist.findAll({
       where: { userId },

@@ -16,3 +16,20 @@ export const validateLogin = (req) => {
   }
   return null;
 };
+
+export const validateForgotPassword = (req) => {
+  const { email } = req.body;
+  if (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return 'Email yang valid wajib diisi.';
+  }
+  return null;
+};
+
+export const validateResetPassword = (req) => {
+  const { token, password } = req.body;
+  if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return 'Token reset tidak valid.';
+  if (typeof password !== 'string' || password.length < 12 || Buffer.byteLength(password, 'utf8') > 72) {
+    return 'Password minimal 12 karakter dan maksimal 72 byte UTF-8.';
+  }
+  return null;
+};
