@@ -81,6 +81,8 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
+                  aria-label={`Rate ${star} out of 5`}
+                  aria-pressed={rating === star}
                   type="button"
                   className="btn btn-link p-1 text-decoration-none border-0 shadow-none"
                   onMouseEnter={() => setHoverRating(star)}
