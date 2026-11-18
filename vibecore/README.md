@@ -27,6 +27,17 @@ Server akan aktif di `http://localhost:3360`.
 - `npm run build` : Melakukan kompilasi Babel dari `src/` ke direktori `build/`.
 - `npm start` : Menjalankan server hasil kompilasi produksi (`node build/server.js`).
 - `npm test` : Menjalankan comprehensive automated test suite (80 pengujian endpoint & RBAC) di `tests/runner.js`.
+- `npm run test:unit`: Regresi terisolasi tanpa database, termasuk tes HTTP localhost.
+- `npm run test:crud`: CRUD/RBAC dan alur layanan ReadVibe–VibeDesk pada database PostgreSQL sementara.
+- `npm run test:postman`: Koleksi Postman pada API/database sementara, tanpa pelaporan cloud.
+
+Suite CRUD/Postman memerlukan PostgreSQL lokal dan izin CREATE DATABASE.
+Runner membuat database baru dengan prefix `vibecore_qa_`, menerapkan semua
+migration, lalu membersihkannya setelah run. Tidak perlu menjalankan seeder atau
+menyalakan server development terlebih dahulu. Gunakan perintah terisolasi ini
+untuk regresi tanpa bergantung pada akun demo di runner HTTP legacy `npm test`.
+Detail collection ada di [Postman README](postman/README.md), sedangkan cakupan
+dan batas bukti tersedia di [QA Report](QA_REPORT.md).
 
 ## Konfigurasi Environment
 
