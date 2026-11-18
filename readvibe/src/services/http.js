@@ -27,8 +27,8 @@ http.interceptors.response.use(
     const status = error.response ? error.response.status : 500;
     const data = error.response ? error.response.data : null;
     const message = data?.message || error.message || 'Terjadi kesalahan jaringan atau server';
-    const errorCode = data?.errorCode || 'API_ERROR';
-    return Promise.reject(new ApiError(message, status, errorCode, data?.details));
+    const errorCode = data?.error?.code || data?.errorCode || 'API_ERROR';
+    return Promise.reject(new ApiError(message, status, errorCode, data?.error?.details || data?.details));
   }
 );
 
