@@ -6,7 +6,8 @@
     "dev": "next dev -p 3350",
     "build": "next build",
     "start": "next start -p 3350",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:security": "node --test tests/dependency-security.test.mjs"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -14,7 +15,7 @@
     "axios": "^1.21.0",
     "bootstrap": "^5.3.8",
     "framer-motion": "^14.9.0",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-icons": "^5.7.0",
@@ -23,6 +24,6 @@
   },
   "devDependencies": {
     "eslint": "^9",
-    "eslint-config-next": "16.4.3"
+    "eslint-config-next": "16.4.6"
   }
 }
