@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
+import http from '@/services/http';
+import { useAuth } from '@/hooks';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,9 +15,14 @@ import {
   AiOutlineCheckCircle
 } from 'react-icons/ai';
 
+const subscribeToHash = (notify) => {
+  window.addEventListener('hashchange', notify);
+  return () => window.removeEventListener('hashchange', notify);
+};
+
 export default function ForgotResetPasswordPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1); // 1 = Forgot Password, 2 = Reset Password
+  const { logout } = useAuth();
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,29 +30,42 @@ export default function ForgotResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const fragment = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => '');
+  const token = new URLSearchParams(fragment.slice(1)).get('token') || '';
+  const [completed, setCompleted] = useState(false);
+  const activeStep = token && !completed ? 2 : 1;
 
-  const handleSendResetLink = (e) => {
+  const handleSendResetLink = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setMessage(`A reset link has been dispatched to ${email || 'your email'}. You can now set your new password.`);
-      setStep(2);
-    }, 600);
+    setError('');
+    setMessage('');
+    try {
+      const result = await http.post('/api/auth/forgot-password', { email });
+      setMessage(result.message);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
-  const handleResetPassword = (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match. Please verify both fields.');
+      setError('Passwords do not match. Please verify both fields.');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      alert('Password has been successfully reset! Redirecting to sign in.');
-      router.push('/login');
-    }, 600);
+    setError('');
+    setMessage('');
+    try {
+      const result = await http.post('/api/auth/reset-password', { token, password: newPassword });
+      logout();
+      setMessage(result.message);
+      window.history.replaceState(null, '', window.location.pathname);
+      setCompleted(true);
+      router.refresh();
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -79,15 +99,15 @@ export default function ForgotResetPasswordPage() {
         <div className="d-none d-md-flex align-items-center bg-white rounded-pill px-3 py-1 shadow-sm border border-light-subtle">
           <button
             type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold ${step === 1 ? 'btn-rv-plum text-white' : 'text-muted'}`}
-            onClick={() => setStep(1)}
+            className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold ${activeStep === 1 ? 'btn-rv-plum text-white' : 'text-muted'}`}
+            disabled
           >
             01 — Forgot Password
           </button>
           <button
             type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold ${step === 2 ? 'btn-rv-plum text-white' : 'text-muted'}`}
-            onClick={() => setStep(2)}
+            className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold ${activeStep === 2 ? 'btn-rv-plum text-white' : 'text-muted'}`}
+            disabled
           >
             02 — Reset Password
           </button>
@@ -138,24 +158,26 @@ export default function ForgotResetPasswordPage() {
         <div className="d-flex d-md-none mb-3 bg-white rounded-pill p-1 shadow-sm border">
           <button
             type="button"
-            className={`btn btn-sm rounded-pill px-3 border-0 ${step === 1 ? 'btn-rv-plum text-white' : 'text-muted'}`}
-            onClick={() => setStep(1)}
+            className={`btn btn-sm rounded-pill px-3 border-0 ${activeStep === 1 ? 'btn-rv-plum text-white' : 'text-muted'}`}
+            disabled
           >
             01 Forgot
           </button>
           <button
             type="button"
-            className={`btn btn-sm rounded-pill px-3 border-0 ${step === 2 ? 'btn-rv-plum text-white' : 'text-muted'}`}
-            onClick={() => setStep(2)}
+            className={`btn btn-sm rounded-pill px-3 border-0 ${activeStep === 2 ? 'btn-rv-plum text-white' : 'text-muted'}`}
+            disabled
           >
             02 Reset
           </button>
         </div>
 
+        {error && <div role="alert" className="alert alert-danger" style={{ maxWidth: '440px', width: '100%' }}>{error}</div>}
         {message && (
           <div
             className="alert alert-success py-2 px-3 rounded-4 small mb-4 shadow-sm border-0 d-flex align-items-center gap-2"
             style={{ maxWidth: '440px', width: '100%' }}
+            role="status"
           >
             <AiOutlineCheckCircle size={18} className="text-success flex-shrink-0" />
             <span>{message}</span>
@@ -163,7 +185,7 @@ export default function ForgotResetPasswordPage() {
         )}
 
         <div className="w-100" style={{ maxWidth: '420px' }}>
-          {step === 1 ? (
+          {activeStep === 1 ? (
             /* ================= STEP 01: FORGOT PASSWORD ================= */
             <div className="text-center">
               {/* Circular Badge: Mail & Key */}
@@ -285,6 +307,9 @@ export default function ForgotResetPasswordPage() {
                       className="form-control border-0 bg-transparent shadow-none"
                       style={{ padding: '11px 14px' }}
                       placeholder="Create a new password"
+                      minLength={12}
+                      maxLength={72}
+                      autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
@@ -328,7 +353,7 @@ export default function ForgotResetPasswordPage() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !token || completed}
                   className="btn w-100 rounded-3 py-2.5 fw-semibold text-white shadow-sm mb-3"
                   style={{ backgroundColor: 'var(--rv-ink-plum)' }}
                 >

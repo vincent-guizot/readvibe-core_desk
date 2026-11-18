@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,97 +10,32 @@ import {
   AiOutlineAppstore
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { useAuth, useWishlist, useBooks } from '@/hooks';
+import { useWishlist } from '@/hooks';
+import http from '@/services/http';
+import { mapWishlist } from '@/services/reader.api';
 
 export default function PublicWishlistPage() {
   const params = useParams();
   const username = params?.username || 'adminreadvibe';
 
-  const { user } = useAuth();
-  const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
-  const { books: allBooks } = useBooks();
-
+  const { toggleWishlist, isWishlisted } = useWishlist();
   const [copiedLink, setCopiedLink] = useState(false);
-
-  const isCurrent = user && (user.username === username || username === 'adminreadvibe');
-  const profileName = isCurrent && user?.name ? user.name : (username === 'adminreadvibe' ? 'Admin ReadVibe' : username);
-  const profileAvatar = isCurrent && user?.avatar ? user.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150';
-
-  // Fallback 4 curated public books
-  const defaultPublicBooks = [
-    {
-      id: 'the-comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      coverUrl: '/assets/books/comfort-book.jpg',
-      priority: 'High priority',
-      priorityBadgeColor: '#FEECE8',
-      priorityTextColor: '#D96B50',
-      note: 'For slow evenings after a long week.',
-      moods: ['Cozy', 'Reflective']
-    },
-    {
-      id: 'morisaki-bookshop',
-      title: 'Days at the Morisaki Bookshop',
-      author: 'Satoshi Yagisawa',
-      coverUrl: '/assets/books/morisaki.jpg',
-      priority: 'High priority',
-      priorityBadgeColor: '#FEECE8',
-      priorityTextColor: '#D96B50',
-      note: 'A friend recommended this cozy bookshop story.',
-      moods: ['Cozy']
-    },
-    {
-      id: 'cerulean-sea',
-      title: 'The House in the Cerulean Sea',
-      author: 'TJ Klune',
-      coverUrl: '/assets/books/cerulean-sea.jpg',
-      priority: 'Medium priority',
-      priorityBadgeColor: '#F3EEF7',
-      priorityTextColor: '#7A5B87',
-      note: 'Saving this for my next fantasy escape.',
-      moods: ['Hopeful']
-    },
-    {
-      id: 'the-little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      coverUrl: '/assets/books/little-prince.jpg',
-      priority: 'Low priority',
-      priorityBadgeColor: '#EBE7E1',
-      priorityTextColor: '#666666',
-      note: 'A classic I would love to revisit.',
-      moods: ['Mindful']
-    }
-  ];
-
-  const publicBooks = useMemo(() => {
-    if (isCurrent && wishlist && wishlist.length > 0) {
-      return wishlist.map((w) => {
-        const book = allBooks.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
-          id: w.bookId,
-          title: w.bookId,
-          author: 'Unknown Author',
-          coverUrl: '/assets/books/midnight-library.jpg',
-          moods: ['Cozy']
-        };
-        const isHigh = w.priority === 'High' || w.priority === 'Next up';
-        const isLow = w.priority === 'Low' || w.priority === 'Someday';
-        return {
-          id: book.id,
-          title: book.title,
-          author: book.author,
-          coverUrl: book.coverUrl,
-          priority: `${w.priority || 'Medium'} priority`,
-          priorityBadgeColor: isHigh ? '#FEECE8' : isLow ? '#EBE7E1' : '#F3EEF7',
-          priorityTextColor: isHigh ? '#D96B50' : isLow ? '#666666' : '#7A5B87',
-          note: w.reason || 'Saved to reading wishlist.',
-          moods: book.moods || ['Cozy']
-        };
-      });
-    }
-    return defaultPublicBooks;
-  }, [isCurrent, wishlist, allBooks]);
+  const [publicShelf, setPublicShelf] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    http.get(`/api/wishlists/username/${encodeURIComponent(username)}`).then((response) => {
+      if (active) setPublicShelf({ ...response.data, items: response.data.items.map(mapWishlist) });
+    }).catch((err) => { if (active) setError(err.message); });
+    return () => { active = false; };
+  }, [username]);
+  const profileName = publicShelf?.user.profile?.fullname || username;
+  const profileAvatar = publicShelf?.user.profile?.image || '/logos/readvibe-icon-color.png';
+  const publicBooks = useMemo(() => (publicShelf?.items || []).map((item) => ({
+    ...item.book, priority: `${item.priority} priority`, note: item.reason,
+    priorityBadgeColor: item.priority === 'Next up' ? '#FEECE8' : '#F3EEF7',
+    priorityTextColor: item.priority === 'Next up' ? '#D96B50' : '#7A5B87',
+  })), [publicShelf]);
 
   const handleToggleSave = (bookId) => {
     toggleWishlist(bookId, 'Medium', 'Saved from shared public shelf');
@@ -116,6 +51,9 @@ export default function PublicWishlistPage() {
 
   return (
     <div className="container py-4 pb-5">
+      {error && <div role="alert" className="alert alert-danger">{error}</div>}
+      {!publicShelf && !error && <p role="status">Loading public wishlist…</p>}
+      {publicShelf && !publicBooks.length && <p>This public wishlist is empty.</p>}
       {/* Breadcrumbs */}
       <nav aria-label="breadcrumb" className="mb-3">
         <ol className="breadcrumb small mb-0">

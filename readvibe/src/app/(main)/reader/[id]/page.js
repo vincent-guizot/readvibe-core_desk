@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -15,29 +15,25 @@ import {
   AiOutlineCheck,
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { useBooks, useReading } from '@/hooks';
+import { useBooks, useReading, useAuth } from '@/hooks';
 
+const subscribeToHydration = () => () => {};
 export default function ReaderPage() {
   const params = useParams();
+  const { getBookById } = useBooks();
+  const { getBookProgress, status } = useReading();
+  const { isAuthenticated } = useAuth();
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const book = getBookById(params?.id);
+  const progress = book && getBookProgress(book.id);
+  if (!hydrated || !book || (!progress && (status === 'idle' || status === 'loading'))) return <p role="status" className="p-4">Loading reading activity…</p>;
+  if (!isAuthenticated) return <p className="p-4"><Link href="/login">Sign in to save your reading progress.</Link></p>;
+  return <ReaderView key={book.id} book={book} initialProgress={progress} />;
+}
+
+function ReaderView({ book, initialProgress }) {
   const router = useRouter();
-  const bookId = params?.id || 'midnight-library';
-
-  const { books, getBookById } = useBooks();
-  const { getBookProgress, updateBookProgress, finishBook } = useReading();
-
-  // Find book from Redux catalog or default fallback
-  const book = useMemo(() => {
-    return (
-      getBookById(bookId) ||
-      books.find((b) => b.id === bookId || b.slug === bookId) || {
-        id: bookId,
-        title: 'The Lantern Bookshop',
-        author: 'Elena Rowan',
-        pages: 64,
-      }
-    );
-  }, [bookId, books, getBookById]);
-
+  const { updateBookProgress, finishBook } = useReading();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkToast, setBookmarkToast] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -46,19 +42,9 @@ export default function ReaderPage() {
 
   // Appearance settings
   const [fontSize, setFontSize] = useState(20);
-  const [fontFamily, setFontFamily] = useState('serif'); // 'serif' | 'sans'
-  const [theme, setTheme] = useState('sepia'); // 'light' | 'sepia' | 'dark'
+  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('readvibe_reader_font') || 'serif'); // 'serif' | 'sans'
+  const [theme, setTheme] = useState(() => localStorage.getItem('readvibe_reader_theme') || 'sepia'); // 'light' | 'sepia' | 'dark'
   const [lineSpacing, setLineSpacing] = useState('medium'); // 'tight' | 'medium' | 'relaxed'
-
-  // Load preferences from localStorage if available
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('readvibe_reader_theme');
-      if (savedTheme) setTheme(savedTheme);
-      const savedFont = localStorage.getItem('readvibe_reader_font');
-      if (savedFont) setFontFamily(savedFont);
-    }
-  }, []);
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -145,22 +131,7 @@ export default function ReaderPage() {
     },
   ];
 
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
-
-  // Restore chapter from Redux reading progress if available
-  useEffect(() => {
-    const progress = getBookProgress(book.id);
-    if (progress && progress.currentPage > 0) {
-      const foundIdx = chapters.findIndex(
-        (ch, idx) =>
-          ch.page <= progress.currentPage &&
-          (chapters[idx + 1] ? chapters[idx + 1].page > progress.currentPage : true)
-      );
-      if (foundIdx !== -1) {
-        setActiveChapterIndex(foundIdx);
-      }
-    }
-  }, [book.id]);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(() => Math.max(0, chapters.findIndex((chapter, index) => chapter.page <= (initialProgress?.currentPage || 0) && (!chapters[index + 1] || chapters[index + 1].page > initialProgress.currentPage))));
 
   const currentChapter = chapters[activeChapterIndex] || chapters[0];
   const settingsRef = useRef(null);
@@ -175,13 +146,15 @@ export default function ReaderPage() {
   };
 
   // Mark book finished
-  const handleFinishBook = () => {
-    finishBook({
+  const handleFinishBook = async () => {
+    const result = await finishBook({
       bookId: book.id,
       rating: 5,
+      currentPage: book.pages || 0,
       favoriteQuote: book.quote || '',
       moods: book.moods || ['Cozy'],
     });
+    if (result.error) return;
     router.push(`/finished-reads/edit-review?bookId=${book.id}`);
   };
 

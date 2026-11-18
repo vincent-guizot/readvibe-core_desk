@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,6 +17,7 @@ import { useBooks, useWishlist, useReading } from '@/hooks';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 import WriteReviewModal from '@/components/WriteReviewModal';
 import ReportModal from '@/components/ReportModal';
+import http from '@/services/http';
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -32,9 +33,23 @@ export default function BookDetailPage() {
     return (
       getBookById(bookIdentifier) ||
       books.find((b) => b.id === bookIdentifier || b.slug === bookIdentifier) ||
-      books[0]
+      null
     );
   }, [bookIdentifier, books, getBookById]);
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewVersion, setReviewVersion] = useState(0);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const bookId = book?.id;
+  useEffect(() => {
+    if (!bookId) return;
+    let active = true;
+    http.get(`/api/reviews/book/${bookId}`).then((response) => {
+      if (active) setReviews(response.data.map((review) => ({ ...review, author: review.user?.profile?.fullname || review.user?.username || '', avatar: review.user?.profile?.image || '/logos/readvibe-icon-color.png', comment: review.publicReview })));
+    }).catch((error) => { if (active) setReviewError(error.message); });
+    return () => { active = false; };
+  }, [bookId, reviewVersion]);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
@@ -49,10 +64,11 @@ export default function BookDetailPage() {
   const isFinished = book ? isBookFinished(book.id) : false;
 
   // Handle Start / Continue reading
-  const handleStartOrContinueReading = () => {
+  const handleStartOrContinueReading = async () => {
     if (!book) return;
     if (!readingProgress && !isFinished) {
-      startBook(book.id, book.pages || 300);
+      const result = await startBook(book.id, book.pages || 300);
+      if (result.error) return;
     }
     router.push(`/reader/${book.id}`);
   };
@@ -86,25 +102,6 @@ export default function BookDetailPage() {
       </div>
     );
   }
-
-  const reviews = [
-    {
-      id: 1,
-      author: 'Emily Chen',
-      rating: 4.0,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
-      comment:
-        'A beautiful, thought-provoking read. It gently reminds you to be kinder to yourself and to see the possibilities in everyday moments.',
-    },
-    {
-      id: 2,
-      author: 'Daniel Park',
-      rating: 4.5,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100',
-      comment:
-        'Imaginative and deeply human. This book stayed with me long after I finished it, and gave me a fresher perspective on my own choices.',
-    },
-  ];
 
   return (
     <div className="container py-4 pb-5">
@@ -213,7 +210,7 @@ export default function BookDetailPage() {
             </div>
             <span className="small fw-bold text-dark">{Number(book.rating || 4.5).toFixed(1)}</span>
             <span className="text-muted small">·</span>
-            <span className="text-muted small">{book.reviewsCount || 1248} reader reviews</span>
+            <span className="text-muted small">{reviews.length} reader reviews</span>
           </div>
 
           {/* Mood Pills */}
@@ -429,6 +426,8 @@ export default function BookDetailPage() {
 
             {/* Review Cards Grid */}
             <div className="row g-3">
+              {reviewError && <div role="alert" className="alert alert-danger">{reviewError}</div>}
+              {!reviews.length && !reviewError && <p>No public reviews yet.</p>}
               {reviews.map((rev) => (
                 <div key={rev.id} className="col-md-6">
                   <div className="card border-0 rounded-4 shadow-sm p-3.5 bg-white h-100">
@@ -455,9 +454,10 @@ export default function BookDetailPage() {
                         </div>
                       </div>
                     </div>
-                    <p className="text-secondary small mb-0" style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                      {rev.comment}
-                    </p>
+                    <div className="text-secondary small mb-0" style={{ fontSize: '13px', lineHeight: 1.5 }}>
+                      {rev.isSpoiler ? <details><summary>Contains spoilers</summary>{rev.comment}</details> : rev.comment}
+                    </div>
+                    <button type="button" className="btn btn-sm btn-link" onClick={() => { setSelectedReview(rev); setIsReportModalOpen(true); }}>Report review</button>
                   </div>
                 </div>
               ))}
@@ -596,10 +596,10 @@ export default function BookDetailPage() {
         book={book}
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        onReviewAdded={() => {}}
+        onReviewAdded={() => setReviewVersion((version) => version + 1)}
       />
 
-      <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} />
+      <ReportModal reviewId={selectedReview?.id} targetTitle={book.title} reviewSnippet={selectedReview?.comment} reviewerName={selectedReview?.author} isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} />
     </div>
   );
 }

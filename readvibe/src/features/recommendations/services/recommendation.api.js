@@ -82,7 +82,7 @@ export const recommendationApi = {
         }
 
         return {
-          id: book.slug || book.id,
+          id: book.id,
           title: book.title,
           author: book.author,
           rating: book.rating?.toString() || '4.5',

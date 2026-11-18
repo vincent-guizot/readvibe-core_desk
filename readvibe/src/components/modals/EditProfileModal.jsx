@@ -1,44 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import { useAuth } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
-export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
-  const { user: authUser, updateProfile } = useAuth();
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const [avatar, setAvatar] = useState('');
+function ProfileForm({ isOpen, onClose, onUpdated, user }) {
+  const [name, setName] = useState(user.name || '');
+  const [username, setUsername] = useState(user.username || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [location, setLocation] = useState(user.location || '');
+  const [avatar, setAvatar] = useState(user.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const u = authUser || readVibeStore.getUser();
-      setName(u.name || '');
-      setUsername(u.username || '');
-      setBio(u.bio || '');
-      setLocation(u.location || 'Jakarta, Indonesia');
-      setAvatar(u.avatar || '');
-    }
-  }, [isOpen, authUser]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      updateProfile({
-        name,
-        username,
-        bio,
-        location,
-        avatar
-      });
-      const updated = readVibeStore.updateUser({
+      const updated = await readVibeStore.updateUser({
         name,
         username,
         bio,
@@ -190,4 +171,10 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
       </div>
     </div>
   );
+}
+
+export default function EditProfileModal(props) {
+  const { user } = useAuth();
+  if (!props.isOpen || !user) return null;
+  return <ProfileForm key={user.id} {...props} user={user} />;
 }

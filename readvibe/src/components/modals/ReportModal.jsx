@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import http from '@/services/http';
 import { AiOutlineClose, AiOutlineLock, AiOutlineFlag } from 'react-icons/ai';
 
-export default function ReportModal({ isOpen, onClose, targetTitle = 'The Midnight Library', reviewSnippet = 'I did not expect the final chapter to unfold this way...', reviewerName = 'Alex L.' }) {
+export default function ReportModal({ isOpen, onClose, reviewId, targetTitle, reviewSnippet, reviewerName }) {
   const [reason, setReason] = useState('Unmarked spoilers');
   const [details, setDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
@@ -18,13 +21,19 @@ export default function ReportModal({ isOpen, onClose, targetTitle = 'The Midnig
     'Something else'
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+    await http.post(`/api/reviews/${reviewId}/report`, { reason: `${reason}${details ? `: ${details}` : ''}`.slice(0, 255) });
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
       onClose();
     }, 1500);
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -57,6 +66,7 @@ export default function ReportModal({ isOpen, onClose, targetTitle = 'The Midnig
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-4 p-md-5">
+            {error && <div role="alert" className="alert alert-danger">{error}</div>}
             {/* Header Icon */}
             <div
               className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
@@ -171,7 +181,7 @@ export default function ReportModal({ isOpen, onClose, targetTitle = 'The Midnig
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  disabled={saving || !reviewId} type="submit"
                   className="btn btn-sm rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-sm"
                   style={{ backgroundColor: '#D96B50' }}
                 >

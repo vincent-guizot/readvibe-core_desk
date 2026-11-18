@@ -57,8 +57,9 @@ export default function WishlistPage() {
     });
   }, [wishlist, reduxBooks]);
 
-  const handleStartReading = (bookId) => {
-    startBook(bookId);
+  const handleStartReading = async (bookId) => {
+    const result = await startBook(bookId);
+    if (result.error) return;
     router.push(`/reader/${bookId}`);
   };
 

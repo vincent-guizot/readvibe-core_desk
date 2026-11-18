@@ -29,9 +29,6 @@ export default function Navbar() {
   const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
 
   useEffect(() => {
-    // Sync with live VibeCore on mount
-    readVibeStore.syncWithVibeCore();
-
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setIsNotifOpen(false);
