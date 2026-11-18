@@ -32,51 +32,7 @@ export default function VibeMatcherPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [wishlistModalBook, setWishlistModalBook] = useState(null);
 
-  // Exact 3 matched books from ai vibe matcher.png
-  const [matches, setMatches] = useState([
-    {
-      id: 'the-comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      rating: '4.3',
-      reviews: '42,129',
-      category: 'Nonfiction',
-      tag: 'Comforting',
-      matchScore: '92% match',
-      isTopPick: true,
-      coverUrl: '/assets/books/comfort-book.jpg',
-      whyFits:
-        'A collection of short, thoughtful reflections that offer warmth, perspective and quiet reassurance, perfect for a gentle and hopeful read.'
-    },
-    {
-      id: 'psalm-wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      rating: '4.3',
-      reviews: '86,614',
-      category: 'Science Fiction',
-      tag: 'Hopeful',
-      matchScore: '89% match',
-      isTopPick: false,
-      coverUrl: '/assets/books/wild-built.jpg',
-      whyFits:
-        'A quiet, uplifting story about a person seeking a slower, more meaningful life, with a gentle, reflective tone throughout.'
-    },
-    {
-      id: 'before-the-coffee-gets-cold',
-      title: 'Before the Coffee Gets Cold',
-      author: 'Toshikazu Kawaguchi',
-      rating: '4.4',
-      reviews: '72,936',
-      category: 'Fiction',
-      tag: 'Contemplative',
-      matchScore: '85% match',
-      isTopPick: false,
-      coverUrl: '/assets/books/coffee-cold.jpg',
-      whyFits:
-        'A tender, character-driven novel with a calm, reflective mood that lingers long after the last page.'
-    }
-  ]);
+  const [matches, setMatches] = useState([]);
 
   const moodList = [
     { key: 'Cozy', label: 'Cozy', icon: '🪑' },
@@ -115,7 +71,7 @@ export default function VibeMatcherPage() {
 
       if (liveData?.matches && liveData.matches.length > 0) {
         let mapped = liveData.matches.map((m, idx) => ({
-          id: m.book?.slug || m.book?.id || `match-${idx}`,
+          id: m.book.id,
           title: m.book?.title || 'Book Title',
           author: m.book?.author?.name || m.book?.author?.pen_name || m.book?.author || 'Author',
           rating: '4.5',
@@ -147,9 +103,7 @@ export default function VibeMatcherPage() {
         finishedIds,
       });
 
-      if (localMatches.length > 0) {
-        setMatches(localMatches);
-      }
+      setMatches(localMatches);
     } catch (err) {
       console.warn('Vibe Matcher fallback:', err);
     } finally {
@@ -159,16 +113,6 @@ export default function VibeMatcherPage() {
 
   const toggleSaveWishlist = (book) => {
     toggleWishlist(book.id, 'High', book.whyFits || 'Matched via AI Vibe Matcher');
-    if (readVibeStore.isInWishlist(book.id)) {
-      readVibeStore.removeFromWishlist(book.id);
-    } else {
-      readVibeStore.addToWishlist({
-        bookId: book.id,
-        priority: 'High',
-        reason: book.whyFits || 'Matched via AI Vibe Matcher',
-        isPublic: true,
-      });
-    }
   };
 
   return (

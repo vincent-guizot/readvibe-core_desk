@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import { useReading } from '@/hooks';
-import { readVibeStore } from '../../lib/store';
 
-export default function UpdateProgressModal({
+function ProgressForm({
   book,
   currentReading,
   isOpen,
@@ -13,26 +12,19 @@ export default function UpdateProgressModal({
   onUpdated,
   onProgressUpdated
 }) {
-  const { updateBookProgress } = useReading();
+  const { updateBookProgress, status: saveStatus, error: saveError } = useReading();
   const [currentPage, setCurrentPage] = useState(currentReading?.currentPage || 0);
   const [notes, setNotes] = useState(currentReading?.notes || '');
-
-  React.useEffect(() => {
-    if (currentReading) {
-      setCurrentPage(currentReading.currentPage || 0);
-      setNotes(currentReading.notes || '');
-    }
-  }, [currentReading, book]);
 
   if (!isOpen || !book) return null;
 
   const totalPages = book.pages || currentReading?.totalPages || 300;
   const percentage = Math.min(100, Math.round((currentPage / totalPages) * 100));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    updateBookProgress(book.id, currentPage, notes);
-    readVibeStore.updateReadingProgress(book.id, currentPage, notes);
+    const result = await updateBookProgress(book.id, currentPage, notes);
+    if (result.error) return;
     if (onUpdated) onUpdated();
     if (onProgressUpdated) onProgressUpdated();
     onClose();
@@ -66,6 +58,7 @@ export default function UpdateProgressModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4">
+          {saveError && <div role="alert" className="alert alert-danger m-2">{saveError}</div>}
           <div className="text-center p-3 rounded-3 mb-4" style={{ backgroundColor: '#FAF7F2' }}>
             <div className="display-6 fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               {percentage}%
@@ -83,10 +76,11 @@ export default function UpdateProgressModal({
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="reading-current-page" className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
               Current page
             </label>
             <input
+              id="reading-current-page"
               type="number"
               min="0"
               max={totalPages}
@@ -98,10 +92,11 @@ export default function UpdateProgressModal({
           </div>
 
           <div className="mb-4">
-            <label className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="reading-private-notes" className="form-label fw-bold small" style={{ color: 'var(--rv-ink-plum)' }}>
               Reading notes / thoughts so far (Optional)
             </label>
             <textarea
+              id="reading-private-notes"
               className="form-control"
               rows={3}
               placeholder="Record a thought, quote, or page impression..."
@@ -114,7 +109,7 @@ export default function UpdateProgressModal({
             <button type="button" className="btn btn-light rounded-pill px-4 fw-semibold" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-rv-plum rounded-pill px-4 fw-bold shadow-sm">
+            <button disabled={saveStatus === 'loading'} type="submit" className="btn btn-rv-plum rounded-pill px-4 fw-bold shadow-sm">
               Save Progress
             </button>
           </div>
@@ -122,4 +117,9 @@ export default function UpdateProgressModal({
       </div>
     </div>
   );
+}
+
+export default function UpdateProgressModal(props) {
+  if (!props.isOpen || !props.book) return null;
+  return <ProgressForm key={props.book.id} {...props} />;
 }

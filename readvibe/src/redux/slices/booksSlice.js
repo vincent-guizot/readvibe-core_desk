@@ -1,8 +1,12 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { INITIAL_BOOKS } from '../../constants';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { fetchCatalog } from '../../services/reader.api';
+
+export const loadCatalog = createAsyncThunk('books/loadCatalog', fetchCatalog);
 
 const initialState = {
-  items: INITIAL_BOOKS,
+  items: [],
+  status: 'idle',
+  error: null,
   selectedMood: 'All',
   searchQuery: '',
   selectedGenre: 'All Genres',
@@ -28,6 +32,11 @@ const booksSlice = createSlice({
     addBook: (state, action) => {
       state.items.unshift(action.payload);
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(loadCatalog.pending, (state) => { state.status = 'loading'; state.error = null; });
+    builder.addCase(loadCatalog.fulfilled, (state, action) => { state.items = action.payload; state.status = 'succeeded'; });
+    builder.addCase(loadCatalog.rejected, (state, action) => { state.status = 'failed'; state.error = action.error.message; });
   },
 });
 

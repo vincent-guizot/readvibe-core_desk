@@ -1,6 +1,6 @@
 # Spesifikasi Endpoint REST API VibeCore
 
-Ditinjau dari router source pada 17 November 2026. Base development: `http://localhost:3360`. Tabel memakai prefix utama; alias prefix dijelaskan terpisah. Inventaris ini berasal dari source, bukan hasil probe endpoint live.
+Ditinjau dari router source pada 18 November 2026. Base development: `http://localhost:3360`. Tabel memakai prefix utama; alias prefix dijelaskan terpisah. Inventaris ini berasal dari source, bukan hasil probe endpoint live.
 
 Akses **Login** berarti akun terautentikasi untuk resource miliknya; **Staf** berarti Admin/Librarian; **Admin** berarti Admin saja. Semua akun terautentikasi tetap diperiksa statusnya oleh middleware.
 
@@ -14,8 +14,14 @@ Sumber: [router](../../vibecore/src/modules/auth/auth.routes.js).
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | Publik | AuthController.register |
 | `POST` | `/api/auth/login` | Publik | AuthController.login |
+| `POST` | `/api/auth/forgot-password` | Publik | PasswordResetController.requestReset; `{ email }`, pengiriman melalui SMTP |
+| `POST` | `/api/auth/reset-password` | Publik | PasswordResetController.resetPassword; `{ token, password }`, cabut sesi lama |
 | `GET` | `/api/auth/me` | Login | AuthController.me |
 | `PUT` | `/api/auth/profile` | Login | AuthController.updateProfile |
+| `GET` | `/api/auth/public/:username` | Publik | AuthController.publicProfile; tanpa email/password |
+| `PUT` | `/api/auth/password` | Login | AuthController.changePassword; password saat ini wajib |
+| `PATCH` | `/api/auth/account` | Login | AuthController.changeEmail; password saat ini wajib |
+| `DELETE` | `/api/auth/account` | Login (Member) | AuthController.deleteAccount; hapus akun sendiri beserta data miliknya |
 
 ## Books
 
@@ -65,6 +71,7 @@ Sumber: [router](../../vibecore/src/modules/wishlists/wishlist.routes.js).
 | Method | Endpoint | Akses | Handler |
 | --- | --- | --- | --- |
 | `GET` | `/api/wishlists/user/:userId` | Publik | WishlistController.getUserPublicWishlist |
+| `GET` | `/api/wishlists/username/:username` | Publik | WishlistController.getUserPublicWishlist; profil aman tanpa email/password |
 | `GET` | `/api/wishlists/public/:userId` | Publik | WishlistController.getUserPublicWishlist |
 | `GET` | `/api/wishlists` | Login | WishlistController.getMyWishlist |
 | `POST` | `/api/wishlists` | Login | WishlistController.add |
@@ -198,7 +205,7 @@ Sumber: [router](../../vibecore/src/modules/../integrations/google-books/google-
 
 ## Cara menghitung endpoint
 
-Tabel di atas memuat **78 registrasi method + path** pada prefix utama, termasuk alias suffix yang memang didaftarkan router. Ditambah dua status route (`/` dan `/api`) menjadi **80**. Jumlah URL jika seluruh alias prefix diekspansi akan lebih besar; angka ini tidak sama dengan jumlah use case atau jumlah halaman.
+Tabel di atas memuat **85 registrasi method + path** pada prefix utama, termasuk alias suffix yang memang didaftarkan router. Ditambah dua status route (`/` dan `/api`) menjadi **87**. Jumlah URL jika seluruh alias prefix diekspansi akan lebih besar; angka ini tidak sama dengan jumlah use case atau jumlah halaman.
 
 ## Alias prefix
 
@@ -215,6 +222,10 @@ Alias memakai router yang sama; alias tidak menciptakan suffix baru. Contohnya `
 
 ## Query dan payload penting
 
+- Auth: forgot-password menerima `{ email }` dan memerlukan SMTP; token reset sekali pakai berlaku 30 menit. Reset/change password memakai password baru minimal 12 karakter dan maksimal 72 byte UTF-8. Perubahan password/email membatalkan sesi lama. Profile update menyimpan fullname, image, bio, location dan username secara atomik; konflik username/email menghasilkan 409.
+- Reading PUT/PATCH: status `Want to Read|Reading|Finished`; rating opsional integer JSON 1–5; isSpoiler boolean; currentPage integer 0–2147483647. quote/privateNote/publicReview/moodTag menerima string/null. reviewTitle berupa teks maksimal 255 karakter; reviewVisibility `Public|Private` menyembunyikan draft tanpa menghapus teks. Proyeksi publik dan moderasi staf tidak memuat draft privat.
+- Review POST: publicReview wajib string tidak kosong; rating dan isSpoiler mengikuti batas tipe reading. Input tidak valid menghasilkan envelope error 400. POST wishlist/review dengan ID buku yang tidak ada menghasilkan 404.
+- Wishlist POST/PUT: priority `Low|Medium|High`, visibility `Public|Private`, reason string/null. Wishlist publik berdasarkan username hanya memuat item Public.
 - Books: search mencakup title, description, ISBN, dan pen_name; filter genreId, authorId, mood (nama), moodId, googleBooksId, stock; sort newest/title/stock; page dan limit. Stock available >5, low 1–5, empty 0. Page minimal 1 dan limit 1–100.
 - Buku create/update: relasi authorId, genreId, moodIds; stock, price, ISBN/Google ID, preview dan metadata. subtitle/publisher maksimal 255, edition/language 100, format 50 karakter. widthCm/heightCm positif, maksimal 999999.99, dua desimal. Metadata kosong/null menghapus nilai; field yang tidak dikirim saat update dipertahankan.
 - Cover: POST multipart field cover, satu JPG/PNG/WebP maksimal 5 MiB; konten diperiksa Sharp, maksimal 20 megapiksel, output WebP. URL hasil upload dipakai pada image saat menyimpan buku.
@@ -227,3 +238,5 @@ Alias memakai router yang sama; alias tidak menciptakan suffix baru. Contohnya `
 - Recommendations POST match: `{ moodTags, queryText }`; response totalMatches/query/matches, item berisi book, matchScore 0–98, reason. Ranking lokal memakai settings; Gemini explanations opsional.
 
 Model data terpisah di [referensi database](spesifikasi-api-dan-data.md). Validasi rinci mengikuti validator dan service masing-masing modul; tabel ini tidak menyatakan seluruh daftar memiliki pagination server.
+
+Koleksi dan instruksi run terisolasi tersedia di [Postman](../../vibecore/postman/README.md). Hasil serta batas pengujian ada di [QA Report](../../vibecore/QA_REPORT.md) dan [Browser QA Report](../../vibecore/BROWSER_QA_REPORT.md).

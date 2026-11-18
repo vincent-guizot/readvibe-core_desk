@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { AiFillStar, AiOutlineStar, AiOutlineClose } from 'react-icons/ai';
-import { useReading } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
 export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded }) {
-  const { finishBook } = useReading();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [mood, setMood] = useState('Cozy');
@@ -26,16 +26,12 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
     'Mindful'
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    finishBook({
-      bookId: book.id,
-      rating,
-      moods: [mood || 'Cozy'],
-      privateNotes: content,
-      containsSpoilers: isSpoiler,
-    });
-    readVibeStore.addReview({
+    setSaving(true);
+    setError('');
+    try {
+    await readVibeStore.addReview({
       bookId: book.id,
       rating,
       mood,
@@ -44,6 +40,8 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
     });
     if (onReviewAdded) onReviewAdded();
     onClose();
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -74,6 +72,7 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 overflow-y-auto" style={{ flex: 1 }}>
+          {error && <div role="alert" className="alert alert-danger">{error}</div>}
           <div className="mb-4 text-center p-3 rounded-3" style={{ background: '#FAF7F2' }}>
             <label className="form-label fw-bold d-block mb-1 small text-muted">
               Overall Rating
@@ -82,6 +81,8 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
+                  aria-label={`Rate ${star} out of 5`}
+                  aria-pressed={rating === star}
                   type="button"
                   className="btn btn-link p-1 text-decoration-none border-0 shadow-none"
                   onMouseEnter={() => setHoverRating(star)}
@@ -150,7 +151,7 @@ export default function WriteReviewModal({ book, isOpen, onClose, onReviewAdded 
             <button type="button" className="btn btn-light rounded-pill px-4 fw-semibold" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-rv-plum rounded-pill px-4 fw-bold shadow-sm">
+            <button disabled={saving} type="submit" className="btn btn-rv-plum rounded-pill px-4 fw-bold shadow-sm">
               Post Review
             </button>
           </div>

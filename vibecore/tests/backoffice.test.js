@@ -331,6 +331,7 @@ test('public registration cannot choose a staff role', async () => {
     bcryptjs: { hash: async () => 'test-hash' },
     jsonwebtoken: { sign: () => 'test-token' },
     '../../../models': {
+      sequelize: { transaction: async (work) => work({}) },
       user: {
         findOne: async () => null,
         create: async (payload) => {

@@ -12,21 +12,22 @@ import {
 
 export function useReading() {
   const dispatch = useAppDispatch();
-  const { currentReading, finishedReads } = useAppSelector((state) => state.reading);
+  const { currentReading, finishedReads, status, error } = useAppSelector((state) => state.reading);
 
   const getBookProgress = (bookId) => {
-    return currentReading.find((item) => item.bookId === bookId) || null;
+    return currentReading.find((item) => String(item.bookId) === String(bookId)) || null;
   };
 
   const isBookFinished = (bookId) => {
-    return finishedReads.some((item) => item.bookId === bookId);
+    return finishedReads.some((item) => String(item.bookId) === String(bookId));
   };
 
   const getFinishedDetail = (bookId) => {
-    return finishedReads.find((item) => item.bookId === bookId) || null;
+    return finishedReads.find((item) => String(item.bookId) === String(bookId)) || null;
   };
 
   return {
+    status, error,
     currentReading,
     finishedReads,
     getBookProgress,

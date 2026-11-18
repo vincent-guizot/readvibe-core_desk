@@ -14,16 +14,15 @@ import { useReading, useBooks, useAuth } from '@/hooks';
 import { Progress } from '@/components/ui';
 
 export default function StatsPage() {
-  const [year, setYear] = useState('2026');
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
   const [showYearMenu, setShowYearMenu] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  const availableYears = ['2026', '2025', 'All Time'];
-
   const { finishedReads } = useReading();
   const { books } = useBooks();
   const { user } = useAuth();
+  const availableYears = [...new Set([String(new Date().getFullYear()), ...finishedReads.map((item) => String(new Date(item.finishDate).getFullYear())).filter((value) => value !== 'NaN')])].sort().reverse().concat('All Time');
 
   // Combine Redux finished reading history with full book metadata
   const enrichedFinishedReads = useMemo(() => {
@@ -31,17 +30,17 @@ export default function StatsPage() {
       const book = books.find((b) => b.id === read.bookId || b.slug === read.bookId);
       const moodsList = read.moods && read.moods.length > 0
         ? read.moods
-        : (book?.moods || ['Cozy']);
+        : (book?.moods || []);
       return {
         ...read,
         book,
         title: book?.title || read.title || 'Untitled Book',
         author: book?.author || read.author || 'Unknown Author',
         coverUrl: book?.coverUrl || read.coverUrl || '/assets/books/midnight-library.jpg',
-        genre: book?.genre || 'Fiction',
-        pages: Number(book?.pages) || 250,
-        rating: Number(read.rating || book?.rating || 4.5),
-        primaryMood: moodsList[0] || 'Cozy',
+        genre: book?.genre || 'Unspecified',
+        pages: Number(book?.pages) || 0,
+        rating: Number(read.rating || 0),
+        primaryMood: moodsList[0] || 'Unspecified',
       };
     });
   }, [finishedReads, books]);
@@ -67,8 +66,8 @@ export default function StatsPage() {
 
   const avgRating = useMemo(() => {
     if (activeYearReads.length === 0) return '0.0';
-    const sum = activeYearReads.reduce((acc, curr) => acc + curr.rating, 0);
-    return (sum / activeYearReads.length).toFixed(1);
+    const rated = activeYearReads.filter((item) => item.rating > 0);
+    return rated.length ? (rated.reduce((sum, item) => sum + item.rating, 0) / rated.length).toFixed(1) : '0.0';
   }, [activeYearReads]);
 
   // Dynamic Moods Distribution for the selected year
@@ -102,7 +101,7 @@ export default function StatsPage() {
     return list;
   }, [activeYearReads]);
 
-  const topMood = moodsOnShelf[0]?.label || user?.stats?.topMood || 'Cozy';
+  const topMood = moodsOnShelf[0]?.label || 'No reading moods yet';
   const moodEmojis = {
     Cozy: '☕',
     Reflective: '🌙',
@@ -193,8 +192,7 @@ export default function StatsPage() {
       }
     });
 
-    // In 2026, show Jan-Oct matching design, or all 12 months for All Time
-    const monthsToShow = year === '2026' ? monthLabels.slice(0, 10) : monthLabels;
+    const monthsToShow = monthLabels;
     return monthsToShow.map((m) => ({
       month: m,
       count: counts[m] || 0,

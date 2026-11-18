@@ -9,12 +9,19 @@ import {
   AiOutlineBook
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { useBooks, useWishlist } from '@/hooks';
+import { useBooks, useWishlist, useReading, useAuth } from '@/hooks';
 
 export default function HomePage() {
   const router = useRouter();
   const { books: reduxBooks } = useBooks();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { finishedReads, status: readingStatus } = useReading();
+  const { isAuthenticated } = useAuth();
+  const now = new Date();
+  const finishedThisMonth = finishedReads.filter((activity) => {
+    const date = new Date(activity.finishDate);
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }).length;
   const [activeMood, setActiveMood] = useState('Cozy');
 
   const moodPills = [
@@ -26,53 +33,7 @@ export default function HomePage() {
     { key: 'Need a laugh', label: 'Need a laugh', icon: '😊' }
   ];
 
-  const allAvailableBooks = reduxBooks && reduxBooks.length > 0 ? reduxBooks : [
-    {
-      id: 'midnight-library',
-      title: 'The Midnight Library',
-      author: 'Matt Haig',
-      rating: 4.3,
-      mood: 'Reflective',
-      moods: ['Reflective', 'Thoughtful', 'Cozy'],
-      coverUrl: '/assets/books/midnight-library.jpg'
-    },
-    {
-      id: 'comfort-book',
-      title: 'The Comfort Book',
-      author: 'Matt Haig',
-      rating: 4.4,
-      mood: 'Cozy',
-      moods: ['Cozy', 'Warm & Healing', 'Hopeful'],
-      coverUrl: '/assets/books/comfort-book.jpg'
-    },
-    {
-      id: 'coffee-cold',
-      title: 'Before the Coffee Gets Cold',
-      author: 'Toshikazu Kawaguchi',
-      rating: 4.3,
-      mood: 'Hopeful',
-      moods: ['Hopeful', 'Reflective', 'Cozy'],
-      coverUrl: '/assets/books/coffee-cold.jpg'
-    },
-    {
-      id: 'wild-built',
-      title: 'A Psalm for the Wild-Built',
-      author: 'Becky Chambers',
-      rating: 4.4,
-      mood: 'Mindful',
-      moods: ['Mindful', 'Gentle', 'Hopeful'],
-      coverUrl: '/assets/books/wild-built.jpg'
-    },
-    {
-      id: 'little-prince',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      rating: 4.6,
-      mood: 'Need a laugh',
-      moods: ['Need a laugh', 'Mindful', 'Nostalgic'],
-      coverUrl: '/assets/books/little-prince.jpg'
-    }
-  ];
+  const allAvailableBooks = reduxBooks;
 
   // Dynamically filter books based on active mood tab
   const displayedPickedBooks = allAvailableBooks.filter((b) => {
@@ -424,7 +385,7 @@ export default function HomePage() {
                         Your reading journey
                       </h6>
                       <div className="text-muted" style={{ fontSize: '12px' }}>
-                        3 books finished this month
+                        {!isAuthenticated ? 'Sign in to track your reading' : readingStatus === 'loading' ? 'Loading reading activity…' : `${finishedThisMonth} books finished this month`}
                       </div>
                     </div>
                   </div>

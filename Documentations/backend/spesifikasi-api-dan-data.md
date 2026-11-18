@@ -1,6 +1,6 @@
 # Model Data VibeCore
 
-Referensi logis berdasarkan [model Sequelize](../../vibecore/models/) dan [migrasi](../../vibecore/migrations/), ditinjau 17 November 2026. DBML ini merangkum kolom dan relasi domain; bukan dump database live atau daftar lengkap constraint/index fisik. Endpoint dipisahkan ke [spesifikasi API](api-specification.md).
+Referensi logis berdasarkan [model Sequelize](../../vibecore/models/) dan [migrasi](../../vibecore/migrations/), ditinjau 18 November 2026. DBML ini merangkum kolom dan relasi domain; bukan dump database live atau daftar lengkap constraint/index fisik. Endpoint dipisahkan ke [spesifikasi API](api-specification.md).
 
 ## Skema logis
 
@@ -10,6 +10,7 @@ Table users {
   username varchar [not null, unique]
   email varchar [not null, unique]
   password varchar [not null]
+  tokenVersion integer [not null, default: 0]
   role varchar [default: 'Member'] // 'Member', 'Librarian', 'Admin'
   status varchar [default: 'Active'] // 'Active', 'Suspended'
   profileId integer
@@ -20,6 +21,8 @@ Table users {
 Table profiles {
   id integer [primary key]
   fullname varchar
+  bio text
+  location varchar(255)
   image varchar
   age integer
   nationality varchar
@@ -119,11 +122,14 @@ Table reading_activities {
   bookId integer [not null]
   status varchar [default: 'Want to Read'] // 'Want to Read', 'Reading', 'Finished'
   startDate timestamp
+  currentPage integer [not null, default: 0]
   finishDate timestamp
   rating integer // 1 - 5
   quote text
   privateNote text
   publicReview text
+  reviewTitle varchar(255)
+  reviewVisibility varchar(16) [not null, default: 'Public'] // 'Public', 'Private'
   moodTag varchar
   isSpoiler boolean [default: false]
   isFlagged boolean [default: false]
@@ -143,6 +149,17 @@ Table application_settings {
   updatedAt timestamp
 }
 
+Table password_reset_tokens {
+  id integer [primary key]
+  userId integer [not null]
+  tokenHash varchar(64) [not null, unique]
+  expiresAt timestamp [not null]
+  usedAt timestamp
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Ref: password_reset_tokens.userId > users.id [delete: cascade]
 Ref: users.profileId - profiles.id
 Ref: authors.profileId - profiles.id
 Ref: books.authorId > authors.id
@@ -164,6 +181,9 @@ Ref: reading_activities.bookId > books.id
 - application_settings memakai key backoffice, value JSONB, updatedBy dan timestamp. updatedBy/moderatedBy adalah identitas aktor yang tersimpan; DBML tidak mengklaim constraint foreign key untuk kolom audit.
 - 20261117110000-add-book-metadata menambah tujuh kolom metadata nullable. Publisher berupa teks, bukan tabel katalog penerbit.
 - 20261117120000-add-backoffice-settings-and-moderation-audit membuat application_settings dan menambah moderationReason/moderatedBy dalam transaksi.
+- 20261118090000-add-reading-progress menambah currentPage dengan default 0 dan constraint nonnegatif. 20261118091000-create-password-reset-tokens menyimpan hash token reset sekali pakai, expiry, usedAt dan relasi user dengan delete cascade; token mentah tidak disimpan. 20261118092000-add-user-token-version mendukung pencabutan JWT lama setelah reset/perubahan kredensial.
+- 20261118100000-add-review-title dan 20261118103000-add-review-visibility memisahkan judul/visibilitas dari teks ulasan. Draft Private tetap tersimpan bagi pemilik, terpisah dari privateNote, dan disaring dari buku, review publik, shelf publik serta moderasi staf.
+- 20261118101000-add-profile-bio-location menambah bio/lokasi; 20261118102000-enforce-user-identity-uniqueness menambahkan constraint unik username/email. Guard migrasi berhenti jika ada duplikasi, tanpa menghapus atau menggabungkan identitas.
 - Jalankan npm run db:migrate dan npm run db:migrate:status dari vibecore dengan environment database tujuan. Rollback menghapus kolom/tabel beserta nilainya; siapkan backup sebelum rollback data yang diperlukan.
 - Pemeriksaan duplikat ISBN/Google ID dilakukan service buku; DBML ini tidak menyatakan keduanya memiliki unique constraint. Aturan duplikasi dan constraint per pasangan user/book harus diperiksa pada service serta migrasi terkait.
 - File cover berada di storage backend, sedangkan books.image menyimpan URL. File yatim belum dibersihkan otomatis.

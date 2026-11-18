@@ -27,6 +27,44 @@ Server akan aktif di `http://localhost:3360`.
 - `npm run build` : Melakukan kompilasi Babel dari `src/` ke direktori `build/`.
 - `npm start` : Menjalankan server hasil kompilasi produksi (`node build/server.js`).
 - `npm test` : Menjalankan comprehensive automated test suite (80 pengujian endpoint & RBAC) di `tests/runner.js`.
+- `npm run test:unit`: Regresi terisolasi tanpa database, termasuk tes HTTP localhost.
+- `npm run test:crud`: CRUD/RBAC dan alur layanan ReadVibe–VibeDesk pada database PostgreSQL sementara.
+- `npm run test:postman`: Koleksi Postman pada API/database sementara, tanpa pelaporan cloud.
+- `npm run test:browser-api`: API/database disposable untuk QA browser; jalankan di terminal interaktif dan ketik `quit` untuk cleanup.
+
+Suite CRUD/Postman memerlukan PostgreSQL lokal dan izin CREATE DATABASE.
+Runner membuat database baru dengan prefix `vibecore_qa_`, menerapkan semua
+migration, lalu membersihkannya setelah run. Tidak perlu menjalankan seeder atau
+menyalakan server development terlebih dahulu. Gunakan perintah terisolasi ini
+untuk regresi tanpa bergantung pada akun demo di runner HTTP legacy `npm test`.
+Detail collection ada di [Postman README](postman/README.md), sedangkan cakupan
+dan batas bukti tersedia di [QA Report](QA_REPORT.md).
+
+Hasil pengujian browser dan perbaikan CRUD terbaru tersedia di
+[Browser QA Report](BROWSER_QA_REPORT.md).
+
+### Profil, akun dan privasi ulasan
+
+| Endpoint | Kontrak | Table yang digunakan |
+| --- | --- | --- |
+| `GET /api/auth/public/:username` | Profil publik aktif; tanpa email, password atau tokenVersion | `users`, `profiles` |
+| `PUT /api/auth/profile` | Profil sendiri: fullname, image, bio, location; username diperbarui atomik | `profiles`, `users` |
+| `PUT /api/auth/password` | currentPassword + password baru 12 karakter–72 byte UTF-8; semua sesi lama dibatalkan | `users`, `password_reset_tokens` |
+| `PATCH /api/auth/account` | currentPassword + email; email unik, login kembali setelah perubahan | `users`, `password_reset_tokens` |
+| `DELETE /api/auth/account` | currentPassword; Member menghapus akun sendiri beserta data miliknya. Akun staf dikelola lewat CMS | `users`, `profiles`, `reading_activities`, `wishlists`, `password_reset_tokens` |
+
+Reading finish/update menerima `reviewTitle` (maksimal 255 karakter) dan
+`reviewVisibility` (`Public`/`Private`). Teks tetap disimpan di `publicReview` saat
+Private, tetapi hanya dapat dibaca pemilik melalui endpoint aktivitas sendiri.
+Endpoint buku, ulasan publik, shelf publik dan moderasi staf menyaring draft
+privat. Menghapus teks ulasan dapat dilakukan dengan update `publicReview: ''`
+dan `reviewTitle: ''`; menghapus seluruh aktivitas tetap memakai DELETE reading.
+
+Jalankan `npm run db:migrate` sebelum memakai kode baru. Empat migration
+`20261118100000`–`20261118103000` menambah kolom judul/visibilitas ulasan dan
+bio/lokasi profil, serta constraint unik username/email. Tidak diperlukan table
+baru untuk perubahan ini. Guard migrasi menolak duplikasi identitas tanpa
+menghapus atau menggabungkan data; selesaikan duplikasi lebih dahulu bila ada.
 
 ## Konfigurasi Environment
 
@@ -154,6 +192,74 @@ Modul-modul yang tersedia:
 - `integrations/google-books`: Pencarian dan import metadata Google Books 1-click.
 
 ## Database & Sequelize CLI
+
+### Progres membaca dan token reset password
+
+Migration `20261118090000-add-reading-progress.js` menambah
+`reading_activities.currentPage` berupa INTEGER non-null dengan default `0`
+dan constraint nonnegatif. Record lama mendapat nilai `0` (progres belum tercatat).
+POST `/api/reading`, `/api/reading/start`, `/api/reading/finish` serta
+PUT/PATCH `/api/reading/:id` menerima `currentPage` opsional sebagai angka JSON
+bulat antara 0 dan 2147483647. GET `/api/reading` mengembalikan progres tersimpan.
+Update tanpa field ini mempertahankan nilai lama; aktivitas baru memakai `0`.
+Menandai selesai tidak otomatis mengubah halaman menjadi jumlah halaman buku.
+Frontend perlu mengirim `currentPage` agar progres tersimpan lintas perangkat.
+
+Migration `20261118091000-create-password-reset-tokens.js` membuat tabel
+`password_reset_tokens` dengan `userId` (FK ke users, cascade saat akun dihapus),
+`tokenHash` unik, `expiresAt`, `usedAt` nullable, serta timestamp. Model menerima
+hash SHA-256 hexadecimal lowercase sepanjang 64 karakter; token mentah tidak
+boleh disimpan. Index `userId` mendukung pencarian token milik akun.
+POST `/api/auth/forgot-password` menerima `{ email }` dan mengirim tautan reset
+melalui SMTP untuk akun aktif. Respons sukses sama untuk email terdaftar dan
+tidak terdaftar. POST `/api/auth/reset-password` menerima `{ token, password }`.
+Token acak 32 byte hanya disimpan sebagai hash, berlaku 30 menit, dan dikonsumsi
+dalam transaksi dengan row lock sehingga hanya satu permintaan bersamaan yang
+berhasil. Permintaan tautan baru membatalkan token sebelumnya. Gagal kirim email
+menghasilkan error 503 aman dan menghapus token yang baru dibuat.
+
+Password baru minimal 12 karakter, maksimal 72 byte UTF-8 untuk mencegah truncation
+bcrypt. Migration `20261118092000-add-user-token-version.js` menambah
+`users.tokenVersion` dengan default 0. Reset menaikkan versi sehingga JWT lama
+ditolak; login baru menggunakan versi terbaru. JWT lama tanpa versi tetap
+kompatibel selama akun belum melakukan reset. Kedua endpoint reset dibatasi
+masing-masing 5 permintaan per IP dalam 15 menit, per proses server. Deployment
+multi-instance memerlukan limiter bersama pada gateway atau penyimpanan bersama.
+
+Konfigurasi server: `READVIBE_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`,
+`SMTP_USER`, `SMTP_PASSWORD`, dan `SMTP_FROM` (lihat `.env.example`). Host dan
+pengirim wajib tersedia; user/password boleh dikosongkan untuk relay lokal.
+Port 465 memakai `SMTP_SECURE=true`; port 587 memakai STARTTLS. Production
+mewajibkan HTTPS pada READVIBE_URL dan TLS saat koneksi SMTP. Tanpa konfigurasi
+email yang valid, endpoint forgot-password mengembalikan 503 sebelum lookup akun.
+Tidak ada fallback yang mengaku mengirim email atau mengembalikan token ke klien.
+Tautan memakai `/forgot-password#token=...` agar token tidak masuk query HTTP.
+
+ReadVibe memuat katalog beserta seluruh halaman pagination, memulihkan sesi,
+dan membaca rak pribadi dari VibeCore. Mutasi reading/wishlist menunggu respons
+server; respons privat yang tiba setelah logout diabaikan. Data demo/localStorage
+tidak lagi menjadi sumber katalog, reading, wishlist, atau review. Halaman wishlist
+publik memakai GET `/api/wishlists/username/:username`, yang hanya memuat item Public.
+
+Jalankan `npm run db:migrate` pada environment tujuan sebelum memakai model baru.
+Rollback menghapus tabel token dan kolom progres beserta datanya. Siapkan backup
+jika data tersebut diperlukan.
+
+Tes terisolasi tanpa database:
+
+```bash
+node --test tests/reading-progress.test.js tests/reading-schema.test.js
+node --test tests/password-reset.test.js tests/readvibe-integration.test.js
+```
+
+Tes integrasi development membuat fixture unik, menguji PostgreSQL dan server
+SMTP penangkap lokal (tanpa email eksternal), lalu membersihkan fixture:
+
+```powershell
+$env:RUN_AUTH_DB_TESTS='1'
+node --test tests/password-reset.db.test.js
+Remove-Item Env:\RUN_AUTH_DB_TESTS
+```
 
 VibeCore menggunakan Sequelize ORM dan Sequelize CLI untuk manajemen skema basis data PostgreSQL (`library_ms`).
 

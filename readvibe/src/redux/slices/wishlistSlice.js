@@ -1,58 +1,41 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { INITIAL_WISHLIST } from '../../constants';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import http from '../../services/http';
+import { mapWishlist, wishlistPayload, forCurrentSession } from '../../services/reader.api';
 
-const initialState = {
-  items: INITIAL_WISHLIST,
-};
+export const loadWishlist = createAsyncThunk('wishlist/load', forCurrentSession(async () => (await http.get('/api/wishlists')).data.map(mapWishlist)));
+const findItem = (state, bookId) => state.wishlist.items.find((item) => String(item.bookId) === String(bookId));
+export const addToWishlist = createAsyncThunk('wishlist/addToWishlist', forCurrentSession(async (data, { getState }) => {
+  const existing = findItem(getState(), data.bookId);
+  const payload = wishlistPayload(data);
+  const response = existing ? await http.put(`/api/wishlists/${existing.id}`, payload) : await http.post('/api/wishlists', payload);
+  return mapWishlist({ ...existing, ...response.data });
+}));
+export const removeFromWishlist = createAsyncThunk('wishlist/removeFromWishlist', forCurrentSession(async ({ bookId }, { getState }) => {
+  const item = findItem(getState(), bookId);
+  if (!item) return bookId;
+  await http.delete(`/api/wishlists/${item.id}`);
+  return bookId;
+}));
+export const toggleWishlist = ({ bookId, ...data }) => (dispatch, getState) => dispatch(findItem(getState(), bookId) ? removeFromWishlist({ bookId }) : addToWishlist({ bookId, ...data }));
+export const updateWishlistNote = (data) => (dispatch) => dispatch(addToWishlist(data));
 
+const initialState = { items: [], status: 'idle', error: null };
 const wishlistSlice = createSlice({
-  name: 'wishlist',
-  initialState,
-  reducers: {
-    addToWishlist: (state, action) => {
-      const { bookId, priority = 'Medium', reason = '', referrer = '', isPublic = true } = action.payload;
-      const exists = state.items.some((item) => item.bookId === bookId);
-      if (!exists) {
-        state.items.unshift({
-          bookId,
-          priority,
-          reason,
-          referrer,
-          isPublic,
-          addedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        });
-      }
-    },
-    removeFromWishlist: (state, action) => {
-      const { bookId } = action.payload;
-      state.items = state.items.filter((item) => item.bookId !== bookId);
-    },
-    toggleWishlist: (state, action) => {
-      const { bookId, priority = 'Medium', reason = '' } = action.payload;
-      const exists = state.items.some((item) => item.bookId === bookId);
-      if (exists) {
-        state.items = state.items.filter((item) => item.bookId !== bookId);
-      } else {
-        state.items.unshift({
-          bookId,
-          priority,
-          reason,
-          referrer: 'Reader Pick',
-          isPublic: true,
-          addedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        });
-      }
-    },
-    updateWishlistNote: (state, action) => {
-      const { bookId, reason, priority } = action.payload;
-      const item = state.items.find((it) => it.bookId === bookId);
-      if (item) {
-        if (reason !== undefined) item.reason = reason;
-        if (priority !== undefined) item.priority = priority;
-      }
-    },
+  name: 'wishlist', initialState, reducers: {},
+  extraReducers: (builder) => {
+    builder.addCase(loadWishlist.fulfilled, (state, action) => { state.items = action.payload; });
+    builder.addCase(addToWishlist.fulfilled, (state, { payload }) => {
+      state.items = state.items.filter((item) => item.bookId !== payload.bookId);
+      state.items.unshift(payload);
+    });
+    builder.addCase(removeFromWishlist.fulfilled, (state, { payload }) => { state.items = state.items.filter((item) => String(item.bookId) !== String(payload)); });
+    for (const action of ['reading/startReading/fulfilled', 'reading/finishReading/fulfilled']) {
+      builder.addCase(action, (state, { payload }) => { state.items = state.items.filter((item) => item.bookId !== payload.bookId); });
+    }
+    builder.addCase('auth/logout', () => initialState);
+    builder.addMatcher((action) => action.type.startsWith('wishlist/') && action.type.endsWith('/pending'), (state) => { state.error = null; state.status = 'loading'; });
+    builder.addMatcher((action) => action.type.startsWith('wishlist/') && action.type.endsWith('/fulfilled'), (state) => { state.status = 'succeeded'; });
+    builder.addMatcher((action) => action.type.startsWith('wishlist/') && action.type.endsWith('/rejected'), (state, action) => { state.error = action.error.message; state.status = 'failed'; });
   },
 });
-
-export const { addToWishlist, removeFromWishlist, toggleWishlist, updateWishlistNote } = wishlistSlice.actions;
 export default wishlistSlice.reducer;
