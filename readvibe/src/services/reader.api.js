@@ -16,7 +16,7 @@ export const mapBook = (book) => ({
   moods: (book.moods || []).map((mood) => mood.name),
   editorialNote: book.editorialPicks?.find((pick) => pick.isActive)?.tagline || '',
 });
-export const mapUser = (user) => ({ ...user, name: user.profile?.fullname || user.username, avatar: user.profile?.image || '' });
+export const mapUser = (user) => ({ ...user, name: user.profile?.fullname || user.username, avatar: user.profile?.image || '', bio: user.profile?.bio || '', location: user.profile?.location || '' });
 const dateLabel = (date) => date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 export const mapReading = (activity) => ({
   ...activity, totalPages: activity.book?.page || 0, currentPage: activity.currentPage ?? 0,
@@ -50,6 +50,8 @@ export async function fetchCatalog() {
   return books;
 }
 export const readingPayload = (data) => ({
+  ...(data.reviewTitle !== undefined ? { reviewTitle: data.reviewTitle } : {}),
+  ...(data.visibility !== undefined ? { reviewVisibility: data.visibility === 'private' ? 'Private' : 'Public' } : {}),
   ...(data.rating !== undefined ? { rating: Number(data.rating) } : {}),
   ...(data.favoriteQuote !== undefined ? { quote: data.favoriteQuote } : {}),
   ...(data.privateNotes !== undefined ? { privateNote: data.privateNotes } : {}),
