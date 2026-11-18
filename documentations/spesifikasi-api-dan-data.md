@@ -10,6 +10,7 @@ Table users {
   username varchar [not null, unique]
   email varchar [not null, unique]
   password varchar [not null]
+  tokenVersion integer [not null, default: 0]
   role varchar [default: 'Member'] // 'Member', 'Librarian', 'Admin'
   profileId integer
   createdAt timestamp
@@ -111,6 +112,7 @@ Table reading_activities {
   bookId integer [not null]
   status varchar [default: 'Want to Read'] // 'Want to Read', 'Reading', 'Finished'
   startDate timestamp
+  currentPage integer [not null, default: 0]
   finishDate timestamp
   rating integer // 1 - 5
   quote text
@@ -125,6 +127,17 @@ Table reading_activities {
   updatedAt timestamp
 }
 
+Table password_reset_tokens {
+  id integer [primary key]
+  userId integer [not null]
+  tokenHash varchar(64) [not null, unique]
+  expiresAt timestamp [not null]
+  usedAt timestamp
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Ref: password_reset_tokens.userId > users.id [delete: cascade]
 Ref: users.profileId - profiles.id
 Ref: authors.profileId - profiles.id
 Ref: books.authorId > authors.id
@@ -150,6 +163,8 @@ Base URL: `http://localhost:3360/api`
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Publik | Registrasi akun baru (Member) beserta entri profil. |
 | `POST` | `/api/auth/login` | Publik | Login dengan email dan kata sandi, mengembalikan token JWT. |
+| `POST` | `/api/auth/forgot-password` | Publik | Kirim email reset untuk akun aktif; token berlaku 30 menit. |
+| `POST` | `/api/auth/reset-password` | Publik | Token sekali pakai, update password dan cabut JWT lama. |
 | `GET` | `/api/auth/me` | Bearer Token | Mengambil data profil pengguna yang sedang login. |
 | `PUT` | `/api/auth/profile` | Bearer Token | Memperbarui data profil (nama, avatar, usia, kebangsaan). |
 

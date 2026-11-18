@@ -11,7 +11,7 @@ import {
 
 export function useBooks() {
   const dispatch = useAppDispatch();
-  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId } = useAppSelector(
+  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId, status } = useAppSelector(
     (state) => state.books
   );
 
@@ -42,11 +42,12 @@ export function useBooks() {
   }, [books, selectedMood, searchQuery, selectedGenre]);
 
   const getBookById = (idOrSlug) => {
-    return books.find((b) => b.id === idOrSlug || b.slug === idOrSlug) || null;
+    return books.find((b) => String(b.id) === String(idOrSlug) || b.slug === idOrSlug) || null;
   };
 
   return {
     books,
+    status,
     filteredBooks,
     selectedMood,
     searchQuery,

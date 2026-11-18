@@ -49,6 +49,8 @@ export class ReadingService {
         'rating',
         'quote',
         'publicReview',
+        'reviewTitle',
+        'reviewVisibility',
         'moodTag',
         'isSpoiler',
         'createdAt',
@@ -67,10 +69,10 @@ export class ReadingService {
       order: [['finishDate', 'DESC']],
     });
 
-    return { user, finished };
+    return { user, finished: finished.map((activity) => ({ ...activity.toJSON(), publicReview: activity.reviewVisibility === 'Private' ? null : activity.publicReview, reviewTitle: activity.reviewVisibility !== 'Private' && activity.publicReview ? activity.reviewTitle : null })) };
   }
 
-  static async startReading(userId, { bookId, startDate = new Date() }) {
+  static async startReading(userId, { bookId, startDate = new Date(), currentPage }) {
     const book = await db.book.findByPk(bookId);
     if (!book) {
       throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
@@ -83,6 +85,7 @@ export class ReadingService {
     if (activity) {
       await activity.update({
         status: 'Reading',
+        currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
         startDate: startDate || new Date(),
       });
     } else {
@@ -90,6 +93,7 @@ export class ReadingService {
         userId,
         bookId,
         status: 'Reading',
+        currentPage: currentPage !== undefined ? currentPage : 0,
         startDate: startDate || new Date(),
       });
     }
@@ -106,9 +110,12 @@ export class ReadingService {
     const {
       bookId,
       rating,
+      currentPage,
       quote,
       privateNote,
       publicReview,
+      reviewTitle,
+      reviewVisibility,
       moodTag,
       isSpoiler = false,
       finishDate = new Date(),
@@ -126,10 +133,13 @@ export class ReadingService {
     if (activity) {
       await activity.update({
         status: 'Finished',
+        currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
         rating: rating !== undefined ? rating : activity.rating,
         quote: quote !== undefined ? quote : activity.quote,
         privateNote: privateNote !== undefined ? privateNote : activity.privateNote,
         publicReview: publicReview !== undefined ? publicReview : activity.publicReview,
+        reviewTitle: reviewTitle !== undefined ? reviewTitle : activity.reviewTitle,
+        reviewVisibility: reviewVisibility !== undefined ? reviewVisibility : activity.reviewVisibility,
         moodTag: moodTag !== undefined ? moodTag : activity.moodTag,
         isSpoiler: isSpoiler !== undefined ? !!isSpoiler : activity.isSpoiler,
         finishDate: finishDate || new Date(),
@@ -140,12 +150,15 @@ export class ReadingService {
         userId,
         bookId,
         status: 'Finished',
+        currentPage: currentPage !== undefined ? currentPage : 0,
         startDate: new Date(),
         finishDate: finishDate || new Date(),
         rating,
         quote,
         privateNote,
         publicReview,
+        reviewTitle,
+        reviewVisibility,
         moodTag,
         isSpoiler: !!isSpoiler,
         moderationStatus: 'Approved',
@@ -211,13 +224,16 @@ export class ReadingService {
       throw AppError.notFound('Aktivitas membaca tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 
-    const { status, rating, quote, privateNote, publicReview, moodTag, isSpoiler, finishDate } = payload;
+    const { status, rating, quote, privateNote, publicReview, reviewTitle, reviewVisibility, moodTag, isSpoiler, finishDate, currentPage } = payload;
     await activity.update({
       status: status !== undefined ? status : activity.status,
+      currentPage: currentPage !== undefined ? currentPage : activity.currentPage,
       rating: rating !== undefined ? rating : activity.rating,
       quote: quote !== undefined ? quote : activity.quote,
       privateNote: privateNote !== undefined ? privateNote : activity.privateNote,
       publicReview: publicReview !== undefined ? publicReview : activity.publicReview,
+      reviewTitle: reviewTitle !== undefined ? reviewTitle : activity.reviewTitle,
+      reviewVisibility: reviewVisibility !== undefined ? reviewVisibility : activity.reviewVisibility,
       moodTag: moodTag !== undefined ? moodTag : activity.moodTag,
       isSpoiler: isSpoiler !== undefined ? !!isSpoiler : activity.isSpoiler,
       finishDate: finishDate !== undefined ? finishDate : activity.finishDate,

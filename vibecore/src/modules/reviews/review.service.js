@@ -8,8 +8,9 @@ export class ReviewService {
     return await db.reading_activity.findAll({
       where: {
         bookId,
-        publicReview: { [Op.ne]: null },
+        [Op.and]: [{ publicReview: { [Op.ne]: null } }, { publicReview: { [Op.ne]: '' } }],
         moderationStatus: 'Approved',
+        reviewVisibility: 'Public',
       },
       attributes: [
         'id',
@@ -17,6 +18,7 @@ export class ReviewService {
         'rating',
         'quote',
         'publicReview',
+        'reviewTitle',
         'moodTag',
         'isSpoiler',
         'createdAt',
@@ -41,8 +43,9 @@ export class ReviewService {
 
   static async submitReview(
     userId,
-    { bookId, rating, quote, publicReview, moodTag, isSpoiler },
+    { bookId, rating, quote, publicReview, reviewTitle, moodTag, isSpoiler },
   ) {
+    if (!await db.book.findByPk(bookId)) throw AppError.notFound('Buku tidak ditemukan.', ErrorCodes.NOT_FOUND);
     let activity = await db.reading_activity.findOne({
       where: { userId, bookId },
     });
@@ -52,6 +55,8 @@ export class ReviewService {
         rating: rating !== undefined ? rating : activity.rating,
         quote: quote !== undefined ? quote : activity.quote,
         publicReview,
+        reviewVisibility: 'Public',
+        reviewTitle: reviewTitle ?? '',
         moodTag: moodTag !== undefined ? moodTag : activity.moodTag,
         isSpoiler: !!isSpoiler,
         moderationStatus: 'Approved',
@@ -64,6 +69,8 @@ export class ReviewService {
         rating: rating || 5,
         quote: quote || '',
         publicReview,
+        reviewVisibility: 'Public',
+        reviewTitle,
         moodTag: moodTag || 'Thoughtful',
         isSpoiler: !!isSpoiler,
         moderationStatus: 'Approved',
@@ -99,7 +106,7 @@ export class ReviewService {
         'Alasan laporan harus berupa teks maksimal 255 karakter.',
       );
     const activity = await db.reading_activity.findByPk(id);
-    if (!activity || !activity.publicReview) {
+    if (!activity || !activity.publicReview || activity.reviewVisibility === 'Private') {
       throw AppError.notFound('Ulasan tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
     // Flag for moderation review

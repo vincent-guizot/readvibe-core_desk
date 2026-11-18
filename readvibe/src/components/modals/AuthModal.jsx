@@ -2,8 +2,11 @@
 
 import React, { useState } from 'react';
 import { AiOutlineLock, AiOutlineMail, AiOutlineUser } from 'react-icons/ai';
+import { useAuth } from '@/hooks';
+import { mapUser } from '@/services/reader.api';
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, apiUrl }) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3360' }) {
+  const { login } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [fullname, setFullname] = useState('');
@@ -37,10 +40,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, apiUrl }) {
       }
 
       // Store token and user
-      localStorage.setItem('readvibe_token', data.token);
-      localStorage.setItem('readvibe_user', JSON.stringify(data.user));
-
-      onAuthSuccess(data.user, data.token);
+      login(mapUser(data.data.user), data.data.token);
+      onAuthSuccess?.(data.data.user, data.data.token);
       onClose();
     } catch (err) {
       setError(err.message);

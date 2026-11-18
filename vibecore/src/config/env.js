@@ -9,6 +9,15 @@ export const ENV = {
     .map((o) => o.trim()),
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  READVIBE_URL: process.env.READVIBE_URL || 'http://localhost:3350',
+  SMTP: {
+    HOST: process.env.SMTP_HOST || '',
+    PORT: Number(process.env.SMTP_PORT || 587),
+    SECURE: process.env.SMTP_SECURE === 'true',
+    USER: process.env.SMTP_USER || '',
+    PASSWORD: process.env.SMTP_PASSWORD || '',
+    FROM: process.env.SMTP_FROM || '',
+  },
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   GOOGLE_BOOKS_API_KEY: process.env.GOOGLE_BOOKS_API_KEY || '',
   DB: {

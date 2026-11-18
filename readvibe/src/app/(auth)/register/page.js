@@ -9,10 +9,12 @@ import {
   AiOutlineArrowLeft,
   AiOutlineLock
 } from 'react-icons/ai';
-import { readVibeStore } from '@/lib/store';
+import { useAuth } from '@/hooks';
+import { mapUser } from '@/services/reader.api';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -38,7 +40,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3360/api/auth/register', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3360'}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,7 +54,7 @@ export default function RegisterPage() {
       if (res.ok && data.data?.token) {
         localStorage.setItem('readvibe_token', data.data.token);
         localStorage.setItem('readvibe_user', JSON.stringify(data.data.user));
-        readVibeStore.updateUser(data.data.user);
+        login(mapUser(data.data.user), data.data.token);
         router.push('/discover');
       } else {
         setError(data.message || 'Registrasi gagal.');

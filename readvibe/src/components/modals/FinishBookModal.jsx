@@ -11,17 +11,17 @@ import {
   AiOutlineLock
 } from 'react-icons/ai';
 import { useReading } from '@/hooks';
-import { readVibeStore } from '../../lib/store';
 
 export default function FinishBookModal({ book, isOpen, onClose, onFinished, onBookFinished }) {
   const router = useRouter();
-  const { finishBook } = useReading();
+  const { finishBook, getBookProgress, status: saveStatus, error: saveError } = useReading();
+  const currentReading = book && getBookProgress(book.id);
   const [rating, setRating] = useState(4);
   const [hoverRating, setHoverRating] = useState(0);
-  const [finishedDate, setFinishedDate] = useState('2026-10-29');
+  const [finishedDate, setFinishedDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [selectedMoods, setSelectedMoods] = useState([]);
   const [favoriteQuote, setFavoriteQuote] = useState('');
-  const [personalNotes, setPersonalNotes] = useState('');
+  const [personalNotes, setPersonalNotes] = useState(currentReading?.notes || '');
   const [createVibeCard, setCreateVibeCard] = useState(true);
 
   if (!isOpen || !book) return null;
@@ -42,23 +42,18 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    finishBook({
-      bookId: book.id,
-      rating,
-      favoriteQuote,
-      moods: selectedMoods,
-      privateNotes: personalNotes
-    });
-    readVibeStore.markBookAsFinished({
+    const result = await finishBook({
       bookId: book.id,
       rating,
       dateFinished: finishedDate,
+      currentPage: book.pages || 0,
       favoriteQuote,
       moods: selectedMoods,
       privateNotes: personalNotes
     });
+    if (result.error) return;
 
     if (onFinished) onFinished();
     if (onBookFinished) onBookFinished();
@@ -148,6 +143,7 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="px-4 py-3 overflow-y-auto" style={{ flex: 1 }}>
+          {saveError && <div role="alert" className="alert alert-danger m-2">{saveError}</div>}
           <div className="mx-auto" style={{ maxWidth: '480px' }}>
             {/* Rating and Date Finished Row */}
             <div className="row g-3 mb-3">
@@ -157,6 +153,8 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
+                      aria-label={`Rate ${star} out of 5`}
+                      aria-pressed={rating === star}
                       type="button"
                       className="btn btn-link p-0 text-decoration-none border-0 shadow-none"
                       onMouseEnter={() => setHoverRating(star)}
@@ -303,7 +301,8 @@ export default function FinishBookModal({ book, isOpen, onClose, onFinished, onB
                 Cancel
               </button>
               <button
-                type="submit"
+                disabled={saveStatus === 'loading'}
+              type="submit"
                 className="btn btn-sm text-white rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5"
                 style={{ backgroundColor: 'var(--rv-ink-plum)' }}
               >

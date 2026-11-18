@@ -9,6 +9,7 @@ export class ModerationService {
     'bookId',
     'userId',
     'publicReview',
+    'reviewVisibility',
     'rating',
     'isSpoiler',
     'isFlagged',
@@ -21,7 +22,8 @@ export class ModerationService {
   ];
   static async listReviews({ status = 'Flagged' }) {
     const where = {
-      publicReview: { [Op.ne]: null },
+      [Op.and]: [{ publicReview: { [Op.ne]: null } }, { publicReview: { [Op.ne]: '' } }],
+      reviewVisibility: 'Public',
     };
     if (status) {
       where.moderationStatus = status;
@@ -57,14 +59,14 @@ export class ModerationService {
         { model: db.user, as: 'user', attributes: ['id', 'username'] },
       ],
     });
-    if (!review || !review.publicReview)
+    if (!review || !review.publicReview || review.reviewVisibility === 'Private')
       throw AppError.notFound('Ulasan tidak ditemukan.');
     return review;
   }
 
   static async moderate(id, { status, isSpoiler, reason }, actorId) {
     const activity = await db.reading_activity.findByPk(id);
-    if (!activity || !activity.publicReview) {
+    if (!activity || !activity.publicReview || activity.reviewVisibility === 'Private') {
       throw AppError.notFound('Ulasan tidak ditemukan.', ErrorCodes.NOT_FOUND);
     }
 

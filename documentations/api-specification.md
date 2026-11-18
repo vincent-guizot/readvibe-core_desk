@@ -2,6 +2,21 @@
 
 Dokumentasi komprehensif endpoint REST API **VibeCore** (`http://localhost:3360/api`).
 
+Validasi CRUD (18 November 2026):
+
+- PUT/PATCH `/api/reading/:id` membatasi status pada `Want to Read`, `Reading`,
+  atau `Finished`. Rating opsional harus integer JSON 1–5; `isSpoiler` boolean.
+  Batas rating/tipe juga berlaku pada POST `/api/reading/finish` dan `/api/reviews`.
+- Reading text fields menerima string/null. Review publik wajib berupa string
+  tidak kosong. Input yang tidak valid menghasilkan envelope error 400.
+- POST `/api/wishlists` dan PUT `/api/wishlists/:id` membatasi `priority` pada
+  `Low|Medium|High`, `visibility` pada `Public|Private`, serta `reason` string/null.
+- POST wishlist/review dengan ID buku yang tidak ditemukan menghasilkan 404.
+
+Koleksi request dan instruksi run terisolasi tersedia di
+[Postman](../vibecore/postman/README.md). Bukti dan batas cakupan ada di
+[QA Report](../vibecore/QA_REPORT.md).
+
 Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 - Respons Sukses: `{ success: true, message, data, meta, error: null, requestId }`
 - Respons Gagal: `{ success: false, message, data: null, meta: null, error: { code, details }, requestId }`
@@ -15,6 +30,8 @@ Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 | **System** | `GET` | `/api` | Public | Status layanan VibeCore & allowed origins |
 | **Auth** | `POST` | `/api/auth/register` | Public | Registrasi akun baru (Member) |
 | | `POST` | `/api/auth/login` | Public | Login akun & perolehan token JWT |
+| | `POST` | `/api/auth/forgot-password` | Public | Kirim tautan reset melalui SMTP; `{ email }` |
+| | `POST` | `/api/auth/reset-password` | Public | Ganti password dan cabut sesi lama; `{ token, password }` |
 | | `GET` | `/api/auth/me` | Authenticated | Profil pengguna yang sedang aktif |
 | | `PUT` | `/api/auth/profile` | Authenticated | Perbarui data profil pengguna |
 | **Books** | `GET` | `/api/books` | Public | Katalog buku dengan pencarian, filter, & paginasi |
@@ -33,6 +50,7 @@ Seluruh endpoint mengadopsi standar **Response Contract Envelope**:
 | | `PUT` | `/api/wishlists/:id` | Authenticated | Ubah prioritas, catatan alasan, atau visibilitas |
 | | `DELETE` | `/api/wishlists/:id` | Authenticated | Hapus buku dari wishlist |
 | | `GET` | `/api/wishlists/user/:userId` | Public | Wishlist publik milik pengguna |
+| | `GET` | `/api/wishlists/username/:username` | Public | Wishlist Public berdasarkan username; profil aman tanpa email/password |
 | **Reviews** | `GET` | `/api/reviews/book/:bookId` | Public | Daftar ulasan publik untuk suatu buku |
 | | `POST` | `/api/reviews` | Authenticated | Kirim ulasan dan rating publik baru |
 | | `POST` | `/api/reviews/:id/report` | Authenticated | Laporkan ulasan bermasalah (spam/spoiler) |

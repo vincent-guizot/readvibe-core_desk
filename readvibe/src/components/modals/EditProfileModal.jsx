@@ -1,44 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import { useAuth } from '@/hooks';
 import { readVibeStore } from '../../lib/store';
 
-export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
-  const { user: authUser, updateProfile } = useAuth();
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const [avatar, setAvatar] = useState('');
+function ProfileForm({ isOpen, onClose, onUpdated, user }) {
+  const [name, setName] = useState(user.name || '');
+  const [username, setUsername] = useState(user.username || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [location, setLocation] = useState(user.location || '');
+  const [avatar, setAvatar] = useState(user.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const u = authUser || readVibeStore.getUser();
-      setName(u.name || '');
-      setUsername(u.username || '');
-      setBio(u.bio || '');
-      setLocation(u.location || 'Jakarta, Indonesia');
-      setAvatar(u.avatar || '');
-    }
-  }, [isOpen, authUser]);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+    setError('');
     try {
-      updateProfile({
-        name,
-        username,
-        bio,
-        location,
-        avatar
-      });
-      const updated = readVibeStore.updateUser({
+      const updated = await readVibeStore.updateUser({
         name,
         username,
         bio,
@@ -48,7 +31,7 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
       if (onUpdated) onUpdated(updated);
       onClose();
     } catch (err) {
-      console.error(err);
+      setError(err.message);
     } finally {
       setIsSaving(false);
     }
@@ -87,6 +70,7 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 overflow-y-auto">
+          {error && <div role="alert" className="alert alert-danger">{error}</div>}
           {/* Avatar Selection */}
           <div className="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style={{ backgroundColor: '#FAF7F2' }}>
             <img
@@ -118,10 +102,12 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-fullname" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Full Name
             </label>
             <input
+              id="profile-fullname"
+              maxLength={255}
               type="text"
               className="form-control"
               value={name}
@@ -132,12 +118,14 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-username" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Username
             </label>
             <div className="input-group">
               <span className="input-group-text bg-light text-muted">@</span>
               <input
+                id="profile-username"
+                maxLength={50}
                 type="text"
                 className="form-control"
                 value={username}
@@ -149,10 +137,12 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-location" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Location
             </label>
             <input
+              id="profile-location"
+              maxLength={255}
               type="text"
               className="form-control"
               value={location}
@@ -162,10 +152,12 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
           </div>
 
           <div className="mb-4">
-            <label className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
+            <label htmlFor="profile-bio" className="form-label small fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
               Bio / Reading Tagline
             </label>
             <textarea
+              id="profile-bio"
+              maxLength={2000}
               className="form-control"
               rows={3}
               value={bio}
@@ -190,4 +182,10 @@ export default function EditProfileModal({ isOpen, onClose, onUpdated }) {
       </div>
     </div>
   );
+}
+
+export default function EditProfileModal(props) {
+  const { user } = useAuth();
+  if (!props.isOpen || !user) return null;
+  return <ProfileForm key={user.id} {...props} user={user} />;
 }

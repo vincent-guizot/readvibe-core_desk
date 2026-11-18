@@ -29,9 +29,6 @@ export default function Navbar() {
   const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
 
   useEffect(() => {
-    // Sync with live VibeCore on mount
-    readVibeStore.syncWithVibeCore();
-
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setIsNotifOpen(false);
@@ -74,17 +71,19 @@ export default function Navbar() {
 
   return (
     <header className="rv-navbar sticky-top py-2 px-3 px-md-4 border-bottom bg-white" style={{ zIndex: 1040 }}>
-      <div className="container-fluid d-flex align-items-center justify-content-between gap-3">
+      <div className="container-fluid px-0 px-md-2 d-flex align-items-center justify-content-between gap-3">
         {/* Left: Brand Logo */}
         <Link href="/" className="d-flex align-items-center gap-2 text-decoration-none flex-shrink-0">
           <img
             src="/assets/logos/readvibe-horizontal-color.png"
             alt="ReadVibe"
+            className="d-none d-sm-block"
             style={{ height: '36px', objectFit: 'contain' }}
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
           />
+          <img src="/logos/readvibe-icon-color.png" alt="ReadVibe" className="d-sm-none" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
         </Link>
 
         {/* Center: Search pill */}
@@ -136,7 +135,7 @@ export default function Navbar() {
         {/* Right: Actions (Notification & User profile) */}
         <div className="d-flex align-items-center gap-2 flex-shrink-0">
           {/* Mobile search button */}
-          <Link href="/search" className="btn btn-sm btn-light rounded-circle p-2 d-md-none text-muted">
+          <Link href="/search" aria-label="Search books" className="btn btn-sm btn-light rounded-circle p-2 d-md-none text-muted">
             <AiOutlineSearch size={18} />
           </Link>
 
@@ -245,7 +244,7 @@ export default function Navbar() {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
                 <img
-                  src={user.avatar}
+                  src={user.avatar || '/logos/readvibe-icon-color.png'}
                   alt={user.name}
                   className="rounded-circle object-fit-cover"
                   style={{ width: '30px', height: '30px' }}
@@ -311,7 +310,7 @@ export default function Navbar() {
               <Link href="/login" className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
                 Sign In
               </Link>
-              <Link href="/register" className="btn btn-sm btn-rv-plum rounded-pill px-3 fw-semibold">
+              <Link href="/register" className="btn btn-sm btn-rv-plum rounded-pill px-3 fw-semibold d-none d-sm-inline-flex">
                 Get Started
               </Link>
             </div>

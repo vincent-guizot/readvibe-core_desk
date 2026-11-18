@@ -1,10 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { INITIAL_USER, STORAGE_KEYS } from '../../constants';
+import { STORAGE_KEYS } from '../../constants';
 
 const initialState = {
-  user: INITIAL_USER,
+  user: null,
   token: null,
-  isAuthenticated: true, // Demo default logged in
+  isAuthenticated: false,
   status: 'idle',
   error: null,
 };

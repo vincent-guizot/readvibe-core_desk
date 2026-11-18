@@ -9,42 +9,26 @@ import {
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 import { useWishlist } from '@/hooks';
-import { readVibeStore } from '../../lib/store';
 
-export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
-  const { addWishlist } = useWishlist();
-  const [priority, setPriority] = useState('Soon'); // 'Someday' | 'Soon' | 'Next up'
-  const [reason, setReason] = useState('');
-  const [referrer, setReferrer] = useState('');
-  const [isPublic, setIsPublic] = useState(true);
-
-  React.useEffect(() => {
-    if (book) {
-      setPriority(book.priority || 'Soon');
-      setReason(book.reason || '');
-      setReferrer(book.referrer || '');
-      if (book.isPublic !== undefined) setIsPublic(book.isPublic);
-    }
-  }, [book]);
+function WishlistForm({ book, isOpen, onClose, onSaved }) {
+  const { addWishlist, status: saveStatus, error: saveError } = useWishlist();
+  const [priority, setPriority] = useState(book.priority || 'Soon'); // 'Someday' | 'Soon' | 'Next up'
+  const [reason, setReason] = useState(book.reason || '');
+  const [referrer, setReferrer] = useState(book.referrer || '');
+  const [isPublic, setIsPublic] = useState(book.isPublic ?? true);
 
   if (!isOpen || !book) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    addWishlist({
+    const result = await addWishlist({
       bookId: book.id,
       priority,
       reason,
       referrer,
       isPublic
     });
-    readVibeStore.addToWishlist({
-      bookId: book.id,
-      priority,
-      reason,
-      referrer,
-      isPublic
-    });
+    if (result.error) return;
     if (onSaved) onSaved();
     onClose();
   };
@@ -145,6 +129,7 @@ export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
           {/* Right Column: Preferences Form */}
           <div className="col-md-7 p-4 bg-white d-flex flex-column justify-content-between">
             <form onSubmit={handleSubmit} id="wishlistForm">
+          {saveError && <div role="alert" className="alert alert-danger m-2">{saveError}</div>}
               {/* Reading Priority */}
               <div className="mb-3">
                 <label className="form-label small fw-bold text-dark mb-2 d-block">
@@ -314,6 +299,7 @@ export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
               Cancel
             </button>
             <button
+              disabled={saveStatus === 'loading'}
               type="submit"
               form="wishlistForm"
               className="btn btn-sm text-white rounded-pill px-4 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5"
@@ -326,4 +312,9 @@ export default function AddToWishlistModal({ book, isOpen, onClose, onSaved }) {
       </div>
     </div>
   );
+}
+
+export default function AddToWishlistModal(props) {
+  if (!props.isOpen || !props.book) return null;
+  return <WishlistForm key={props.book.id} {...props} />;
 }

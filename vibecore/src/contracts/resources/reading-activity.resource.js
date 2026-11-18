@@ -10,7 +10,8 @@ export const toReadingActivityResource = (activity, isOwnerOrAdmin = false) => {
     finishDate: activity.finishDate,
     rating: activity.rating,
     quote: activity.quote,
-    publicReview: activity.publicReview,
+    publicReview: isOwnerOrAdmin || activity.reviewVisibility !== 'Private' ? activity.publicReview : null,
+    reviewTitle: isOwnerOrAdmin || (activity.reviewVisibility !== 'Private' && activity.publicReview) ? activity.reviewTitle : null,
     moodTag: activity.moodTag,
     isSpoiler: activity.isSpoiler,
     moderationStatus: activity.moderationStatus,
@@ -27,6 +28,7 @@ export const toReadingActivityResource = (activity, isOwnerOrAdmin = false) => {
 
   // Only expose privateNote to the owner or admin!
   if (isOwnerOrAdmin) {
+    base.currentPage = activity.currentPage;
     base.privateNote = activity.privateNote;
     base.isFlagged = activity.isFlagged;
     base.flagReason = activity.flagReason;
