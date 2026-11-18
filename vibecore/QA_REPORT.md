@@ -1,5 +1,8 @@
 # VibeCore CRUD dan integrasi — QA
 
+Laporan ini adalah baseline branch `vibecore-next`. Temuan, perbaikan dan bukti
+browser tahap berikutnya ada di [Browser QA Report](BROWSER_QA_REPORT.md).
+
 Tanggal: 18 November 2026. Branch: `vibecore-next`, dari `vibecore`.
 
 ## Hasil verifikasi
