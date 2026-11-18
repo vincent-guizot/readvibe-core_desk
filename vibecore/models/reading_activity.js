@@ -23,6 +23,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 'Want to Read', // 'Want to Read', 'Reading', 'Finished'
       },
       startDate: DataTypes.DATE,
+      currentPage: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: { isInt: true, min: 0, max: 2147483647 },
+      },
       finishDate: DataTypes.DATE,
       rating: DataTypes.INTEGER, // 1 - 5
       quote: DataTypes.TEXT,

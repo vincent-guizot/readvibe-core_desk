@@ -7,6 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       user.belongsTo(models.profile, { foreignKey: 'profileId', as: 'profile' });
       user.hasMany(models.wishlist, { foreignKey: 'userId', as: 'wishlists' });
       user.hasMany(models.reading_activity, { foreignKey: 'userId', as: 'readingActivities' });
+      user.hasMany(models.password_reset_token, { foreignKey: 'userId', as: 'passwordResetTokens', onDelete: 'CASCADE' });
     }
   }
   user.init(
@@ -25,6 +26,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      tokenVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
       role: {
         type: DataTypes.STRING,
         defaultValue: 'Member', // Member, Librarian, Admin
