@@ -22,9 +22,9 @@ export const ENV = {
   GOOGLE_BOOKS_API_KEY: process.env.GOOGLE_BOOKS_API_KEY || '',
   DB: {
     USER: process.env.DB_USER || 'postgres',
-    PASSWORD: process.env.DB_PASSWORD || '',
-    NAME: process.env.DB_NAME || 'library_ms',
+    PASSWORD: process.env.DB_PASSWORD || 'admin',
+    NAME: process.env.DB_NAME || 'readvibe',
     HOST: process.env.DB_HOST || '127.0.0.1',
-    PORT: parseInt(process.env.DB_PORT, 10) || 5432,
+    PORT: parseInt(process.env.DB_PORT, 10) || 1000,
   },
 };
