@@ -14,7 +14,7 @@ import { mapUser } from '@/services/reader.api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { loginWithApi } = useAuth();
   const [email, setEmail] = useState('member@readvibe.app');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,22 +28,10 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3360'}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (res.ok && data.data?.token) {
-        localStorage.setItem('readvibe_token', data.data.token);
-        localStorage.setItem('readvibe_user', JSON.stringify(data.data.user));
-        login(mapUser(data.data.user), data.data.token);
-        router.push('/discover');
-      } else {
-        setError(data.message || 'Login gagal.');
-      }
+      await loginWithApi(email, password);
+      router.push('/discover');
     } catch (err) {
-      setError(err.message || 'Gagal menghubungi server VibeCore.');
+      setError(err.message || 'Login gagal.');
     } finally {
       setLoading(false);
     }
