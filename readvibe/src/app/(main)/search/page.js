@@ -22,13 +22,14 @@ function SearchContent() {
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const [searchQuery, setSearchQuery] = useState(queryParam);
+  const [prevQuery, setPrevQuery] = useState(queryParam);
+  if (queryParam !== prevQuery) {
+    setPrevQuery(queryParam);
+    setSearchQuery(queryParam);
+  }
   const [selectedMoods, setSelectedMoods] = useState([]);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
-
-  useEffect(() => {
-    setSearchQuery(queryParam);
-  }, [queryParam]);
 
   const toggleMood = (mood) => {
     if (selectedMoods.includes(mood)) {

@@ -38,7 +38,7 @@ export default function RecommendationCard({ match, onWishlist, onPreview }) {
 
         <div className="bg-light p-2 rounded-2 mb-2 flex-grow-1">
           <small className="text-muted d-block fst-italic" style={{ fontSize: '11px' }}>
-            "{match.explanation || 'Resonansi mood yang selaras dengan suasana hatimu.'}"
+            &quot;{match.explanation || 'Resonansi mood yang selaras dengan suasana hatimu.'}&quot;
           </small>
         </div>
 
