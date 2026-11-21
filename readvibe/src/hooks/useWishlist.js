@@ -6,6 +6,7 @@ import {
   removeFromWishlist,
   toggleWishlist,
   updateWishlistNote,
+  loadWishlist,
 } from '../redux/slices/wishlistSlice';
 
 export function useWishlist() {
@@ -32,6 +33,8 @@ export function useWishlist() {
       dispatch(toggleWishlist({ bookId, priority, reason })),
     updateNote: (bookId, reason, priority) =>
       dispatch(updateWishlistNote({ bookId, reason, priority })),
+    loadWishlist: () => dispatch(loadWishlist()),
+    reloadWishlist: () => dispatch(loadWishlist()),
   };
 }
 
