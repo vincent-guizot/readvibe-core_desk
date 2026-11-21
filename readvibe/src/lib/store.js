@@ -5,6 +5,7 @@ import { store } from '../redux/store';
 import { loadReading, startReading, updateProgress, finishReading } from '../redux/slices/readingSlice';
 import { loadWishlist, addToWishlist, removeFromWishlist } from '../redux/slices/wishlistSlice';
 import { updateUserProfile } from '../redux/slices/authSlice';
+import { addNotification } from '../redux/slices/uiSlice';
 import http from '../services/http';
 import { mapUser } from '../services/reader.api';
 
@@ -81,6 +82,14 @@ export const readVibeStore = {
   addReview: async ({ bookId, rating, mood, content, isSpoiler = false }) => {
     const result = await http.post('/api/reviews', { bookId, rating, moodTag: mood, publicReview: content, isSpoiler });
     await store.dispatch(loadReading());
+    store.dispatch(addNotification({
+      type: 'sparkle',
+      title: 'Review Published ✨',
+      description: `Your ${rating}★ reflection on the book was saved successfully.`,
+      message: `Your ${rating}★ reflection on the book was saved successfully.`,
+      link: `/books/${bookId}`,
+      iconBg: '#E27D60',
+    }));
     return result.data;
   },
 };
