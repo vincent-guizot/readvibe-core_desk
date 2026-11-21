@@ -28,7 +28,7 @@ export default function WishlistPage() {
     const rawWishlist = wishlist || [];
     const books = reduxBooks && reduxBooks.length > 0 ? reduxBooks : [];
     return rawWishlist.map((w) => {
-      const book = books.find((b) => b.id === w.bookId || b.slug === w.bookId) || {
+      const book = w.book || books.find((b) => String(b.id) === String(w.bookId) || b.slug === w.bookId) || {
         id: w.bookId,
         title: w.bookId,
         author: 'Unknown Author',

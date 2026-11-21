@@ -19,6 +19,7 @@ import WriteReviewModal from '@/components/WriteReviewModal';
 import ReportModal from '@/components/ReportModal';
 import http from '@/services/http';
 
+
 export default function BookDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -28,14 +29,29 @@ export default function BookDetailPage() {
   const { isInWishlist, removeWishlist } = useWishlist();
   const { getBookProgress, isBookFinished, startBook } = useReading();
 
-  // Find book from Redux
-  const book = useMemo(() => {
+  // Find book from Redux or API
+  const reduxBook = useMemo(() => {
     return (
       getBookById(bookIdentifier) ||
-      books.find((b) => b.id === bookIdentifier || b.slug === bookIdentifier) ||
+      books.find((b) => String(b.id) === String(bookIdentifier) || b.slug === bookIdentifier) ||
       null
     );
   }, [bookIdentifier, books, getBookById]);
+
+  const [apiBook, setApiBook] = useState(null);
+  useEffect(() => {
+    if (!reduxBook && bookIdentifier) {
+      let active = true;
+      http.get('/api/books/' + bookIdentifier)
+        .then((res) => {
+          if (active && res.data) { const b = res.data; setApiBook({ ...b, slug: String(b.id), author: b.author?.pen_name || b.author?.name || b.author || '', genre: b.genre?.name || b.genre || '', pages: b.page || b.pages || 0, coverUrl: b.image || b.coverUrl || '', synopsis: b.description || b.synopsis || '', moods: (b.moods || []).map((m) => typeof m === 'string' ? m : m.name) }); }
+        })
+        .catch(() => {});
+      return () => { active = false; };
+    }
+  }, [reduxBook, bookIdentifier]);
+
+  const book = reduxBook || apiBook;
 
   const [reviews, setReviews] = useState([]);
   const [reviewError, setReviewError] = useState('');
