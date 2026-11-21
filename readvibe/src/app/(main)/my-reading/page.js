@@ -42,7 +42,7 @@ export default function MyReadingPage() {
   // Filter and sort active reading list
   const filteredList = useMemo(() => {
     let list = (currentReading || []).filter((item) => {
-      const book = allBooks.find((b) => b.id === item.bookId || b.slug === item.bookId);
+      const book = item.book || allBooks.find((b) => String(b.id) === String(item.bookId) || b.slug === item.bookId);
       if (!book) return false;
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
@@ -51,14 +51,14 @@ export default function MyReadingPage() {
 
     if (sortBy === 'title') {
       list.sort((a, b) => {
-        const bookA = allBooks.find((x) => x.id === a.bookId) || {};
-        const bookB = allBooks.find((x) => x.id === b.bookId) || {};
+        const bookA = a.book || allBooks.find((x) => String(x.id) === String(a.bookId)) || {};
+        const bookB = b.book || allBooks.find((x) => String(x.id) === String(b.bookId)) || {};
         return (bookA.title || '').localeCompare(bookB.title || '');
       });
     } else if (sortBy === 'progress') {
       list.sort((a, b) => {
-        const bookA = allBooks.find((x) => x.id === a.bookId) || {};
-        const bookB = allBooks.find((x) => x.id === b.bookId) || {};
+        const bookA = a.book || allBooks.find((x) => String(x.id) === String(a.bookId)) || {};
+        const bookB = b.book || allBooks.find((x) => String(x.id) === String(b.bookId)) || {};
         const pA = (a.currentPage || 0) / (bookA.pages || 300);
         const pB = (b.currentPage || 0) / (bookB.pages || 300);
         return pB - pA;
@@ -71,7 +71,7 @@ export default function MyReadingPage() {
   const currentShelfMoods = useMemo(() => {
     const set = new Set();
     currentReading.forEach((item) => {
-      const b = allBooks.find((x) => x.id === item.bookId);
+      const b = item.book || allBooks.find((x) => String(x.id) === String(item.bookId));
       if (b?.moods) {
         b.moods.forEach((m) => set.add(m));
       }
@@ -262,7 +262,7 @@ export default function MyReadingPage() {
               </div>
             ) : (
               filteredList.map((item) => {
-                const book = allBooks.find((b) => b.id === item.bookId || b.slug === item.bookId) || {
+                const book = item.book || allBooks.find((b) => String(b.id) === String(item.bookId) || b.slug === item.bookId) || {
                   title: 'The Midnight Library',
                   author: 'Matt Haig',
                   coverUrl: '/assets/books/midnight-library.jpg',

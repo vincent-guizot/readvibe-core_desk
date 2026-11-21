@@ -14,7 +14,7 @@ import { mapUser } from '@/services/reader.api';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { registerWithApi } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -40,27 +40,10 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3360'}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-          fullname: name,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.data?.token) {
-        localStorage.setItem('readvibe_token', data.data.token);
-        localStorage.setItem('readvibe_user', JSON.stringify(data.data.user));
-        login(mapUser(data.data.user), data.data.token);
-        router.push('/discover');
-      } else {
-        setError(data.message || 'Registrasi gagal.');
-      }
+      await registerWithApi({ username, email, password, fullname: name });
+      router.push('/discover');
     } catch (err) {
-      setError(err.message || 'Gagal menghubungi server VibeCore.');
+      setError(err.message || 'Registrasi gagal.');
     } finally {
       setLoading(false);
     }
