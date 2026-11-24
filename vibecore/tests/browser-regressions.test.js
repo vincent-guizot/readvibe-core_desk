@@ -10,23 +10,30 @@ const React = frontendRequire('react');
 const { renderToStaticMarkup } = frontendRequire('react-dom/server');
 
 const book = { id: 1, title: 'QA book', author: 'QA author', genre: 'QA fiction', pages: 200, moods: [], synopsis: 'Actual synopsis' };
-function render(file, hooks, props = {}, { query = 'bookId=1', react = React, push = () => {} } = {}) {
-  const { code } = babel.transformFileSync(path.join(frontend, 'src', file), {
-    babelrc: false, configFile: false,
-    presets: [[path.join(frontend, 'node_modules/next/babel'), { 'preset-env': { modules: 'commonjs' } }]],
-  });
-  const exports = {};
-  vm.runInNewContext(code, { exports, URL, URLSearchParams, require(name) {
-    if (name.startsWith('@babel/runtime/')) return frontendRequire(`next/dist/compiled/${name}`);
-    if (name === '@/hooks') return hooks;
-    if (name === 'react') return react;
-    if (name === 'next/navigation') return { useParams: () => ({ id: '1', slug: '1' }), useRouter: () => ({ push }), useSearchParams: () => new URLSearchParams(query) };
-    if (name === 'next/link') return ({ href, children, ...rest }) => React.createElement('a', { href, ...rest }, children);
-    if (name === '@/components/ui') return { Progress: () => null };
-    if (name.startsWith('@/components/')) return () => null;
-    if (name === '@/services/http') return {};
-    return frontendRequire(name);
-  } });
+function render(file, hooks, props = {}, { query = 'bookId=1', react = React, push = () => {}, globals = {} } = {}) {
+  function loadComponent(file) {
+    const { code } = babel.transformFileSync(path.join(frontend, 'src', file), {
+      babelrc: false, configFile: false,
+      presets: [[path.join(frontend, 'node_modules/next/babel'), { 'preset-env': { modules: 'commonjs' } }]],
+    });
+    const exports = {};
+    vm.runInNewContext(code, { ...globals, exports, URL, URLSearchParams, require(name) {
+      if (name.startsWith('@babel/runtime/')) return frontendRequire(`next/dist/compiled/${name}`);
+      if (name === '@/hooks') return hooks;
+      if (name === 'react') return react;
+      if (name === 'next/navigation') return { useParams: () => ({ id: '1', slug: '1' }), useRouter: () => ({ push }), useSearchParams: () => new URLSearchParams(query) };
+      if (name === 'next/link') return ({ href, children, ...rest }) => React.createElement('a', { href, ...rest }, children);
+      if (name === '@/components/books/BookCatalog') return loadComponent('components/books/BookCatalog.jsx');
+      if (name === '@/services/reader.api') return loadComponent('services/reader.api.js');
+      if (name === './http') return {};
+      if (name === '@/components/ui') return { Progress: () => null };
+      if (name.startsWith('@/components/')) return () => null;
+      if (name === '@/services/http') return {};
+      return frontendRequire(name);
+    } });
+    return exports;
+  }
+  const exports = loadComponent(file);
   return renderToStaticMarkup(React.createElement(exports.default, props));
 }
 const hooks = {
@@ -165,4 +172,60 @@ test('card preview uses ongoing wording for current reading and keeps completed 
   const completed = render('components/books/VibeCardPreview.jsx', hooks, { book, isFinished: true, finishedDate: 'Nov 24, 2026' });
   assert.match(completed, /A chapter closed/);
   assert.match(completed, /Finished Nov 24, 2026/);
+});
+
+test('Search distinguishes catalog loading and failures from an empty result', () => {
+  for (const status of ['idle', 'loading']) {
+    const html = render('app/(main)/search/page.js', { ...hooks, useBooks: () => ({ books: [], status }) });
+    assert.match(html, /Loading catalog/);
+    assert.doesNotMatch(html, /No books matched|0 books found/);
+  }
+  const failed = render('app/(main)/search/page.js', { ...hooks, useBooks: () => ({ books: [], status: 'failed', error: 'Catalog offline' }) });
+  assert.match(failed, /role="alert"/);
+  assert.match(failed, /Catalog offline/);
+  assert.match(failed, /Retry/);
+  assert.doesNotMatch(failed, /No books matched/);
+});
+
+const catalogBooks = [
+  { ...book, id: 1, title: 'River stories', author: 'Nina', genre: 'Mystery', moods: ['Calm'] },
+  { ...book, id: 2, title: 'Mountain journey', author: 'Lee', genre: 'Travel', moods: ['Bold'] },
+  { ...book, id: 3, title: 'Another river', author: 'Nina', genre: 'Mystery Romance', moods: ['Calm'] },
+];
+const catalogHooks = { ...hooks, useBooks: () => ({ books: catalogBooks, status: 'succeeded' }) };
+
+test('Search restores URL filters, uses catalog taxonomy and matches genres exactly', () => {
+  const html = render('app/(main)/search/page.js', catalogHooks, {}, { query: 'q=Nina&mood=Calm&genre=Mystery&view=list' });
+  assert.match(html, /River stories/);
+  assert.doesNotMatch(html, /Mountain journey|Another river/);
+  assert.match(html, /Travel/);
+  assert.match(html, /Bold/);
+  assert.match(html, /1 book found/);
+});
+
+test('Search updates URL keywords without losing selected filters and view', () => {
+  const query = 'mood=Calm&genre=Mystery&view=list';
+  const updates = [];
+  const globals = { window: { location: { href: 'http://localhost:3350/search?' + query }, history: { replaceState: (_, __, url) => updates.push(url) } } };
+  render('app/(main)/search/page.js', catalogHooks, {}, { query, globals,
+    react: { ...React, createElement(type, props, ...children) {
+      if (type === 'input' && props.type === 'search') props.onChange({ target: { value: 'Nina & hope?' } });
+      return React.createElement(type, props, ...children);
+    } },
+  });
+  assert.equal(updates.length, 1);
+  const destination = new URL(updates[0], 'http://localhost:3350');
+  assert.equal(destination.searchParams.get('q'), 'Nina & hope?');
+  assert.equal(destination.searchParams.get('mood'), 'Calm');
+  assert.equal(destination.searchParams.get('genre'), 'Mystery');
+  assert.equal(destination.searchParams.get('view'), 'list');
+});
+
+test('Discover presents the full catalog with filters and no invented ratings', () => {
+  const html = render('app/(main)/discover/page.js', catalogHooks);
+  assert.match(html, /Discover books/);
+  for (const item of catalogBooks) assert.match(html, new RegExp(item.title));
+  assert.match(html, /Filters/);
+  assert.match(html, /Not rated yet/);
+  assert.doesNotMatch(html, /PERSONALIZED FOR YOU/);
 });
