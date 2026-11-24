@@ -1,3 +1,13 @@
+# Arsip Laporan Ringkasan Ekosistem
+
+> **Laporan historis, bukan status layanan saat ini.** Isi di bawah dipertahankan sebagai catatan tahap implementasi terdahulu. Tanggal pengujian, log eksekusi, dan environment asal tidak tercatat lengkap di dokumen ini. Klaim RUNNING, 38 endpoint, 80 tes, 22 workflow, quick login, dan import satu klik tidak dipakai sebagai hasil verifikasi implementasi terbaru. Laporan ini tidak dieksekusi ulang pada penataan dokumentasi 17 November 2026.
+
+Untuk kondisi source terbaru, gunakan [status implementasi](progres-implementasi.md), [inventaris API](../backend/api-specification.md), [alur import](../product/alur-pengguna.md), dan [QA Report VibeDesk](../../vibedesk/QA_REPORT.md). Kredensial demo di arsip hanya berlaku jika seeder dijalankan pada database lokal dan akun belum diubah.
+
+---
+
+## Isi laporan asli
+
 # Laporan Ringkasan Final Ekosistem ReadVibe
 
 Laporan ini merangkum penyelesaian implementasi, arsitektur, status layanan aktif, serta kredensial akun demo untuk ketiga aplikasi dalam ekosistem **ReadVibe**.
