@@ -105,7 +105,10 @@ export default function ReaderPage() {
   };
 
   const handleCreateVibeCardWithQuote = () => {
-    router.push(`/vibe-card?bookId=${book.id}`);
+    if (!isAuthenticated || (!progress && !finished)) return;
+    const query = new URLSearchParams({ bookId: String(book.id) });
+    if (selectedQuote) query.set('quote', selectedQuote);
+    router.push(`/vibe-card?${query.toString()}`);
   };
 
   return (
@@ -282,6 +285,7 @@ export default function ReaderPage() {
               className="btn btn-sm text-white rounded-pill px-3"
               style={{ backgroundColor: '#D96B50' }}
               onClick={handleCreateVibeCardWithQuote}
+              disabled={!isAuthenticated || (!progress && !finished)}
             >
               ✨ Make Vibe Card (9:16)
             </button>
@@ -289,6 +293,9 @@ export default function ReaderPage() {
           <p className="small mb-3" style={{ color: currentTheme.subtext }}>
             Highlight a passage that touched your heart and turn it into a sharable visual story card.
           </p>
+          {(!isAuthenticated || (!progress && !finished)) && (
+            <p className="small" style={{ color: currentTheme.subtext }}>Sign in and start reading this book to create a Vibe Card.</p>
+          )}
           <div className="input-group">
             <input
               type="text"
@@ -307,6 +314,7 @@ export default function ReaderPage() {
                 className="btn text-white"
                 style={{ backgroundColor: currentTheme.plum }}
                 onClick={handleCreateVibeCardWithQuote}
+                disabled={!isAuthenticated || (!progress && !finished)}
               >
                 Use in Story Card
               </button>
