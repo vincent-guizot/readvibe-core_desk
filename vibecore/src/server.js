@@ -11,7 +11,7 @@ async function startServer() {
   try {
     // Authenticate database connection
     await db.sequelize.authenticate();
-    logger.info('Database connection established successfully with PostgreSQL (library_ms).');
+    logger.info('Database connection established successfully with PostgreSQL (readvibe).');
 
     // Start listening
     server = app.listen(PORT, () => {
