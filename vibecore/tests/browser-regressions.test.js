@@ -229,3 +229,28 @@ test('Discover presents the full catalog with filters and no invented ratings', 
   assert.match(html, /Not rated yet/);
   assert.doesNotMatch(html, /PERSONALIZED FOR YOU/);
 });
+
+test('book details opens a dedicated preview and avoids fabricated metadata', () => {
+  const emptyMetadata = { ...book, genre: '', synopsis: '', pages: 0, year: null };
+  const html = render('app/(main)/books/[slug]/page.js', { ...hooks, useBooks: () => ({ books: [emptyMetadata], getBookById: () => emptyMetadata, status: 'succeeded' }) });
+  assert.match(html, /<button[^>]*[\s\S]*Read a preview/);
+  assert.doesNotMatch(html, /<a href="\/reader\/1"[^>]*>[\s\S]*?Read a preview/);
+  assert.match(html, /Synopsis not available/);
+  assert.doesNotMatch(html, /A moving and imaginative story|heartwarming and immersive|CONTEMPORARY FICTION|>2021</);
+});
+
+test('Digital Preview encodes Google Books IDs and rejects unsafe external URL schemes', () => {
+  const embedded = render('components/modals/DigitalPreviewModal.jsx', hooks, { isOpen: true, onClose() {}, book: { ...book, embeddable: true, googleBooksId: 'volume&output=html' } });
+  const source = embedded.match(/<iframe[^>]*src="([^"]+)"/)[1].replaceAll('&amp;', '&');
+  const url = new URL(source);
+  assert.equal(url.origin, 'https://books.google.com');
+  assert.equal(url.searchParams.get('id'), 'volume&output=html');
+  assert.equal(url.searchParams.get('output'), 'embed');
+  assert.match(embedded, /role="dialog"/);
+  const unsafe = render('components/modals/DigitalPreviewModal.jsx', hooks, { isOpen: true, onClose() {}, book: { ...book, previewLink: 'javascript:alert(1)' } });
+  assert.doesNotMatch(unsafe, /href="javascript:/);
+  assert.match(unsafe, /Pratinjau Digital Belum Tersedia/);
+  const external = render('components/modals/DigitalPreviewModal.jsx', hooks, { isOpen: true, onClose() {}, book: { ...book, previewLink: 'https://books.google.com/books?id=valid' } });
+  assert.match(external, /href="https:\/\/books.google.com\/books\?id=valid"/);
+  assert.doesNotMatch(external, /<iframe/);
+});
