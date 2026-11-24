@@ -13,7 +13,6 @@ import {
   AiOutlineCheckCircle,
 } from 'react-icons/ai';
 import { useAuth, useNotifications } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -26,7 +25,7 @@ export default function Navbar() {
 
   // Redux hooks
   const { user, logout } = useAuth();
-  const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -53,13 +52,11 @@ export default function Navbar() {
   const unreadNotifications = notifications.filter((n) => !n.read);
 
   const handleMarkAllRead = () => {
-    unreadNotifications.forEach((n) => markAsRead(n.id));
-    readVibeStore.markAllNotificationsRead();
+    markAllAsRead();
   };
 
   const handleNotificationClick = (notif) => {
     markAsRead(notif.id);
-    readVibeStore.deleteNotification(notif.id);
     setIsNotifOpen(false);
   };
 
@@ -219,7 +216,7 @@ export default function Navbar() {
                               {notif.title}
                             </p>
                             <p className="text-muted mb-1" style={{ fontSize: '12px', lineHeight: 1.4 }}>
-                              {notif.message}
+                              {notif.description || notif.message}
                             </p>
                             <span className="text-secondary" style={{ fontSize: '11px' }}>
                               {notif.time}

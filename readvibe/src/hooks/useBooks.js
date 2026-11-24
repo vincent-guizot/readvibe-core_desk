@@ -7,6 +7,7 @@ import {
   setSearchQuery,
   setSelectedGenre,
   setActiveBook,
+  loadCatalog,
 } from '../redux/slices/booksSlice';
 
 export function useBooks() {
@@ -58,6 +59,8 @@ export function useBooks() {
     setGenre: (genre) => dispatch(setSelectedGenre(genre)),
     setActiveBook: (id) => dispatch(setActiveBook(id)),
     getBookById,
+    loadCatalog: () => dispatch(loadCatalog()),
+    reloadCatalog: () => dispatch(loadCatalog()),
   };
 }
 

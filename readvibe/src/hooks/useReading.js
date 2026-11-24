@@ -8,6 +8,7 @@ import {
   updateFinishedRead,
   removeFinishedRead,
   removeReading,
+  loadReading,
 } from '../redux/slices/readingSlice';
 
 export function useReading() {
@@ -40,6 +41,8 @@ export function useReading() {
     updateFinishedRead: (data) => dispatch(updateFinishedRead(data)),
     removeFinishedRead: (bookId) => dispatch(removeFinishedRead({ bookId })),
     removeBook: (bookId) => dispatch(removeReading({ bookId })),
+    loadReading: () => dispatch(loadReading()),
+    reloadReading: () => dispatch(loadReading()),
   };
 }
 

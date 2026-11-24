@@ -18,25 +18,27 @@ import VibeCardPreview from '@/components/books/VibeCardPreview';
 function VibeCardContent() {
   const searchParams = useSearchParams();
   const bookIdParam = searchParams.get('bookId');
+  const quote = searchParams.get('quote');
 
-  const { finishedReads, status } = useReading();
+  const { finishedReads, currentReading, status } = useReading();
   const { books: allBooks } = useBooks();
   const { user } = useAuth();
-  const initialIndex = bookIdParam ? finishedReads.findIndex((record) => String(record.bookId) === String(bookIdParam)) : 0;
+  const readingList = [...finishedReads, ...currentReading];
+  const initialIndex = bookIdParam ? readingList.findIndex((record) => String(record.bookId) === String(bookIdParam)) : 0;
   if (!user) return <div className="container py-5"><Link href="/login">Sign in to create your Vibe Card</Link></div>;
-  if (status === 'idle' || status === 'loading') return <p role="status" className="container py-5">Loading finished reads…</p>;
-  const record = finishedReads[initialIndex];
-  if (!record || (!record.book && !allBooks.some((book) => String(book.id) === String(record.bookId)))) return <div className="container py-5"><h1>No finished read selected</h1><Link href="/finished-reads">Choose a finished book</Link></div>;
-  return <VibeCardEditor key={record.id} initialIndex={initialIndex} activeFinishedList={finishedReads} allBooks={allBooks} user={user} />;
+  if (status === 'idle' || status === 'loading') return <p role="status" className="container py-5">Loading reading activities…</p>;
+  const record = readingList[initialIndex];
+  if (!record || (!record.book && !allBooks.some((book) => String(book.id) === String(record.bookId)))) return <div className="container py-5"><h1>No reading activity selected</h1><Link href="/my-reading">Choose a book from your shelves</Link></div>;
+  return <VibeCardEditor key={`${user.id}:${record.id}:${quote}`} initialIndex={initialIndex} readingList={readingList} allBooks={allBooks} user={user} initialQuote={quote} />;
 }
 
-function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
-  const initial = activeFinishedList[initialIndex];
+function VibeCardEditor({ initialIndex, readingList, allBooks, user, initialQuote }) {
+  const initial = readingList[initialIndex];
   const [selectedBookIndex, setSelectedBookIndex] = useState(initialIndex);
   const [theme, setTheme] = useState('Paper'); // 'Paper' | 'Twilight' | 'Botanical' | 'Sunset'
   const [rating, setRating] = useState(initial.rating || 0);
   const [selectedMoods, setSelectedMoods] = useState(initial.moods || []);
-  const [caption, setCaption] = useState(initial.favoriteQuote || '');
+  const [caption, setCaption] = useState(initialQuote ?? initial.favoriteQuote ?? '');
   const [showMyName, setShowMyName] = useState(true);
   const [showFinishedDate, setShowFinishedDate] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -44,17 +46,19 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
 
   const cardRef = useRef(null);
 
-  const currentFinished = activeFinishedList[selectedBookIndex];
-  const currentBook = allBooks.find((book) => String(book.id) === String(currentFinished?.bookId)) || currentFinished?.book;
+  const currentRead = readingList[selectedBookIndex];
+  const currentBook = allBooks.find((book) => String(book.id) === String(currentRead?.bookId)) || currentRead?.book;
+  const isFinished = currentRead.status === 'Finished';
+  const showCompletedDate = showFinishedDate && isFinished && !!currentRead.finishedAt;
 
   const handleCycleBook = () => {
-    if (activeFinishedList.length > 0) {
-      const nextIdx = (selectedBookIndex + 1) % activeFinishedList.length;
+    if (readingList.length > 0) {
+      const nextIdx = (selectedBookIndex + 1) % readingList.length;
       setSelectedBookIndex(nextIdx);
-      const nextItem = activeFinishedList[nextIdx];
-      if (nextItem.rating) setRating(nextItem.rating);
+      const nextItem = readingList[nextIdx];
+      setRating(nextItem.rating || 0);
       setSelectedMoods(nextItem.moods || []);
-      setCaption(nextItem.favoriteQuote || '');
+      setCaption(nextIdx === initialIndex ? initialQuote ?? nextItem.favoriteQuote ?? '' : nextItem.favoriteQuote || '');
       if (nextItem.vibeCardTheme) setTheme(nextItem.vibeCardTheme);
     }
   };
@@ -142,7 +146,7 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
     ctx.fillText('📖  READVIBE WRAPPED', 540, 160);
 
     ctx.font = 'bold 52px serif';
-    ctx.fillText('A chapter closed.', 540, 250);
+    ctx.fillText(isFinished ? 'A chapter closed.' : 'A chapter unfolding.', 540, 250);
     ctx.fillText('A feeling kept.', 540, 315);
 
     // Load Book Cover
@@ -182,14 +186,14 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
       }
 
       // Footer
-      if (showMyName || showFinishedDate) {
+      if (showMyName || showCompletedDate) {
         ctx.font = '30px sans-serif';
         ctx.fillStyle = palette.sub;
         const displayName = user?.name || 'Reader';
         const displayHandle = user?.username ? `@${user.username}` : '';
         const userMeta = `${showMyName ? `${displayName} (${displayHandle})` : ''} ${
-          showMyName && showFinishedDate ? '· ' : ''
-        }${showFinishedDate ? `Finished ${currentFinished.finishedAt || 'Recently'}` : ''}`;
+          showMyName && showCompletedDate ? '· ' : ''
+        }${showCompletedDate ? `Finished ${currentRead.finishedAt}` : ''}`;
         ctx.fillText(userMeta, 540, 1750);
 
         ctx.font = '24px sans-serif';
@@ -262,7 +266,7 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
           Your read. Your vibe.
         </h1>
         <p className="text-muted small mb-0" style={{ fontSize: '0.95rem' }}>
-          Turn your finished books into an aesthetic 9:16 social story card (#ReadVibeWrapped).
+          Turn your reading journey into an aesthetic 9:16 social story card (#ReadVibeWrapped).
         </p>
       </div>
 
@@ -270,11 +274,11 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
         {/* Left Column: Form Controls */}
         <div className="col-lg-6">
           <div className="d-flex flex-column gap-4">
-            {/* Step 1: Your finished read */}
+            {/* Step 1: Your selected read */}
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <h5 className="fw-bold mb-0 rv-editorial" style={{ color: 'var(--rv-ink-plum)' }}>
-                  1. Finished Book
+                  1. Your Book
                 </h5>
                 <button
                   type="button"
@@ -282,7 +286,7 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
                   className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
                   style={{ fontSize: '12px' }}
                 >
-                  Switch Book ({selectedBookIndex + 1}/{Math.max(1, activeFinishedList.length)})
+                  Switch Book ({selectedBookIndex + 1}/{Math.max(1, readingList.length)})
                 </button>
               </div>
 
@@ -416,7 +420,8 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
                     className="form-check-input"
                     type="checkbox"
                     id="showDateSwitch"
-                    checked={showFinishedDate}
+                    checked={showCompletedDate}
+                    disabled={!isFinished || !currentRead.finishedAt}
                     onChange={(e) => setShowFinishedDate(e.target.checked)}
                   />
                   <label className="form-check-label small fw-semibold text-dark" htmlFor="showDateSwitch">
@@ -457,9 +462,10 @@ function VibeCardEditor({ initialIndex, activeFinishedList, allBooks, user }) {
               caption={caption}
               userName={user?.name || 'Reader'}
               userHandle={user?.username || 'reader'}
-              finishedDate={currentFinished.finishedAt || 'Recently'}
+              finishedDate={currentRead.finishedAt}
+              isFinished={isFinished}
               showName={showMyName}
-              showDate={showFinishedDate}
+              showDate={showCompletedDate}
               interactive={true}
               onRatingChange={(newRating) => setRating(newRating)}
               cardRef={cardRef}

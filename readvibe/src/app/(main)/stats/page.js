@@ -27,7 +27,7 @@ export default function StatsPage() {
   // Combine Redux finished reading history with full book metadata
   const enrichedFinishedReads = useMemo(() => {
     return (finishedReads || []).map((read) => {
-      const book = books.find((b) => b.id === read.bookId || b.slug === read.bookId);
+      const book = read.book || books.find((b) => String(b.id) === String(read.bookId) || b.slug === String(read.bookId));
       const moodsList = read.moods && read.moods.length > 0
         ? read.moods
         : (book?.moods || []);

@@ -17,6 +17,7 @@ function ReaderSession({ children }) {
   const readingError = useSelector((state) => state.reading.error);
   const wishlistError = useSelector((state) => state.wishlist.error);
   const [sessionError, setSessionError] = useState('');
+  const [dismissed, setDismissed] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   useEffect(() => {
     dispatch(loadCatalog());
@@ -39,8 +40,16 @@ function ReaderSession({ children }) {
   }, [dispatch, token]);
   const error = sessionError || catalog.error || readingError || wishlistError;
   return <>
-    {catalog.status === 'loading' && <div role="status" className="px-3 py-2 small">Loading catalog…</div>}
-    {error && <div role="alert" className="alert alert-danger m-3">{error} <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => { setSessionError(''); setRetryVersion((version) => version + 1); if (token) { dispatch(loadReading()); dispatch(loadWishlist()); } }}>Retry</button></div>}
+    {catalog.status === 'loading' && <div role="status" className="px-3 py-1 small text-muted text-center" style={{ backgroundColor: '#FAF7F2' }}>Loading catalog…</div>}
+    {error && !dismissed && (
+      <div role="alert" className="alert alert-warning alert-dismissible fade show m-3 d-flex align-items-center justify-content-between">
+        <span>{error}</span>
+        <div className="d-flex align-items-center gap-2 ms-3">
+          <button type="button" className="btn btn-sm btn-outline-dark" onClick={() => { setDismissed(false); setSessionError(''); setRetryVersion((version) => version + 1); if (token) { dispatch(loadReading()); dispatch(loadWishlist()); } }}>Retry</button>
+          <button type="button" className="btn-close" aria-label="Close" onClick={() => setDismissed(true)}></button>
+        </div>
+      </div>
+    )}
     {children}
   </>;
 }
