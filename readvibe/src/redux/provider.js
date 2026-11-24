@@ -9,7 +9,6 @@ import { setCredentials, logout } from './slices/authSlice';
 import { loadCatalog } from './slices/booksSlice';
 import { loadReading } from './slices/readingSlice';
 import { loadWishlist } from './slices/wishlistSlice';
-import { setNotifications } from './slices/uiSlice';
 
 function ReaderSession({ children }) {
   const dispatch = useDispatch();
@@ -39,34 +38,6 @@ function ReaderSession({ children }) {
     dispatch(loadReading());
     dispatch(loadWishlist());
   }, [dispatch, token]);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = JSON.parse(localStorage.getItem('readvibe_notifications'));
-        if (Array.isArray(stored) && stored.length > 0) {
-          dispatch(setNotifications(stored));
-        } else {
-          const welcome = [{
-            id: 'welcome-seed',
-            type: 'sparkle',
-            title: 'Welcome to ReadVibe! 🌿',
-            description: 'Discover curated books by mood, track your reading journey, and create aesthetic story cards.',
-            message: 'Discover curated books by mood, track your reading journey, and create aesthetic story cards.',
-            link: '/discover',
-            read: false,
-            time: 'Welcome',
-            section: 'today',
-            createdAt: new Date().toISOString(),
-            iconBg: '#9B8CB4',
-            iconColor: '#FFFFFF',
-          }];
-          dispatch(setNotifications(welcome));
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }, [dispatch]);
   const error = sessionError || catalog.error || readingError || wishlistError;
   return <>
     {catalog.status === 'loading' && <div role="status" className="px-3 py-1 small text-muted text-center" style={{ backgroundColor: '#FAF7F2' }}>Loading catalog…</div>}

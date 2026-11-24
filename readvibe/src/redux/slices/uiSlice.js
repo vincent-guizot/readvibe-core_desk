@@ -1,20 +1,36 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const saveToLocalStorage = (notifications) => {
-  if (typeof window !== 'undefined') {
+const saveToLocalStorage = ({ notifications, notificationUserId }) => {
+  if (typeof window !== 'undefined' && notificationUserId !== null) {
     try {
-      localStorage.setItem('readvibe_notifications', JSON.stringify(notifications));
+      localStorage.setItem(`readvibe_notifications:${notificationUserId}`, JSON.stringify(notifications));
     } catch {
       // ignore storage quota errors
     }
   }
 };
 
-const getInitialNotifications = () => {
+const getAccountNotifications = (userId) => {
   if (typeof window !== 'undefined') {
     try {
-      const stored = JSON.parse(localStorage.getItem('readvibe_notifications'));
-      if (Array.isArray(stored)) return stored;
+      const stored = localStorage.getItem(`readvibe_notifications:${userId}`);
+      if (stored !== null) {
+        const notifications = JSON.parse(stored);
+        return Array.isArray(notifications) ? notifications : [];
+      }
+      return [{
+        id: 'welcome-seed',
+        type: 'sparkle',
+        title: 'Welcome to ReadVibe! 🌿',
+        description: 'Discover curated books by mood, track your reading journey, and create aesthetic story cards.',
+        link: '/discover',
+        read: false,
+        time: 'Welcome',
+        section: 'today',
+        createdAt: new Date().toISOString(),
+        iconBg: '#9B8CB4',
+        iconColor: '#FFFFFF',
+      }];
     } catch {
       // ignore
     }
@@ -23,7 +39,8 @@ const getInitialNotifications = () => {
 };
 
 const initialState = {
-  notifications: getInitialNotifications(),
+  notifications: [],
+  notificationUserId: null,
   activeModal: null,
   modalData: null,
   toast: null,
@@ -42,6 +59,7 @@ const uiSlice = createSlice({
       state.modalData = null;
     },
     addNotification: (state, action) => {
+      if (state.notificationUserId === null) return;
       const payload = action.payload || {};
       const newNotif = {
         id: payload.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -59,32 +77,33 @@ const uiSlice = createSlice({
         iconColor: payload.iconColor || '#FFFFFF',
       };
       state.notifications.unshift(newNotif);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     },
     setNotifications: (state, action) => {
+      if (state.notificationUserId === null) return;
       state.notifications = Array.isArray(action.payload) ? action.payload : [];
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     },
     markNotificationRead: (state, action) => {
       const notif = state.notifications.find((n) => n.id === action.payload);
       if (notif) {
         notif.read = true;
-        saveToLocalStorage(state.notifications);
+        saveToLocalStorage(state);
       }
     },
     markAllNotificationsRead: (state) => {
       state.notifications.forEach((n) => {
         n.read = true;
       });
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     },
     deleteNotification: (state, action) => {
       state.notifications = state.notifications.filter((n) => n.id !== action.payload);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     },
     clearAllNotifications: (state) => {
       state.notifications = [];
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     },
     showToast: (state, action) => {
       state.toast = {
@@ -98,8 +117,18 @@ const uiSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase('auth/setCredentials', (state, { payload }) => {
+      const userId = payload.token && payload.user?.id != null ? String(payload.user.id) : null;
+      if (userId === state.notificationUserId) return;
+      state.notificationUserId = userId;
+      state.notifications = userId === null ? [] : getAccountNotifications(userId);
+      saveToLocalStorage(state);
+    });
+    builder.addCase('auth/logout', () => initialState);
+
     // 1. Reading Journey Started Trigger
     builder.addCase('reading/startReading/fulfilled', (state, { payload }) => {
+      if (state.notificationUserId === null) return;
       const bookTitle = payload?.book?.title || 'a new book';
       const notif = {
         id: `start-${payload?.bookId || Date.now()}-${Date.now()}`,
@@ -117,11 +146,12 @@ const uiSlice = createSlice({
         iconColor: '#FFFFFF',
       };
       state.notifications.unshift(notif);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     });
 
     // 2. Reading Milestone Trigger (Halfway / 50%)
     builder.addCase('reading/updateProgress/fulfilled', (state, { payload }) => {
+      if (state.notificationUserId === null) return;
       const total = payload?.book?.pages || payload?.totalPages || 0;
       const current = payload?.currentPage || 0;
       if (total > 0 && current > 0) {
@@ -146,7 +176,7 @@ const uiSlice = createSlice({
               iconColor: '#FFFFFF',
             };
             state.notifications.unshift(notif);
-            saveToLocalStorage(state.notifications);
+            saveToLocalStorage(state);
           }
         }
       }
@@ -154,6 +184,7 @@ const uiSlice = createSlice({
 
     // 3. Book Completed Trigger & Vibe Card Prompt
     builder.addCase('reading/finishReading/fulfilled', (state, { payload }) => {
+      if (state.notificationUserId === null) return;
       const bookTitle = payload?.book?.title || 'your book';
       const notif = {
         id: `finish-${payload?.bookId || Date.now()}-${Date.now()}`,
@@ -171,11 +202,12 @@ const uiSlice = createSlice({
         iconColor: '#FFFFFF',
       };
       state.notifications.unshift(notif);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     });
 
     // 4. Saved to Wishlist Trigger
     builder.addCase('wishlist/addToWishlist/fulfilled', (state, { payload }) => {
+      if (state.notificationUserId === null) return;
       const bookTitle = payload?.book?.title || 'Book';
       const priorityLabel = payload?.priority || 'Soon';
       const notif = {
@@ -194,11 +226,12 @@ const uiSlice = createSlice({
         iconColor: '#4A7C59',
       };
       state.notifications.unshift(notif);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     });
 
     // 5. Account Profile Updated Trigger
     builder.addCase('auth/updateUserProfile', (state) => {
+      if (state.notificationUserId === null) return;
       const notif = {
         id: `profile-${Date.now()}`,
         type: 'shield',
@@ -214,7 +247,7 @@ const uiSlice = createSlice({
         iconColor: '#FFFFFF',
       };
       state.notifications.unshift(notif);
-      saveToLocalStorage(state.notifications);
+      saveToLocalStorage(state);
     });
   },
 });

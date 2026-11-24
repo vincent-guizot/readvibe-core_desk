@@ -13,7 +13,6 @@ import {
   AiOutlineCheckCircle,
 } from 'react-icons/ai';
 import { useAuth, useNotifications } from '@/hooks';
-import { readVibeStore } from '@/lib/store';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -54,12 +53,10 @@ export default function Navbar() {
 
   const handleMarkAllRead = () => {
     markAllAsRead();
-    readVibeStore.markAllNotificationsRead();
   };
 
   const handleNotificationClick = (notif) => {
     markAsRead(notif.id);
-    readVibeStore.deleteNotification(notif.id);
     setIsNotifOpen(false);
   };
 

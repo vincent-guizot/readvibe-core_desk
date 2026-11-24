@@ -13,6 +13,7 @@ export function VibeCardPreview({
   userName = 'Reader',
   userHandle = 'reader',
   finishedDate = 'Recently',
+  isFinished = true,
   showName = true,
   showDate = true,
   interactive = false,
@@ -114,7 +115,7 @@ export function VibeCardPreview({
             color: themeStyles.textColor,
           }}
         >
-          A chapter closed.
+          {isFinished ? 'A chapter closed.' : 'A chapter unfolding.'}
           <br />
           A feeling kept.
         </h4>

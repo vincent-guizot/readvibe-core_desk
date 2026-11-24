@@ -83,9 +83,9 @@ JWT_SECRET=your_jwt_secret_key_here
 JWT_EXPIRES_IN=7d
 DB_USER=postgres
 DB_PASSWORD=admin
-DB_NAME=library_ms
+DB_NAME=readvibe
 DB_HOST=127.0.0.1
-DB_PORT=5432
+DB_PORT=1000
 GEMINI_API_KEY=your_gemini_api_key_here
 GOOGLE_BOOKS_API_KEY=your_google_books_api_key_here
 ```
@@ -261,14 +261,14 @@ node --test tests/password-reset.db.test.js
 Remove-Item Env:\RUN_AUTH_DB_TESTS
 ```
 
-VibeCore menggunakan Sequelize ORM dan Sequelize CLI untuk manajemen skema basis data PostgreSQL (`library_ms`).
+VibeCore menggunakan Sequelize ORM dan Sequelize CLI untuk manajemen skema basis data PostgreSQL (`readvibe` secara default; dapat diubah melalui `DB_NAME`).
 
 ### Perintah Database (NPM Scripts)
 
 | Perintah | Deskripsi |
 | :--- | :--- |
-| `npm run db:create` | Membuat database `library_ms` baru di PostgreSQL |
-| `npm run db:drop` | Menghapus database `library_ms` |
+| `npm run db:create` | Membuat database sesuai `DB_NAME` (default `readvibe`) di PostgreSQL |
+| `npm run db:drop` | Menghapus database sesuai `DB_NAME` (default `readvibe`) |
 | `npm run db:migrate` | Menjalankan seluruh migrasi skema tabel yang tertunda |
 | `npm run db:migrate:status` | Memeriksa status migrasi (`up` / `down`) |
 | `npm run db:migrate:undo` | Membatalkan (*rollback*) migrasi terakhir |
