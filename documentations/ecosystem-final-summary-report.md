@@ -2,6 +2,8 @@
 
 Laporan ini merangkum penyelesaian implementasi, arsitektur, status layanan aktif, serta kredensial akun demo untuk ketiga aplikasi dalam ekosistem **ReadVibe**.
 
+> Catatan konfigurasi 24 November 2026: default database VibeCore kini `readvibe` pada port PostgreSQL `1000`, sesuai `.env.example`. Nama `library_ms` dan hasil pengujian di bawah merupakan catatan konfigurasi sebelumnya; laporan ini bukan bukti bahwa layanan atau akun demo sedang aktif pada database baru.
+
 ---
 
 ## 1. Status Layanan & Port Ekosistem
