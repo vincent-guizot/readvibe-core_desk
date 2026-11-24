@@ -12,7 +12,7 @@ import {
 
 export function useBooks() {
   const dispatch = useAppDispatch();
-  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId, status } = useAppSelector(
+  const { items: books, selectedMood, searchQuery, selectedGenre, activeBookId, status, error } = useAppSelector(
     (state) => state.books
   );
 
@@ -49,6 +49,7 @@ export function useBooks() {
   return {
     books,
     status,
+    error,
     filteredBooks,
     selectedMood,
     searchQuery,
