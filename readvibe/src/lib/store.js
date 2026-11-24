@@ -1,20 +1,12 @@
 "use client";
 
-import { INITIAL_NOTIFICATIONS } from '../constants';
 import { store } from '../redux/store';
 import { loadReading, startReading, updateProgress, finishReading } from '../redux/slices/readingSlice';
 import { loadWishlist, addToWishlist, removeFromWishlist } from '../redux/slices/wishlistSlice';
 import { updateUserProfile } from '../redux/slices/authSlice';
+import { addNotification, markNotificationRead, deleteNotification, clearAllNotifications, markAllNotificationsRead } from '../redux/slices/uiSlice';
 import http from '../services/http';
 import { mapUser } from '../services/reader.api';
-
-function getLocalItem(key, fallback) {
-  if (typeof window === 'undefined') return fallback;
-  try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
-}
-function setLocalItem(key, value) {
-  if (typeof window !== 'undefined') localStorage.setItem(key, JSON.stringify(value));
-}
 
 export const readVibeStore = {
   syncWithVibeCore: async () => {
@@ -34,37 +26,32 @@ export const readVibeStore = {
   isInWishlist: (bookId) => store.getState().wishlist.items.some((item) => String(item.bookId) === String(bookId)),
   // Notifications
   getNotifications: () => {
-    return getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
+    return store.getState().ui.notifications;
   },
 
   markNotificationAsRead: (id) => {
-    const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
-    const updated = notifs.map((n) => (n.id === id ? { ...n, read: true } : n));
-    setLocalItem('readvibe_notifications', updated);
-    return updated;
+    store.dispatch(markNotificationRead(id));
+    return store.getState().ui.notifications;
   },
 
   deleteNotification: (id) => {
-    const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
-    const updated = notifs.filter((n) => n.id !== id);
-    setLocalItem('readvibe_notifications', updated);
-    return updated;
+    store.dispatch(deleteNotification(id));
+    return store.getState().ui.notifications;
   },
 
   clearAllNotifications: () => {
-    setLocalItem('readvibe_notifications', []);
-    return [];
+    store.dispatch(clearAllNotifications());
+    return store.getState().ui.notifications;
   },
 
   markAllNotificationsRead: () => {
-    const notifs = getLocalItem('readvibe_notifications', INITIAL_NOTIFICATIONS);
-    const updated = notifs.map((n) => ({ ...n, read: true }));
-    setLocalItem('readvibe_notifications', updated);
-    return updated;
+    store.dispatch(markAllNotificationsRead());
+    return store.getState().ui.notifications;
   },
 
   getUser: () => store.getState().auth.user,
   updateUser: async (updates) => {
+    const token = store.getState().auth.token;
     const current = store.getState().auth.user;
     const result = await http.put('/api/auth/profile', {
       fullname: updates.name ?? updates.fullname ?? current?.name,
@@ -73,14 +60,26 @@ export const readVibeStore = {
       bio: updates.bio ?? current?.bio ?? '',
       location: updates.location ?? current?.location ?? '',
     });
+    if (store.getState().auth.token !== token) throw new Error('Sesi berubah. Silakan login kembali.');
     const user = mapUser({ ...current, username: result.data.username ?? current?.username, profile: result.data.profile });
     store.dispatch(updateUserProfile(user));
     return user;
   },
   getReviewsForBook: async (bookId) => (await http.get(`/api/reviews/book/${bookId}`)).data,
   addReview: async ({ bookId, rating, mood, content, isSpoiler = false }) => {
+    const token = store.getState().auth.token;
     const result = await http.post('/api/reviews', { bookId, rating, moodTag: mood, publicReview: content, isSpoiler });
+    if (store.getState().auth.token !== token) throw new Error('Sesi berubah. Silakan login kembali.');
     await store.dispatch(loadReading());
+    if (store.getState().auth.token !== token) throw new Error('Sesi berubah. Silakan login kembali.');
+    store.dispatch(addNotification({
+      type: 'sparkle',
+      title: 'Review Published ✨',
+      description: `Your ${rating}★ reflection on the book was saved successfully.`,
+      message: `Your ${rating}★ reflection on the book was saved successfully.`,
+      link: `/books/${bookId}`,
+      iconBg: '#E27D60',
+    }));
     return result.data;
   },
 };

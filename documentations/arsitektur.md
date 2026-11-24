@@ -34,7 +34,7 @@ Tidak ada dependensi bersama di root, tidak menggunakan npm workspaces atau mono
                                                v                           v
                                      +-------------------+       +-------------------+
                                      |    PostgreSQL     |       |   Google APIs     |
-                                     |   (library_ms)    |       | (Gemini & Books)  |
+                                     |    (readvibe)     |       | (Gemini & Books)  |
                                      +-------------------+       +-------------------+
 ```
 

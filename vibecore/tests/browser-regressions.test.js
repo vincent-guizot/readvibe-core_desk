@@ -10,16 +10,17 @@ const React = frontendRequire('react');
 const { renderToStaticMarkup } = frontendRequire('react-dom/server');
 
 const book = { id: 1, title: 'QA book', author: 'QA author', genre: 'QA fiction', pages: 200, moods: [], synopsis: 'Actual synopsis' };
-function render(file, hooks, props = {}) {
+function render(file, hooks, props = {}, { query = 'bookId=1', react = React, push = () => {} } = {}) {
   const { code } = babel.transformFileSync(path.join(frontend, 'src', file), {
     babelrc: false, configFile: false,
     presets: [[path.join(frontend, 'node_modules/next/babel'), { 'preset-env': { modules: 'commonjs' } }]],
   });
   const exports = {};
-  vm.runInNewContext(code, { exports, URL, require(name) {
+  vm.runInNewContext(code, { exports, URL, URLSearchParams, require(name) {
     if (name.startsWith('@babel/runtime/')) return frontendRequire(`next/dist/compiled/${name}`);
     if (name === '@/hooks') return hooks;
-    if (name === 'next/navigation') return { useParams: () => ({ id: '1', slug: '1' }), useRouter: () => ({ push() {} }), useSearchParams: () => new URLSearchParams('bookId=1') };
+    if (name === 'react') return react;
+    if (name === 'next/navigation') return { useParams: () => ({ id: '1', slug: '1' }), useRouter: () => ({ push }), useSearchParams: () => new URLSearchParams(query) };
     if (name === 'next/link') return ({ href, children, ...rest }) => React.createElement('a', { href, ...rest }, children);
     if (name === '@/components/ui') return { Progress: () => null };
     if (name.startsWith('@/components/')) return () => null;
@@ -101,11 +102,67 @@ test('account settings has empty password controls and real explicit deletion co
 });
 
 test('Vibe Card selects numeric activity IDs from URL and uses the saved quote', () => {
-  const cardHooks = { ...hooks, useAuth: () => ({ user: { name: 'QA reader' } }), useReading: () => ({ status: 'succeeded', finishedReads: [{ id: 7, bookId: 1, rating: 4, favoriteQuote: 'SAVED_QUOTE', moods: [] }] }) };
+  const cardHooks = { ...hooks, useAuth: () => ({ user: { name: 'QA reader' } }), useReading: () => ({ status: 'succeeded', currentReading: [], finishedReads: [{ id: 7, bookId: 1, status: 'Finished', rating: 4, favoriteQuote: 'SAVED_QUOTE', moods: [] }] }) };
   const html = render('app/(main)/vibe-card/page.js', cardHooks);
   assert.match(html, /QA book/);
   assert.match(html, /SAVED_QUOTE/);
   assert.doesNotMatch(html, /The Midnight Library|A gentle reminder that every life/);
-  const empty = { ...cardHooks, useReading: () => ({ status: 'succeeded', finishedReads: [] }) };
-  assert.match(render('app/(main)/vibe-card/page.js', empty), /No finished read selected/);
+  const empty = { ...cardHooks, useReading: () => ({ status: 'succeeded', currentReading: [], finishedReads: [] }) };
+  assert.match(render('app/(main)/vibe-card/page.js', empty), /No reading activity selected/);
+});
+
+test('Reader carries the entered quote through an encoded Vibe Card URL', () => {
+  const quote = 'A & B? #1 + “hope” 🌿';
+  let destination;
+  const signedIn = { ...hooks, useAuth: () => ({ isAuthenticated: true }), useReading: () => ({ ...hooks.useReading(), getBookProgress: () => ({ currentPage: 10 }) }) };
+  const html = render('app/(main)/reader/[id]/page.js', signedIn, {}, {
+    react: { ...React, useState(initial) { return React.useState(initial === '' ? quote : initial); }, createElement(type, props, ...children) {
+      if (type === 'button' && children.some((child) => typeof child === 'string' && child.includes('Make Vibe Card'))) props.onClick();
+      return React.createElement(type, props, ...children);
+    } },
+    push: (url) => { destination = url; },
+  });
+  assert.match(html, /Use in Story Card/);
+  const url = new URL(destination, 'http://localhost:3350');
+  assert.equal(url.pathname, '/vibe-card');
+  assert.equal(url.searchParams.get('bookId'), '1');
+  assert.equal(url.searchParams.get('quote'), quote);
+});
+
+test('Vibe Card opens a current read with the reader quote instead of a false completion', () => {
+  const quote = 'A & B? #1 + “hope” 🌿';
+  const cardHooks = { ...hooks, useAuth: () => ({ user: { id: 1, name: 'QA reader' } }), useReading: () => ({ status: 'succeeded', finishedReads: [], currentReading: [{ id: 7, bookId: 1, status: 'Reading', book, favoriteQuote: 'OLD_QUOTE', privateNotes: 'PRIVATE_NOTES' }] }) };
+  const html = render('app/(main)/vibe-card/page.js', cardHooks, {}, { query: new URLSearchParams({ bookId: '1', quote }).toString() });
+  assert.match(html, /QA book/);
+  assert.match(html, /A &amp; B\? #1 \+ “hope” 🌿/);
+  assert.doesNotMatch(html, /No finished read selected|No reading activity selected|OLD_QUOTE|PRIVATE_NOTES/);
+  assert.match(html, /id="showDateSwitch"[^>]*disabled/);
+});
+
+test('Reader blocks card navigation until signed in with a reading activity', () => {
+  for (const isAuthenticated of [false, true]) {
+    let navigated = false;
+    const html = render('app/(main)/reader/[id]/page.js', { ...hooks, useAuth: () => ({ isAuthenticated }) }, {}, {
+      react: { ...React, createElement(type, props, ...children) {
+        if (type === 'button' && children.some((child) => typeof child === 'string' && child.includes('Make Vibe Card'))) {
+          assert.equal(props.disabled, true);
+          props.onClick();
+        }
+        return React.createElement(type, props, ...children);
+      } },
+      push: () => { navigated = true; },
+    });
+    assert.match(html, /Sign in and start reading this book to create a Vibe Card/);
+    assert.equal(navigated, false);
+  }
+});
+
+test('card preview uses ongoing wording for current reading and keeps completed wording for finished books', () => {
+  const ongoing = render('components/books/VibeCardPreview.jsx', hooks, { book, isFinished: false, showDate: false, caption: 'A current quote' });
+  assert.match(ongoing, /A chapter unfolding/);
+  assert.match(ongoing, /A current quote/);
+  assert.doesNotMatch(ongoing, /A chapter closed|Finished Recently/);
+  const completed = render('components/books/VibeCardPreview.jsx', hooks, { book, isFinished: true, finishedDate: 'Nov 24, 2026' });
+  assert.match(completed, /A chapter closed/);
+  assert.match(completed, /Finished Nov 24, 2026/);
 });

@@ -8,14 +8,22 @@ import {
   AiOutlineCheck,
   AiOutlineFileText,
   AiOutlineSafety,
-  AiOutlineLock
+  AiOutlineLock,
+  AiOutlineClose,
+  AiOutlineDelete,
 } from 'react-icons/ai';
 import { BsBookmarks, BsStars } from 'react-icons/bs';
 import { useNotifications } from '@/hooks';
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread'
-  const { notifications: reduxNotifications, markAsRead, clearAll } = useNotifications();
+  const {
+    notifications: reduxNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+  } = useNotifications();
 
   const normalizedNotifications = useMemo(() => {
     return (reduxNotifications || []).map((notif, idx) => {
@@ -57,7 +65,7 @@ export default function NotificationsPage() {
         section: idx < 3 ? 'today' : 'earlier',
         iconBg: iconBg || '#7A9A8B',
         iconColor,
-        link: notif.link || '/my-reading'
+        link: notif.link || '/my-reading',
       };
     });
   }, [reduxNotifications]);
@@ -66,7 +74,11 @@ export default function NotificationsPage() {
   const allCount = normalizedNotifications.length;
 
   const handleMarkAllRead = () => {
-    normalizedNotifications.filter((n) => n.unread).forEach((n) => markAsRead(n.id));
+    markAllAsRead();
+  };
+
+  const handleClearAll = () => {
+    clearAll();
   };
 
   const filteredNotifications =
@@ -114,20 +126,33 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            className="btn btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
-            style={{
-              border: '1px solid #D96B50',
-              color: '#D96B50',
-              backgroundColor: '#FFFFFF'
-            }}
-          >
-            <AiOutlineCheck size={14} /> Mark all as read
-          </button>
-        )}
+        <div className="d-flex align-items-center gap-2">
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="btn btn-sm rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+              style={{
+                border: '1px solid #D96B50',
+                color: '#D96B50',
+                backgroundColor: '#FFFFFF',
+              }}
+            >
+              <AiOutlineCheck size={14} /> Mark all as read
+            </button>
+          )}
+
+          {allCount > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+              style={{ fontSize: '13px' }}
+            >
+              <AiOutlineDelete size={14} /> Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="row g-4">
@@ -144,7 +169,7 @@ export default function NotificationsPage() {
                   color: activeTab === 'all' ? 'var(--rv-ink-plum)' : '#8C827A',
                   borderBottom: activeTab === 'all' ? '2px solid #D96B50' : 'none',
                   paddingBottom: activeTab === 'all' ? '12px' : '0',
-                  marginBottom: activeTab === 'all' ? '-14px' : '0'
+                  marginBottom: activeTab === 'all' ? '-14px' : '0',
                 }}
               >
                 <span>All</span>
@@ -164,7 +189,7 @@ export default function NotificationsPage() {
                   color: activeTab === 'unread' ? 'var(--rv-ink-plum)' : '#8C827A',
                   borderBottom: activeTab === 'unread' ? '2px solid #D96B50' : 'none',
                   paddingBottom: activeTab === 'unread' ? '12px' : '0',
-                  marginBottom: activeTab === 'unread' ? '-14px' : '0'
+                  marginBottom: activeTab === 'unread' ? '-14px' : '0',
                 }}
               >
                 <span>Unread</span>
@@ -187,7 +212,7 @@ export default function NotificationsPage() {
                 <p className="small text-muted mb-0">
                   {activeTab === 'unread'
                     ? "You're completely caught up with all reading updates."
-                    : 'Updates and milestone notices will appear here.'}
+                    : 'Updates and milestone notices will appear here as you read and save books.'}
                 </p>
               </div>
             )}
@@ -200,23 +225,25 @@ export default function NotificationsPage() {
                 </h6>
                 <div className="d-flex flex-column gap-2">
                   {todayList.map((notif) => (
-                    <Link
+                    <div
                       key={notif.id}
-                      href={notif.link}
-                      onClick={() => markAsRead(notif.id)}
-                      className="d-flex align-items-center justify-content-between p-3 rounded-4 text-decoration-none transition-all"
+                      className="d-flex align-items-center justify-content-between p-3 rounded-4 transition-all"
                       style={{
-                        backgroundColor: notif.unread ? '#F7F3FA' : '#FAF7F2'
+                        backgroundColor: notif.unread ? '#F7F3FA' : '#FAF7F2',
                       }}
                     >
-                      <div className="d-flex align-items-center gap-3">
+                      <Link
+                        href={notif.link}
+                        onClick={() => markAsRead(notif.id)}
+                        className="d-flex align-items-center gap-3 text-decoration-none flex-grow-1"
+                      >
                         <div
                           className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                           style={{
                             width: '42px',
                             height: '42px',
                             backgroundColor: notif.iconBg,
-                            color: notif.iconColor
+                            color: notif.iconColor,
                           }}
                         >
                           {renderIcon(notif)}
@@ -228,22 +255,22 @@ export default function NotificationsPage() {
                             {notif.description}
                           </small>
                         </div>
-                      </div>
+                      </Link>
 
-                      <div className="d-flex align-items-center gap-3 ms-3 flex-shrink-0">
-                        <span className="text-muted" style={{ fontSize: '12px' }}>
+                      <div className="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+                        <span className="text-muted small" style={{ fontSize: '12px' }}>
                           {notif.time}
                         </span>
 
                         {notif.thumbnail && (
                           <div
-                            className="rounded-2 overflow-hidden border"
+                            className="rounded-2 overflow-hidden border d-none d-sm-block"
                             style={{
-                              width: '38px',
-                              height: '52px',
+                              width: '32px',
+                              height: '46px',
                               backgroundImage: `url(${notif.thumbnail})`,
-                              backgroundSize: notif.thumbCrop ? '300% 300%' : 'cover',
-                              backgroundPosition: notif.thumbCrop || 'center'
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
                             }}
                           />
                         )}
@@ -254,12 +281,23 @@ export default function NotificationsPage() {
                             style={{
                               width: '8px',
                               height: '8px',
-                              backgroundColor: '#D96B50'
+                              backgroundColor: '#D96B50',
                             }}
+                            title="Unread"
                           />
                         )}
+
+                        <button
+                          type="button"
+                          aria-label="Remove notification"
+                          className="btn btn-sm btn-link p-1 text-muted text-decoration-none shadow-none ms-1"
+                          onClick={() => deleteNotification(notif.id)}
+                          title="Remove notification"
+                        >
+                          <AiOutlineClose size={15} />
+                        </button>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -273,21 +311,23 @@ export default function NotificationsPage() {
                 </h6>
                 <div className="d-flex flex-column gap-2">
                   {earlierList.map((notif) => (
-                    <Link
+                    <div
                       key={notif.id}
-                      href={notif.link}
-                      onClick={() => markAsRead(notif.id)}
-                      className="d-flex align-items-center justify-content-between p-3 rounded-4 text-decoration-none border-bottom"
+                      className="d-flex align-items-center justify-content-between p-3 rounded-4 border-bottom transition-all"
                       style={{ backgroundColor: '#FFFFFF' }}
                     >
-                      <div className="d-flex align-items-center gap-3">
+                      <Link
+                        href={notif.link}
+                        onClick={() => markAsRead(notif.id)}
+                        className="d-flex align-items-center gap-3 text-decoration-none flex-grow-1"
+                      >
                         <div
                           className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                           style={{
                             width: '42px',
                             height: '42px',
                             backgroundColor: notif.iconBg,
-                            color: notif.iconColor
+                            color: notif.iconColor,
                           }}
                         >
                           {renderIcon(notif)}
@@ -299,10 +339,10 @@ export default function NotificationsPage() {
                             {notif.description}
                           </small>
                         </div>
-                      </div>
+                      </Link>
 
-                      <div className="d-flex align-items-center gap-3 ms-3 flex-shrink-0">
-                        <span className="text-muted" style={{ fontSize: '12px' }}>
+                      <div className="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+                        <span className="text-muted small" style={{ fontSize: '12px' }}>
                           {notif.time}
                         </span>
 
@@ -312,12 +352,23 @@ export default function NotificationsPage() {
                             style={{
                               width: '8px',
                               height: '8px',
-                              backgroundColor: '#D96B50'
+                              backgroundColor: '#D96B50',
                             }}
+                            title="Unread"
                           />
                         )}
+
+                        <button
+                          type="button"
+                          aria-label="Remove notification"
+                          className="btn btn-sm btn-link p-1 text-muted text-decoration-none shadow-none ms-1"
+                          onClick={() => deleteNotification(notif.id)}
+                          title="Remove notification"
+                        >
+                          <AiOutlineClose size={15} />
+                        </button>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -364,7 +415,7 @@ export default function NotificationsPage() {
               className="btn btn-outline-secondary rounded-pill w-100 py-2.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-2 mb-3 mt-2"
               style={{
                 borderColor: '#EADFD5',
-                color: 'var(--rv-ink-plum)'
+                color: 'var(--rv-ink-plum)',
               }}
             >
               <AiOutlineSetting size={16} /> Notification Settings
