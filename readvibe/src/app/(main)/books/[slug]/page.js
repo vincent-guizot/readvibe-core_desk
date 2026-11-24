@@ -13,21 +13,27 @@ import {
   AiOutlineCheck,
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill, BsStars } from 'react-icons/bs';
-import { useBooks, useWishlist, useReading } from '@/hooks';
+import { useBooks, useWishlist, useReading, useAuth } from '@/hooks';
 import AddToWishlistModal from '@/components/AddToWishlistModal';
 import WriteReviewModal from '@/components/WriteReviewModal';
 import ReportModal from '@/components/ReportModal';
+import DigitalPreviewModal from '@/components/DigitalPreviewModal';
 import http from '@/services/http';
+import { mapBook } from '@/services/reader.api';
 
 
 export default function BookDetailPage() {
   const params = useParams();
-  const router = useRouter();
-  const bookIdentifier = params?.slug || params?.id || 'midnight-library';
+  const bookIdentifier = params?.slug || params?.id || '';
+  return <BookDetailContent key={bookIdentifier} bookIdentifier={bookIdentifier} />;
+}
 
-  const { books, getBookById, status: catalogStatus } = useBooks();
-  const { isInWishlist, removeWishlist } = useWishlist();
+function BookDetailContent({ bookIdentifier }) {
+  const router = useRouter();
+  const { books, getBookById } = useBooks();
+  const { isInWishlist, removeWishlist, status: wishlistStatus } = useWishlist();
   const { getBookProgress, isBookFinished, startBook } = useReading();
+  const { isAuthenticated } = useAuth();
 
   // Find book from Redux or API
   const reduxBook = useMemo(() => {
@@ -38,24 +44,30 @@ export default function BookDetailPage() {
     );
   }, [bookIdentifier, books, getBookById]);
 
-  const [apiBook, setApiBook] = useState(null);
+  const [detailAttempt, setDetailAttempt] = useState(0);
+  const [apiDetail, setApiDetail] = useState(null);
+  const currentDetail = apiDetail?.attempt === detailAttempt ? apiDetail : null;
   useEffect(() => {
     if (!reduxBook && bookIdentifier) {
       let active = true;
-      http.get('/api/books/' + bookIdentifier)
+      http.get('/api/books/' + encodeURIComponent(bookIdentifier))
         .then((res) => {
-          if (active && res.data) { const b = res.data; setApiBook({ ...b, slug: String(b.id), author: b.author?.pen_name || b.author?.name || b.author || '', genre: b.genre?.name || b.genre || '', pages: b.page || b.pages || 0, coverUrl: b.image || b.coverUrl || '', synopsis: b.description || b.synopsis || '', moods: (b.moods || []).map((m) => typeof m === 'string' ? m : m.name) }); }
+          if (active) setApiDetail({ attempt: detailAttempt, status: res.data ? 'succeeded' : 'notFound', book: res.data ? mapBook(res.data) : null });
         })
-        .catch(() => {});
+        .catch((error) => {
+          if (active) setApiDetail({ attempt: detailAttempt, status: error.statusCode === 404 ? 'notFound' : 'failed', error: error.message });
+        });
       return () => { active = false; };
     }
-  }, [reduxBook, bookIdentifier]);
+  }, [reduxBook, bookIdentifier, detailAttempt]);
 
-  const book = reduxBook || apiBook;
+  const book = reduxBook || currentDetail?.book;
 
-  const [reviews, setReviews] = useState([]);
-  const [reviewError, setReviewError] = useState('');
   const [reviewVersion, setReviewVersion] = useState(0);
+  const [reviewResponse, setReviewResponse] = useState(null);
+  const currentReviews = reviewResponse?.version === reviewVersion ? reviewResponse : null;
+  const reviews = currentReviews?.items || [];
+  const reviewError = currentReviews?.error || '';
   const [selectedReview, setSelectedReview] = useState(null);
   const averageRating = reviews.length ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length : 0;
   const bookId = book?.id;
@@ -63,8 +75,8 @@ export default function BookDetailPage() {
     if (!bookId) return;
     let active = true;
     http.get(`/api/reviews/book/${bookId}`).then((response) => {
-      if (active) setReviews(response.data.map((review) => ({ ...review, author: review.user?.profile?.fullname || review.user?.username || '', avatar: review.user?.profile?.image || '/logos/readvibe-icon-color.png', comment: review.publicReview })));
-    }).catch((error) => { if (active) setReviewError(error.message); });
+      if (active) setReviewResponse({ version: reviewVersion, items: response.data.map((review) => ({ ...review, author: review.user?.profile?.fullname || review.user?.username || '', avatar: review.user?.profile?.image || '/logos/readvibe-icon-color.png', comment: review.publicReview })) });
+    }).catch((error) => { if (active) setReviewResponse({ version: reviewVersion, error: error.message }); });
     return () => { active = false; };
   }, [bookId, reviewVersion]);
 
@@ -74,6 +86,9 @@ export default function BookDetailPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   // Dynamic reading status
   const inWishlist = book ? isInWishlist(book.id) : false;
@@ -82,19 +97,30 @@ export default function BookDetailPage() {
 
   // Handle Start / Continue reading
   const handleStartOrContinueReading = async () => {
-    if (!book) return;
-    if (!readingProgress && !isFinished) {
-      const result = await startBook(book.id, book.pages || 300);
-      if (result.error) return;
+    if (!book || starting) return;
+    if (!isAuthenticated) { router.push('/login'); return; }
+    setStarting(true);
+    setActionError('');
+    try {
+      if (!readingProgress && !isFinished) {
+        const result = await startBook(book.id);
+        if (result.error) { setActionError(result.error.message); return; }
+      }
+      router.push(`/reader/${book.id}`);
+    } catch (error) {
+      setActionError(error.message);
+    } finally {
+      setStarting(false);
     }
-    router.push(`/reader/${book.id}`);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2500);
+      } catch { setActionError('The link could not be copied. Copy the address from your browser.'); }
     }
   };
 
@@ -113,9 +139,14 @@ export default function BookDetailPage() {
   if (!book) {
     return (
       <div className="container py-5 text-center">
-        <h4 className="fw-bold" style={{ color: 'var(--rv-ink-plum)' }}>
-          {catalogStatus === 'idle' || catalogStatus === 'loading' ? 'Loading book details...' : 'Book not found'}
-        </h4>
+        {currentDetail?.status === 'failed' ? (
+          <div role="alert">
+            <h1 className="h4">Book details could not be loaded</h1>
+            <p>{currentDetail.error}</p>
+            <button type="button" className="btn btn-outline-dark" onClick={() => setDetailAttempt((attempt) => attempt + 1)}>Retry</button>
+          </div>
+        ) : currentDetail?.status === 'notFound' || !bookIdentifier ? <h1 className="h4">Book not found</h1> : <p role="status">Loading book details…</p>}
+        <Link href="/discover">Back to Discover</Link>
       </div>
     );
   }
@@ -131,7 +162,7 @@ export default function BookDetailPage() {
             </Link>
           </li>
           <li className="breadcrumb-item">
-            <Link href="/search" className="text-secondary text-decoration-none">
+            <Link href="/discover" className="text-secondary text-decoration-none">
               Discover
             </Link>
           </li>
@@ -158,7 +189,7 @@ export default function BookDetailPage() {
           <div className="position-sticky" style={{ top: '90px' }}>
             <div className="mb-3 text-center">
               <img
-                src={book.coverUrl || '/assets/books/midnight-library.jpg'}
+                src={book.coverUrl || '/assets/books/cover-unavailable.svg'}
                 alt={book.title}
                 className="rounded-3 shadow-lg img-fluid"
                 style={{
@@ -167,20 +198,22 @@ export default function BookDetailPage() {
                   boxShadow: '0 14px 28px rgba(43, 19, 44, 0.14)',
                 }}
                 onError={(e) => {
-                  e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/assets/books/cover-unavailable.svg';
                 }}
               />
             </div>
 
             {/* Read Preview & Share Row */}
             <div className="d-flex align-items-center justify-content-center gap-2">
-              <Link
-                href={`/reader/${book.id}`}
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
                 className="btn btn-sm btn-white border rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm flex-grow-1 justify-content-center"
                 style={{ color: 'var(--rv-ink-plum)', backgroundColor: '#FFFFFF' }}
               >
                 <AiOutlineBook size={16} /> Read a preview
-              </Link>
+              </button>
               <button
                 type="button"
                 className="btn btn-sm btn-light border rounded-circle p-2 text-muted shadow-sm"
@@ -200,7 +233,7 @@ export default function BookDetailPage() {
             className="small fw-bold d-block text-uppercase mb-1"
             style={{ color: '#D96B50', letterSpacing: '0.1em', fontSize: '12px' }}
           >
-            {book.genre || 'CONTEMPORARY FICTION'}
+            {book.genre || 'Genre not specified'}
           </span>
 
           {/* Book Title & Author */}
@@ -232,7 +265,7 @@ export default function BookDetailPage() {
 
           {/* Mood Pills */}
           <div className="d-flex flex-wrap gap-2 mb-4">
-            {(book.moods || ['Cozy', 'Reflective']).map((m) => (
+            {(book.moods || []).map((m) => (
               <span
                 key={m}
                 className="badge rounded-pill px-3 py-1.5 fw-normal"
@@ -251,12 +284,12 @@ export default function BookDetailPage() {
           {/* Description Paragraphs */}
           <div className="text-secondary small mb-4" style={{ fontSize: '14px', lineHeight: 1.7 }}>
             <p className="mb-2">
-              {book.synopsis ||
-                'A moving and imaginative story about regret, possibility, and the quiet power of second chances.'}
+              {book.synopsis || 'Synopsis not available for this book.'}
             </p>
           </div>
 
           {/* Main Action Buttons */}
+          {actionError && <p role="alert" className="alert alert-warning">{actionError}</p>}
           <div className="d-flex flex-wrap align-items-center gap-2.5 mb-4">
             {isFinished ? (
               <Link
@@ -270,26 +303,31 @@ export default function BookDetailPage() {
               <button
                 type="button"
                 onClick={handleStartOrContinueReading}
+                disabled={starting}
                 className="btn btn-rv-plum rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
               >
-                <AiOutlineBook size={18} /> Continue reading (p. {readingProgress.currentPage || 1})
+                <AiOutlineBook size={18} /> Continue reading (p. {readingProgress.currentPage ?? 0})
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleStartOrContinueReading}
+                disabled={starting}
                 className="btn btn-rv-plum rounded-3 px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
               >
-                <AiOutlineBook size={18} /> Start reading
+                <AiOutlineBook size={18} /> {starting ? 'Starting…' : isAuthenticated ? 'Start reading' : 'Sign in to start reading'}
               </button>
             )}
 
             {/* Wishlist Button */}
             <button
               type="button"
-              onClick={() => {
+              disabled={wishlistStatus === 'loading'}
+              onClick={async () => {
+                if (!isAuthenticated) { router.push('/login'); return; }
                 if (inWishlist) {
-                  removeWishlist(book.id);
+                  const result = await removeWishlist(book.id);
+                  if (result.error) setActionError(result.error.message);
                 } else {
                   setIsWishlistModalOpen(true);
                 }
@@ -313,14 +351,14 @@ export default function BookDetailPage() {
             </button>
 
             {/* Vibe Card Shortcut */}
-            <Link
+            {(readingProgress || isFinished) && <Link
               href={`/vibe-card?bookId=${book.id}`}
               className="btn btn-white border rounded-3 px-3 py-2.5 text-muted shadow-sm d-inline-flex align-items-center gap-1.5"
               style={{ backgroundColor: '#FFFFFF', borderColor: '#E0D8CE', color: 'var(--rv-ink-plum)' }}
               title="Generate Vibe Card"
             >
               <BsStars size={16} style={{ color: '#D96B50' }} /> Vibe Card
-            </Link>
+            </Link>}
           </div>
 
           {/* Quick Meta Inline */}
@@ -330,22 +368,22 @@ export default function BookDetailPage() {
           >
             <div className="d-flex align-items-center gap-1.5">
               <span>📄</span>
-              <span>{book.pages || 304} pages</span>
+              <span>{book.pages > 0 ? `${book.pages} pages` : 'Page count unavailable'}</span>
             </div>
             <span>&bull;</span>
             <div className="d-flex align-items-center gap-1.5">
               <span>🌐</span>
-              <span>{book.language || 'English'}</span>
+              <span>{book.language || 'Language unspecified'}</span>
             </div>
             <span>&bull;</span>
             <div className="d-flex align-items-center gap-1.5">
               <span>📅</span>
-              <span>{book.year || 2021}</span>
+              <span>{book.year || 'Publication year unavailable'}</span>
             </div>
             <span>&bull;</span>
             <div className="d-flex align-items-center gap-1.5">
               <span>🏷️</span>
-              <span>{book.genre || 'Fiction'}</span>
+              <span>{book.genre || 'Genre unspecified'}</span>
             </div>
           </div>
 
@@ -361,7 +399,7 @@ export default function BookDetailPage() {
           )}
 
           {/* Overview / Reader Reviews Tabs */}
-          <div className="d-flex align-items-center gap-4 border-bottom pb-2 mb-4">
+          <div className="d-flex align-items-center gap-4 border-bottom pb-2 mb-4" role="group" aria-label="Book sections">
             <button
               type="button"
               className={`btn btn-link text-decoration-none p-0 pb-2 fw-semibold position-relative ${
@@ -372,6 +410,8 @@ export default function BookDetailPage() {
                 borderBottom: activeTab === 'overview' ? '2.5px solid #D96B50' : 'none',
               }}
               onClick={() => setActiveTab('overview')}
+              aria-pressed={activeTab === 'overview'}
+              aria-controls="book-overview"
             >
               Overview
             </button>
@@ -385,13 +425,15 @@ export default function BookDetailPage() {
                 borderBottom: activeTab === 'reviews' ? '2.5px solid #D96B50' : 'none',
               }}
               onClick={() => setActiveTab('reviews')}
+              aria-pressed={activeTab === 'reviews'}
+              aria-controls="book-reviews"
             >
               Reader reviews ({reviews.length})
             </button>
           </div>
 
           {/* About this book section */}
-          <div className="card border-0 rounded-4 shadow-sm p-4 bg-white mb-4">
+          <div id="book-overview" hidden={activeTab !== 'overview'} className="card border-0 rounded-4 shadow-sm p-4 bg-white mb-4">
             <h5
               className="fw-bold mb-2"
               style={{ fontFamily: 'var(--font-editorial)', color: 'var(--rv-ink-plum)' }}
@@ -399,8 +441,7 @@ export default function BookDetailPage() {
               About this book
             </h5>
             <p className="text-secondary small mb-2" style={{ lineHeight: 1.65 }}>
-              {book.synopsis ||
-                `${book.title} is a heartwarming and immersive story written by ${book.author}.`}
+              {book.synopsis || 'Synopsis not available for this book.'}
             </p>
             {showFullDesc && book.quote && (
               <blockquote
@@ -423,7 +464,7 @@ export default function BookDetailPage() {
           </div>
 
           {/* What readers are saying section */}
-          <div>
+          <div id="book-reviews" hidden={activeTab !== 'reviews'}>
             <div className="d-flex align-items-center justify-content-between mb-3">
               <h5
                 className="fw-bold mb-0"
@@ -435,7 +476,7 @@ export default function BookDetailPage() {
                 type="button"
                 className="btn btn-sm btn-white border rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm"
                 style={{ color: 'var(--rv-ink-plum)', backgroundColor: '#FFFFFF' }}
-                onClick={() => setIsReviewModalOpen(true)}
+                onClick={() => { if (isAuthenticated) setIsReviewModalOpen(true); else router.push('/login'); }}
               >
                 <AiOutlineEdit size={14} /> Write a review
               </button>
@@ -443,8 +484,9 @@ export default function BookDetailPage() {
 
             {/* Review Cards Grid */}
             <div className="row g-3">
-              {reviewError && <div role="alert" className="alert alert-danger">{reviewError}</div>}
-              {!reviews.length && !reviewError && <p>No public reviews yet.</p>}
+              {reviewError && <div role="alert" className="alert alert-danger">{reviewError} <button type="button" className="btn btn-sm btn-outline-dark" onClick={() => setReviewVersion((version) => version + 1)}>Retry reviews</button></div>}
+              {!currentReviews && <p role="status">Loading public reviews…</p>}
+              {currentReviews && !reviews.length && !reviewError && <p>No public reviews yet.</p>}
               {reviews.map((rev) => (
                 <div key={rev.id} className="col-md-6">
                   <div className="card border-0 rounded-4 shadow-sm p-3.5 bg-white h-100">
@@ -460,11 +502,7 @@ export default function BookDetailPage() {
                           {rev.author}
                         </div>
                         <div className="d-flex text-warning" style={{ fontSize: '12px' }}>
-                          <AiFillStar />
-                          <AiFillStar />
-                          <AiFillStar />
-                          <AiFillStar />
-                          <AiFillStar />
+                          {[1, 2, 3, 4, 5].map((star) => star <= Math.round(Number(rev.rating)) ? <AiFillStar key={star} /> : <AiOutlineStar key={star} />)}
                           <span className="ms-1 text-muted" style={{ fontSize: '11px' }}>
                             {rev.rating}
                           </span>
@@ -496,23 +534,23 @@ export default function BookDetailPage() {
             <div className="d-flex flex-column gap-2.5 small text-secondary">
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Genre</span>
-                <span className="fw-semibold text-dark">{book.genre || 'Fiction'}</span>
+                <span className="fw-semibold text-dark">{book.genre || 'Unspecified'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Published</span>
-                <span className="fw-semibold text-dark">{book.year || '2021'}</span>
+                <span className="fw-semibold text-dark">{book.year || 'Unavailable'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Format</span>
-                <span className="fw-semibold text-dark">{book.format || 'Paperback & Digital'}</span>
+                <span className="fw-semibold text-dark">{book.format || 'Unspecified'}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted">Language</span>
-                <span className="fw-semibold text-dark">{book.language || 'English'}</span>
+                <span className="fw-semibold text-dark">{book.language || 'Unspecified'}</span>
               </div>
               <div className="d-flex justify-content-between">
                 <span className="text-muted">Pages</span>
-                <span className="fw-semibold text-dark">{book.pages || 304}</span>
+                <span className="fw-semibold text-dark">{book.pages > 0 ? book.pages : 'Unavailable'}</span>
               </div>
             </div>
           </div>
@@ -557,12 +595,13 @@ export default function BookDetailPage() {
                 <div key={rel.id} className="d-flex align-items-center gap-3">
                   <Link href={`/books/${rel.id}`} className="flex-shrink-0">
                     <img
-                      src={rel.coverUrl}
+                      src={rel.coverUrl || '/assets/books/cover-unavailable.svg'}
                       alt={rel.title}
                       className="rounded shadow-sm"
                       style={{ width: '44px', height: '62px', objectFit: 'cover' }}
                       onError={(e) => {
-                        e.currentTarget.src = '/assets/books/midnight-library.jpg';
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/books/cover-unavailable.svg';
                       }}
                     />
                   </Link>
@@ -603,6 +642,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
+      <DigitalPreviewModal key={book.id} book={book} isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
       <AddToWishlistModal
         book={book}
         isOpen={isWishlistModalOpen}

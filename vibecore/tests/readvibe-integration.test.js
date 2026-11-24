@@ -39,6 +39,27 @@ test('ReadVibe loads the whole paginated catalog, maps canonical IDs, and transl
   assert.equal(api.mapWishlist({ priority: 'Medium' }).priority, 'Soon');
 });
 
+test('catalog loading deduplicates concurrent requests and clears a recovered error', async () => {
+  let calls = 0;
+  let resolve;
+  let fail = true;
+  const { store, books } = loadReader({ get: async () => {
+    calls++;
+    if (fail) throw new Error('Catalog offline');
+    return new Promise((done) => { resolve = done; });
+  } });
+  await store.dispatch(books.loadCatalog());
+  assert.equal(store.getState().books.error, 'Catalog offline');
+  fail = false;
+  const pending = store.dispatch(books.loadCatalog());
+  await store.dispatch(books.loadCatalog());
+  assert.equal(calls, 2);
+  resolve({ data: [], meta: { pagination: { hasNextPage: false } } });
+  await pending;
+  assert.equal(store.getState().books.status, 'succeeded');
+  assert.equal(store.getState().books.error, null);
+});
+
 test('ReadVibe saves server activity IDs, persists page zero, reloads empty shelves, and preserves state on API failure', async () => {
   let activity = { id: 87, bookId: 2, status: 'Reading', currentPage: 21, book: { id: 2, page: 100 } };
   let fail = false;
