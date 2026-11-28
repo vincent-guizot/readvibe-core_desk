@@ -4,7 +4,7 @@ import { booksApi, googleBooksApi } from '../services/catalog-api';
 import PageHeader from '../components/shared/PageHeader';
 import BookCover from '../features/books/components/BookCover';
 import EmptyState from '../components/shared/EmptyState';
-import { findImportDuplicate, getImportMapping } from '../features/books/google-books-import';
+import { findImportDuplicate, getImportMapping, toImportedBookPayload } from '../features/books/google-books-import';
 
 export default function GoogleBooksImportPage({
   authors = [],
@@ -69,21 +69,7 @@ export default function GoogleBooksImportPage({
     setBusy(true);
     setError('');
     try {
-      const { data } = await booksApi.create({
-        title: selected.title,
-        description: selected.description,
-        year: selected.publishedYear || null,
-        page: selected.pageCount || null,
-        image: selected.image || null,
-        isbn: selected.isbn || null,
-        googleBooksId: selected.googleBooksId,
-        previewLink: selected.previewLink || null,
-        embeddable: selected.embeddable,
-        ...mapping,
-        stock: Number(mapping.stock),
-        authorId: Number(mapping.authorId),
-        genreId: Number(mapping.genreId),
-      });
+      const { data } = await booksApi.create(toImportedBookPayload(selected, mapping));
       onRefresh?.();
       navigate(`/books/${data.id}`, {
         state: { message: 'Buku berhasil diimpor dari Google Books.' },

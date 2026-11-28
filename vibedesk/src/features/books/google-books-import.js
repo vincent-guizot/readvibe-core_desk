@@ -18,3 +18,21 @@ export function getImportMapping(book = {}, authors = [], categories = []) {
     moodIds: [],
   };
 }
+
+export function toImportedBookPayload(book, mapping) {
+  return {
+    title: book.title,
+    description: book.description,
+    year: book.publishedYear || null,
+    page: book.pageCount || null,
+    image: book.image || null,
+    isbn: book.isbn || null,
+    googleBooksId: book.googleBooksId,
+    previewLink: book.previewLink || null,
+    embeddable: book.embeddable,
+    ...mapping,
+    stock: Number(mapping.stock),
+    authorId: Number(mapping.authorId),
+    genreId: Number(mapping.genreId),
+  };
+}
