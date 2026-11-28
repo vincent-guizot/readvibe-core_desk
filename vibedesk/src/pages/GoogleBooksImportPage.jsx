@@ -4,7 +4,7 @@ import { booksApi, googleBooksApi } from '../services/catalog-api';
 import PageHeader from '../components/shared/PageHeader';
 import BookCover from '../features/books/components/BookCover';
 import EmptyState from '../components/shared/EmptyState';
-import { findImportDuplicate } from '../features/books/google-books-import';
+import { findImportDuplicate, getImportMapping } from '../features/books/google-books-import';
 
 export default function GoogleBooksImportPage({
   authors = [],
@@ -56,24 +56,7 @@ export default function GoogleBooksImportPage({
       setDuplicate(findImportDuplicate(book, checks));
       setSelected(book);
       setConfirmed(false);
-      const author = authors.find((item) =>
-        book.authors?.some(
-          (name) =>
-            name.toLowerCase() ===
-            (item.pen_name || item.name || '').toLowerCase(),
-        ),
-      );
-      const category = categories.find((item) =>
-        book.categories?.some(
-          (name) => name.toLowerCase() === item.name.toLowerCase(),
-        ),
-      );
-      setMapping({
-        authorId: author?.id || '',
-        genreId: category?.id || '',
-        stock: 1,
-        moodIds: [],
-      });
+      setMapping(getImportMapping(book, authors, categories));
       setStep(2);
     } catch (err) {
       setError(`Pemeriksaan duplikat gagal: ${err.message}`);
