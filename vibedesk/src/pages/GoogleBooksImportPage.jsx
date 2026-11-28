@@ -4,6 +4,7 @@ import { booksApi, googleBooksApi } from '../services/catalog-api';
 import PageHeader from '../components/shared/PageHeader';
 import BookCover from '../features/books/components/BookCover';
 import EmptyState from '../components/shared/EmptyState';
+import { findImportDuplicate, getImportMapping, toImportedBookPayload } from '../features/books/google-books-import';
 
 export default function GoogleBooksImportPage({
   authors = [],
@@ -15,12 +16,7 @@ export default function GoogleBooksImportPage({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [mapping, setMapping] = useState({
-    authorId: '',
-    genreId: '',
-    stock: 1,
-    moodIds: [],
-  });
+  const [mapping, setMapping] = useState(() => getImportMapping());
   const [confirmed, setConfirmed] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -52,34 +48,10 @@ export default function GoogleBooksImportPage({
           ? [booksApi.list({ search: book.isbn, limit: 100 })]
           : []),
       ]);
-      const duplicateBook =
-        checks[0].data?.[0] ||
-        checks[1]?.data?.find(
-          (item) =>
-            item.isbn?.replace(/[-\s]/g, '') ===
-            book.isbn.replace(/[-\s]/g, ''),
-        );
-      setDuplicate(duplicateBook || null);
+      setDuplicate(findImportDuplicate(book, checks));
       setSelected(book);
       setConfirmed(false);
-      const author = authors.find((item) =>
-        book.authors?.some(
-          (name) =>
-            name.toLowerCase() ===
-            (item.pen_name || item.name || '').toLowerCase(),
-        ),
-      );
-      const category = categories.find((item) =>
-        book.categories?.some(
-          (name) => name.toLowerCase() === item.name.toLowerCase(),
-        ),
-      );
-      setMapping({
-        authorId: author?.id || '',
-        genreId: category?.id || '',
-        stock: 1,
-        moodIds: [],
-      });
+      setMapping(getImportMapping(book, authors, categories));
       setStep(2);
     } catch (err) {
       setError(`Pemeriksaan duplikat gagal: ${err.message}`);
@@ -92,21 +64,7 @@ export default function GoogleBooksImportPage({
     setBusy(true);
     setError('');
     try {
-      const { data } = await booksApi.create({
-        title: selected.title,
-        description: selected.description,
-        year: selected.publishedYear || null,
-        page: selected.pageCount || null,
-        image: selected.image || null,
-        isbn: selected.isbn || null,
-        googleBooksId: selected.googleBooksId,
-        previewLink: selected.previewLink || null,
-        embeddable: selected.embeddable,
-        ...mapping,
-        stock: Number(mapping.stock),
-        authorId: Number(mapping.authorId),
-        genreId: Number(mapping.genreId),
-      });
+      const { data } = await booksApi.create(toImportedBookPayload(selected, mapping));
       onRefresh?.();
       navigate(`/books/${data.id}`, {
         state: { message: 'Buku berhasil diimpor dari Google Books.' },
