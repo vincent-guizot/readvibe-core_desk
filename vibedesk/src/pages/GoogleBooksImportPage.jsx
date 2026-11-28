@@ -4,6 +4,7 @@ import { booksApi, googleBooksApi } from '../services/catalog-api';
 import PageHeader from '../components/shared/PageHeader';
 import BookCover from '../features/books/components/BookCover';
 import EmptyState from '../components/shared/EmptyState';
+import { findImportDuplicate } from '../features/books/google-books-import';
 
 export default function GoogleBooksImportPage({
   authors = [],
@@ -52,14 +53,7 @@ export default function GoogleBooksImportPage({
           ? [booksApi.list({ search: book.isbn, limit: 100 })]
           : []),
       ]);
-      const duplicateBook =
-        checks[0].data?.[0] ||
-        checks[1]?.data?.find(
-          (item) =>
-            item.isbn?.replace(/[-\s]/g, '') ===
-            book.isbn.replace(/[-\s]/g, ''),
-        );
-      setDuplicate(duplicateBook || null);
+      setDuplicate(findImportDuplicate(book, checks));
       setSelected(book);
       setConfirmed(false);
       const author = authors.find((item) =>
