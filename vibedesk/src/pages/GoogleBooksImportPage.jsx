@@ -16,12 +16,7 @@ export default function GoogleBooksImportPage({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [mapping, setMapping] = useState({
-    authorId: '',
-    genreId: '',
-    stock: 1,
-    moodIds: [],
-  });
+  const [mapping, setMapping] = useState(() => getImportMapping());
   const [confirmed, setConfirmed] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
